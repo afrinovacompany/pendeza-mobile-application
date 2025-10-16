@@ -1,0 +1,160 @@
+[
+  {
+    "category": "Hair Services",
+    "services": [
+      {
+        "name": "Women's Haircut & Style",
+        "description": "Includes a wash, cut, and professional blow-dry finish."
+      },
+      {
+        "name": "Men's Haircut",
+        "description": "Classic men's haircut and style, with an optional razor finish."
+      },
+      {
+        "name": "Kid's Haircut",
+        "description": "Gentle and patient haircut for children under 12."
+      },
+      {
+        "name": "Hair Coloring (Full Head)",
+        "description": "Single-process, all-over color application. Price may vary based on hair length."
+      },
+      {
+        "name": "Highlights / Lowlights",
+        "description": "Foil highlights or lowlights to add dimension to your hair."
+      },
+      {
+        "name": "Balayage / Ombré",
+        "description": "Hand-painted color for a natural, graduated effect."
+      },
+      {
+        "name": "Hair Braiding",
+        "description": "Price and duration depend on the chosen style (e.g., box braids, cornrows)."
+      },
+      {
+        "name": "Keratin Treatment",
+        "description": "A smoothing treatment to reduce frizz and enhance shine."
+      },
+      {
+        "name": "Deep Conditioning Treatment",
+        "description": "An intensive mask to restore moisture and strength to the hair."
+      }
+    ]
+  },
+  {
+    "category": "Nail Care",
+    "services": [
+      {
+        "name": "Classic Manicure",
+        "description": "Includes nail shaping, cuticle care, hand massage, and regular polish."
+      },
+      {
+        "name": "Gel Manicure",
+        "description": "A full manicure service with a long-lasting gel polish application."
+      },
+      {
+        "name": "Classic Pedicure",
+        "description": "Relaxing foot soak, nail care, exfoliation, foot massage, and regular polish."
+      },
+      {
+        "name": "Gel Pedicure",
+        "description": "A full pedicure service with a long-lasting gel polish application."
+      },
+      {
+        "name": "Acrylic Full Set",
+        "description": "Application of a full set of acrylic nail extensions."
+      },
+      {
+        "name": "Nail Art",
+        "description": "Price is per nail or for a full set, depending on complexity."
+      }
+    ]
+  },
+  {
+    "category": "Massage Therapy",
+    "services": [
+      {
+        "name": "Swedish Massage",
+        "description": "A gentle, full-body massage ideal for relaxation and relieving muscle tension."
+      },
+      {
+        "name": "Deep Tissue Massage",
+        "description": "Targets deeper layers of muscle to relieve chronic pain and tension."
+      },
+      {
+        "name": "Hot Stone Massage",
+        "description": "Uses heated stones to ease muscle stiffness and increase circulation."
+      },
+      {
+        "name": "Aromatherapy Massage",
+        "description": "Combines a gentle massage with essential oils for a holistic healing experience."
+      },
+      {
+        "name": "Sports Massage",
+        "description": "Focuses on preventing and treating injuries to enhance athletic performance."
+      }
+    ]
+  },
+  {
+    "category": "Skincare & Facials",
+    "services": [
+      {
+        "name": "Classic European Facial",
+        "description": "A deep cleansing facial including exfoliation, extraction, and a hydrating mask."
+      },
+      {
+        "name": "Anti-Aging Facial",
+        "description": "Targets fine lines and wrinkles to promote a more youthful complexion."
+      },
+      {
+        "name": "Acne Treatment Facial",
+        "description": "Designed to treat the root cause of acne and reduce inflammation."
+      },
+      {
+        "name": "Microdermabrasion",
+        "description": "A minimally invasive procedure to renew overall skin tone and texture."
+      }
+    ]
+  },
+  {
+    "category": "Hair Removal",
+    "services": [
+      {
+        "name": "Eyebrow Waxing / Threading",
+        "description": "Shaping and defining the eyebrows."
+      },
+      {
+        "name": "Full Face Wax / Threading",
+        "description": "Hair removal for the entire face."
+      },
+      {
+        "name": "Bikini Wax",
+        "description": "Removes hair from outside the panty line."
+      },
+      {
+        "name": "Brazilian Wax",
+        "description": "Removes all hair from the bikini area."
+      },
+      {
+        "name": "Full Leg Wax",
+        "description": "Hair removal from both full legs."
+      }
+    ]
+  },
+  {
+    "category": "Makeup & Beauty",
+    "services": [
+      {
+        "name": "Full Glam Makeup",
+        "description": "Professional makeup application for special events, including lashes."
+      },
+      {
+        "name": "Bridal Makeup",
+        "description": "A specialized makeup service for brides on their wedding day."
+      },
+      {
+        "name": "Eyelash Extensions (Full Set)",
+        "description": "Application of a full set of individual eyelash extensions."
+      }
+    ]
+  }
+]
