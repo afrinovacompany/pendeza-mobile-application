@@ -1,27 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../app/config/theme/app_constants.dart';
+import '../../app/config/theme/app_colors.dart';
 
-/// A custom, reusable card widget for the application.
-///
-/// This card standardizes the look and feel by using predefined decorations,
-/// shadows, and border radiuses from the app's theme. It automatically
-/// adapts its appearance for light and dark modes.
-class CustomCard extends StatelessWidget {
-  /// The content to display inside the card.
+/// Enhanced custom card with hover effects and modern styling
+class CustomCard extends StatefulWidget {
   final Widget child;
-
-  /// The callback that is called when the card is tapped.
-  /// If null, the card will not have a ripple effect.
   final VoidCallback? onTap;
-
-  /// The padding inside the card. Defaults to a medium padding (`AppConstants.padM`).
   final EdgeInsets? padding;
-
-  /// An optional gradient to override the default.
   final Gradient? gradient;
-
-  /// An optional color to override the default.
   final Color? color;
+  final double? elevation;
 
   const CustomCard({
     super.key,
@@ -30,45 +18,91 @@ class CustomCard extends StatelessWidget {
     this.padding,
     this.gradient,
     this.color,
+    this.elevation,
   });
+
+  @override
+  State<CustomCard> createState() => _CustomCardState();
+}
+
+class _CustomCardState extends State<CustomCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _hoverController;
+  bool _isHovering = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _hoverController = AnimationController(
+      vsync: this,
+      duration: AppConstants.durationFast,
+    );
+  }
+
+  @override
+  void dispose() {
+    _hoverController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
 
-    // Determine the card's decoration based on the theme and provided properties.
-    final BoxDecoration decoration = BoxDecoration(
-      gradient: gradient, // Use override gradient if provided
-      // If no gradient override, use a specific color or the theme's default card color
-      color: gradient == null ? (color ?? theme.cardTheme.color) : null,
-      borderRadius: AppConstants.radiusL, // Use large radius for cards
-      boxShadow: [
-        // Use a subtle, theme-aware shadow
-        BoxShadow(
-          color: theme.cardTheme.shadowColor ?? Colors.black.withOpacity(0.1),
-          offset: const Offset(0, 4),
-          blurRadius: 12,
-          spreadRadius: -2,
-        ),
-      ],
-    );
+    final baseColor = widget.color ?? theme.cardTheme.color ?? theme.cardColor;
+    final baseShadow = isDarkMode ? AppColors.darkShadowSm : AppColors.lightShadowSm;
 
-    return Container(
-      // Apply the decoration to the outer container.
-      decoration: decoration,
-      // Use Clip.antiAlias to ensure the child (and InkWell ripple)
-      // respects the rounded corners of the card.
-      clipBehavior: Clip.antiAlias,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          // Only enable the tap functionality if an onTap callback is provided.
-          onTap: onTap,
-          child: Padding(
-            // Use the provided padding, or default to a medium padding.
-            padding: padding ?? const EdgeInsets.all(AppConstants.padM),
+    return MouseRegion(
+      onEnter: widget.onTap != null ? (_) {
+        setState(() => _isHovering = true);
+        _hoverController.forward();
+      } : null,
+      onExit: widget.onTap != null ? (_) {
+        setState(() => _isHovering = false);
+        _hoverController.reverse();
+      } : null,
+      child: AnimatedBuilder(
+        animation: _hoverController,
+        builder: (context, child) {
+          final elevation = widget.elevation ?? (1.0 + (_hoverController.value * 4));
+
+          return AnimatedContainer(
+            duration: AppConstants.durationFast,
+            transform: Matrix4.identity()
+              ..translate(0.0, -2.0 * _hoverController.value),
+            decoration: BoxDecoration(
+              gradient: widget.gradient,
+              color: widget.gradient == null ? baseColor : null,
+              borderRadius: AppConstants.radiusL,
+              boxShadow: [
+                BoxShadow(
+                  color: (theme.cardTheme.shadowColor ?? Colors.black.withOpacity(0.1))
+                      .withOpacity(0.08 + (_hoverController.value * 0.04)),
+                  offset: Offset(0, 2 + (_hoverController.value * 4)),
+                  blurRadius: 8 + (_hoverController.value * 8),
+                  spreadRadius: -2,
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
             child: child,
+          );
+        },
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onTap,
+            splashColor: widget.onTap != null
+                ? theme.colorScheme.primary.withOpacity(0.1)
+                : Colors.transparent,
+            highlightColor: widget.onTap != null
+                ? theme.colorScheme.primary.withOpacity(0.05)
+                : Colors.transparent,
+            child: Padding(
+              padding: widget.padding ?? const EdgeInsets.all(AppConstants.padM),
+              child: widget.child,
+            ),
           ),
         ),
       ),

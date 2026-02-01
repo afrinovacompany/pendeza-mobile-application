@@ -16,15 +16,17 @@ pluginManagement {
     }
 }
 
-
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "8.7.0" apply false
-    // START: FlutterFire Configuration
-    id("com.google.gms.google-services") version("4.3.15") apply false
-    // END: FlutterFire Configuration
-    // KOTLIN VERSION UPDATED TO 2.2.0 TO MEET NEW REQUIREMENT (was 2.0.0)
-    id("org.jetbrains.kotlin.android") version "2.2.0" apply false
+
+    // ✅ STANDARDIZED: Downgraded to 8.11.1 to match AlphaBet Gold Standard
+    id("com.android.application") version "8.13.2" apply false
+
+    // Preserved existing Google Services version
+    id("com.google.gms.google-services") version "4.4.4" apply false
+
+    // ✅ STANDARDIZED: Set to 2.2.21 to match AlphaBet Gold Standard
+    id("org.jetbrains.kotlin.android") version "2.3.0" apply false
 }
 
 include(":app")

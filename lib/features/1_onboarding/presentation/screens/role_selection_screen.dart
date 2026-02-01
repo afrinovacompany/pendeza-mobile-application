@@ -1,19 +1,13 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
-// --- Adjust these import paths to match your project structure ---
-import '../../../../app/config/theme/app_constants.dart';
-import '../../../../shared/widgets/custom_card.dart';
-
-
-
-
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../app/config/theme/app_constants.dart';
 import '../../../0_auth/presentation/bloc/auth_bloc.dart';
 import '../../../0_auth/presentation/bloc/auth_event.dart';
 import '../../../0_auth/presentation/bloc/auth_state.dart';
+import '../widgets/role_card.dart'; // Import the new RoleCard widget
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -24,11 +18,11 @@ class RoleSelectionScreen extends StatelessWidget {
 
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        // Show a loading indicator in the center of the screen
-        // when the role is being updated.
         final isLoading = state is AuthLoading;
 
         return Scaffold(
+          // Use scaffold background color for consistency
+          backgroundColor: theme.scaffoldBackgroundColor,
           body: Stack(
             children: [
               SafeArea(
@@ -38,31 +32,38 @@ class RoleSelectionScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // --- Header Text ---
+                      // Header Text
+                      // Key: "auth.role.title"
                       Text(
-                        'How will you use the app?',
+                        'auth.role.title'.tr(),
                         textAlign: TextAlign.center,
-                        style: theme.textTheme.displayMedium,
+                        // Use consistent headline style
+                        style: theme.textTheme.displaySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: AppConstants.padS),
+                      // Key: "auth.role.subtitle"
                       Text(
-                        'Choose your role to get a personalized experience.',
+                        'auth.role.subtitle'.tr(),
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurface.withAlpha(178),
+                          // Consistent secondary text color
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
                         ),
                       ),
                       const SizedBox(height: AppConstants.padXXL),
 
-                      // --- "I'm a Client" Card ---
-                      _buildRoleCard(
-                        context: context,
-                        icon: CupertinoIcons.person_2,
-                        title: 'I\'m a Client',
-                        subtitle: 'Find and book salon services near you.',
-                        // Dispatch the event with the 'client' role.
-                        // Disable the button while loading.
-                        onTap: isLoading ? null : () {
+                      // "I'm a Client" Card - Using the new RoleCard widget
+                      RoleCard(
+                        icon: CupertinoIcons.person_2_fill, // Use filled icon
+                        // Key: "auth.role.client_title"
+                        title: 'auth.role.client_title'.tr(),
+                        // Key: "auth.role.client_desc"
+                        subtitle: 'auth.role.client_desc'.tr(),
+                        onTap: isLoading
+                            ? null
+                            : () {
                           context
                               .read<AuthBloc>()
                               .add(const UpdateUserRoleRequested('client'));
@@ -70,15 +71,16 @@ class RoleSelectionScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: AppConstants.padL),
 
-                      // --- "I'm a Salon Owner" Card ---
-                      _buildRoleCard(
-                        context: context,
+                      // "I'm a Salon Owner" Card - Using the new RoleCard widget
+                      RoleCard(
                         icon: CupertinoIcons.building_2_fill,
-                        title: 'I\'m a Salon Owner',
-                        subtitle: 'Manage your business and appointments.',
-                        // Dispatch the event with the 'owner' role.
-                        // Disable the button while loading.
-                        onTap: isLoading ? null : () {
+                        // Key: "auth.role.owner_title"
+                        title: 'auth.role.owner_title'.tr(),
+                        // Key: "auth.role.owner_desc"
+                        subtitle: 'auth.role.owner_desc'.tr(),
+                        onTap: isLoading
+                            ? null
+                            : () {
                           context
                               .read<AuthBloc>()
                               .add(const UpdateUserRoleRequested('owner'));
@@ -88,12 +90,16 @@ class RoleSelectionScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              // --- Loading Overlay ---
+              // Loading Overlay
               if (isLoading)
                 Container(
-                  color: Colors.black.withOpacity(0.5),
-                  child: const Center(
-                    child: CircularProgressIndicator(),
+                  // Use scaffold background with opacity for overlay
+                  color: theme.scaffoldBackgroundColor.withOpacity(0.7),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                          theme.colorScheme.primary),
+                    ),
                   ),
                 ),
             ],
@@ -103,46 +109,5 @@ class RoleSelectionScreen extends StatelessWidget {
     );
   }
 
-  /// A helper widget to build a consistent card for role selection.
-  Widget _buildRoleCard({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback? onTap,
-  }) {
-    final theme = Theme.of(context);
-    return CustomCard(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.padM),
-        child: Row(
-          children: [
-            Icon(icon, size: 40, color: theme.colorScheme.primary),
-            const SizedBox(width: AppConstants.padL),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: AppConstants.padXXS),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withAlpha(178),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
+// _buildRoleCard method removed as it's now in RoleCard widget
 }
-

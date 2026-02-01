@@ -81,9 +81,10 @@ class AppColors {
   );
 
   // SHADOWS - Better depth
+  // FIXED: Replaced .withOpacity() with .withAlpha()
   static List<BoxShadow> get lightShadowSm => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.04),
+      color: Colors.black.withAlpha(10), // 0.04
       offset: const Offset(0, 1),
       blurRadius: 3,
     ),
@@ -91,7 +92,7 @@ class AppColors {
 
   static List<BoxShadow> get lightShadowMd => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.08),
+      color: Colors.black.withAlpha(20), // 0.08
       offset: const Offset(0, 4),
       blurRadius: 12,
       spreadRadius: -2,
@@ -100,7 +101,7 @@ class AppColors {
 
   static List<BoxShadow> get lightShadowLg => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.12),
+      color: Colors.black.withAlpha(31), // 0.12
       offset: const Offset(0, 8),
       blurRadius: 24,
       spreadRadius: -4,
@@ -109,7 +110,7 @@ class AppColors {
 
   static List<BoxShadow> get darkShadowSm => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.3),
+      color: Colors.black.withAlpha(77), // 0.3
       offset: const Offset(0, 2),
       blurRadius: 8,
     ),
@@ -117,7 +118,7 @@ class AppColors {
 
   static List<BoxShadow> get darkShadowMd => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.4),
+      color: Colors.black.withAlpha(102), // 0.4
       offset: const Offset(0, 4),
       blurRadius: 16,
       spreadRadius: -2,
@@ -126,7 +127,7 @@ class AppColors {
 
   static List<BoxShadow> get darkShadowLg => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.5),
+      color: Colors.black.withAlpha(128), // 0.5
       offset: const Offset(0, 8),
       blurRadius: 32,
       spreadRadius: -4,

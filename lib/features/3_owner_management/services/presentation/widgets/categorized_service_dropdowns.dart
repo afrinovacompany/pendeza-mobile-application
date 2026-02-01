@@ -57,7 +57,7 @@ class _CategorizedServiceDropdownsState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         DropdownButtonFormField<ServiceCategory>(
-          value: _selectedCategory,
+          initialValue: _selectedCategory,
           isExpanded: true,
           hint: const Text('Select a Category'),
           decoration: const InputDecoration(labelText: 'Service Category'),
@@ -81,7 +81,7 @@ class _CategorizedServiceDropdownsState
         ),
         const SizedBox(height: AppConstants.padL),
         DropdownButtonFormField<ServiceDefinition>(
-          value: _selectedService,
+          initialValue: _selectedService,
           isExpanded: true,
           hint: const Text('Select a Service'),
           decoration: const InputDecoration(labelText: 'Service Name'),

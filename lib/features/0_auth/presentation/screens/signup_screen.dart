@@ -1,20 +1,19 @@
-
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-// --- Adjust these import paths to match your project structure ---
 import '../../../../app/config/theme/app_constants.dart';
+import '../../../../app/widgets/adaptive/adaptive_app_bar.dart';
+import '../../../../app/widgets/adaptive/adaptive_dialog.dart';
 import '../../../../shared/widgets/primary_gradient_button.dart';
 import '../../../../app/config/app_router.dart';
 import '../../../../app/utils/validators.dart';
 import '../../../../shared/widgets/text_form_field.dart';
-// Import our BLoC
-
-
-
-import '../../../../app/services/service_locator.dart';
-import '../../domain/repositories/auth_repository.dart';
+import '../bloc/auth_bloc.dart';
+import '../bloc/auth_event.dart';
+import '../bloc/auth_state.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -32,7 +31,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   bool _isPasswordObscured = true;
   bool _isConfirmPasswordObscured = true;
-  bool _isLoading = false; // Local loading state
+
+  // 🔥 NEW: Track field interactions
+  bool _nameTouched = false;
+  bool _emailTouched = false;
+  bool _passwordTouched = false;
+  bool _confirmPasswordTouched = false;
 
   @override
   void dispose() {
@@ -43,36 +47,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  // Helper method to show a snackbar
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Theme.of(context).colorScheme.error,
-      ),
+    showAdaptiveSnackBar(
+      context: context,
+      message: message,
+      isError: true,
     );
   }
 
-  /// NEW: Sign-up method now calls the repository directly.
+  // 🔥 NEW: Use BLoC event instead of direct repository call
   Future<void> _signUp() async {
+    setState(() {
+      _nameTouched = true;
+      _emailTouched = true;
+      _passwordTouched = true;
+      _confirmPasswordTouched = true;
+    });
+
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    setState(() => _isLoading = true);
-    try {
-      // Call the repository directly
-      await sl<AuthRepository>().signUpWithEmailAndPassword(
-        fullName: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      // On success, the AuthBloc listener in the router will handle navigation.
-    } catch (e) {
-      _showErrorSnackBar(e.toString());
-    }
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
+    // Dispatch event to BLoC
+    context.read<AuthBloc>().add(SignUpRequested(
+      fullName: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    ));
   }
 
   @override
@@ -83,118 +83,194 @@ class _SignUpScreenState extends State<SignUpScreen> {
     SystemChrome.setSystemUIOverlayStyle(
         isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark);
 
-    // No BlocListener needed here anymore for auth state changes.
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: BackButton(
-          color: theme.colorScheme.onSurface,
-          onPressed: _isLoading ? null : () => context.pop(),
-        ),
-      ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is RoleSelectionRequired) {
+          context.go(AppRoutes.roleSelection);
+        } else if (state is Authenticated) {
+          context.go(AppRoutes.clientHome);
+        } else if (state is AuthError) {
+          _showErrorSnackBar(state.message);
+        }
+      },
+      child: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, state) {
+          final isLoading = state is AuthLoading;
+
+          return Scaffold(
+            appBar: AdaptiveAppBar(
+              title: '',
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: AdaptiveBackButton(
+                color: theme.colorScheme.onSurface,
+                onPressed: isLoading ? null : () => context.pop(),
+              ),
+            ),
+            body: SafeArea(
+              child: Stack(
                 children: [
-                  Text('Create Account',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.displayMedium),
-                  Text('Let\'s get you started!',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurface.withAlpha(178))),
-                  const SizedBox(height: AppConstants.padXL),
+                  Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
+                      child: Form(
+                        key: _formKey,
+                        // 🔥 NEW: Enable auto-validation after first interaction
+                        autovalidateMode: (_nameTouched || _emailTouched ||
+                            _passwordTouched || _confirmPasswordTouched)
+                            ? AutovalidateMode.onUserInteraction
+                            : AutovalidateMode.disabled,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text('auth.signup.title'.tr(),
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.displayMedium),
+                            Text('Let\'s get you started!',
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                    color: theme.colorScheme.onSurface.withAlpha(178))),
+                            const SizedBox(height: AppConstants.padXL),
 
-                  CustomTextFormField(
-                    controller: _nameController,
-                    labelText: 'Full Name',
-                    hintText: 'Enter your full name',
-                    validator: AppValidators.notEmpty,
-                    enabled: !_isLoading,
-                  ),
-                  const SizedBox(height: AppConstants.padL),
+                            CustomTextFormField(
+                              controller: _nameController,
+                              labelText: 'auth.signup.name_label'.tr(),
+                              hintText: 'auth.signup.name_hint'.tr(),
+                              validator: AppValidators.notEmpty,
+                              enabled: !isLoading,
+                              // 🔥 NEW: Real-time validation
+                              onChanged: (value) {
+                                if (_nameTouched) {
+                                  _formKey.currentState?.validate();
+                                }
+                              },
+                            ),
+                            const SizedBox(height: AppConstants.padL),
 
-                  CustomTextFormField(
-                    controller: _emailController,
-                    labelText: 'Email Address',
-                    hintText: 'you@example.com',
-                    keyboardType: TextInputType.emailAddress,
-                    validator: AppValidators.email,
-                    enabled: !_isLoading,
-                  ),
-                  const SizedBox(height: AppConstants.padL),
+                            CustomTextFormField(
+                              controller: _emailController,
+                              labelText: 'auth.signup.email_label'.tr(),
+                              hintText: 'common.email_hint'.tr(),
+                              keyboardType: TextInputType.emailAddress,
+                              validator: AppValidators.email,
+                              enabled: !isLoading,
+                              // 🔥 NEW: Real-time validation
+                              onChanged: (value) {
+                                if (_emailTouched) {
+                                  _formKey.currentState?.validate();
+                                }
+                              },
+                            ),
+                            const SizedBox(height: AppConstants.padL),
 
-                  CustomTextFormField(
-                    controller: _passwordController,
-                    labelText: 'Password',
-                    obscureText: _isPasswordObscured,
-                    validator: AppValidators.password,
-                    enabled: !_isLoading,
-                    suffixIcon: IconButton(
-                      icon: Icon(_isPasswordObscured
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined),
-                      onPressed: () =>
-                          setState(() => _isPasswordObscured = !_isPasswordObscured),
-                    ),
-                  ),
-                  const SizedBox(height: AppConstants.padL),
+                            CustomTextFormField(
+                              controller: _passwordController,
+                              labelText: 'auth.signup.password_label'.tr(),
+                              obscureText: _isPasswordObscured,
+                              validator: AppValidators.password,
+                              enabled: !isLoading,
+                              // 🔥 NEW: Real-time validation
+                              onChanged: (value) {
+                                if (_passwordTouched) {
+                                  _formKey.currentState?.validate();
+                                }
+                                // Also re-validate confirm password if it was touched
+                                if (_confirmPasswordTouched && _confirmPasswordController.text.isNotEmpty) {
+                                  _formKey.currentState?.validate();
+                                }
+                              },
+                              suffixIcon: IconButton(
+                                icon: Icon(_isPasswordObscured
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined),
+                                onPressed: () =>
+                                    setState(() => _isPasswordObscured = !_isPasswordObscured),
+                              ),
+                            ),
+                            const SizedBox(height: AppConstants.padL),
 
-                  CustomTextFormField(
-                    controller: _confirmPasswordController,
-                    labelText: 'Confirm Password',
-                    obscureText: _isConfirmPasswordObscured,
-                    enabled: !_isLoading,
-                    validator: (value) => AppValidators.valuesMatch(
-                        value, _passwordController.text,
-                        message: 'Passwords do not match'),
-                    suffixIcon: IconButton(
-                      icon: Icon(_isConfirmPasswordObscured
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined),
-                      onPressed: () => setState(() =>
-                      _isConfirmPasswordObscured = !_isConfirmPasswordObscured),
-                    ),
-                  ),
-                  const SizedBox(height: AppConstants.padXL),
+                            CustomTextFormField(
+                              controller: _confirmPasswordController,
+                              labelText: 'auth.signup.confirm_password_label'.tr(),
+                              obscureText: _isConfirmPasswordObscured,
+                              enabled: !isLoading,
+                              validator: (value) => AppValidators.valuesMatch(
+                                  value, _passwordController.text,
+                                  message: 'Passwords do not match'),
+                              // 🔥 NEW: Real-time validation
+                              onChanged: (value) {
+                                if (_confirmPasswordTouched) {
+                                  _formKey.currentState?.validate();
+                                }
+                              },
+                              suffixIcon: IconButton(
+                                icon: Icon(_isConfirmPasswordObscured
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined),
+                                onPressed: () => setState(() =>
+                                _isConfirmPasswordObscured = !_isConfirmPasswordObscured),
+                              ),
+                            ),
+                            const SizedBox(height: AppConstants.padXL),
 
-                  PrimaryGradientButton(
-                    text: 'CREATE ACCOUNT',
-                    onPressed: _isLoading ? null : _signUp,
-                    isLoading: _isLoading,
-                  ),
-                  const SizedBox(height: AppConstants.padM),
+                            PrimaryGradientButton(
+                              text: 'auth.signup.button'.tr(),
+                              onPressed: isLoading ? null : _signUp,
+                              isLoading: isLoading,
+                            ),
+                            const SizedBox(height: AppConstants.padM),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text("Already have an account?",
-                          style: theme.textTheme.bodyMedium),
-                      TextButton(
-                        onPressed: _isLoading ? null : () => context.go(AppRoutes.login),
-                        child: Text('Sign In',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.primary)),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text("auth.signup.have_account".tr(),
+                                    style: theme.textTheme.bodyMedium),
+                                TextButton(
+                                  onPressed: isLoading ? null : () => context.go(AppRoutes.login),
+                                  child: Text('auth.signup.signin_link'.tr(),
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: theme.colorScheme.primary)),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
+                    ),
                   ),
+
+                  // 🔥 IMPROVED: Better loading overlay
+                  if (isLoading)
+                    Container(
+                      color: Colors.black26,
+                      child: Center(
+                        child: Card(
+                          elevation: 8,
+                          child: Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const CircularProgressIndicator(),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Creating your account...',
+                                  style: theme.textTheme.titleMedium,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 }
-
-
-

@@ -3,17 +3,28 @@ import '../utils/logger.dart'; // Assumed to exist for logging
 import 'package:google_sign_in/google_sign_in.dart';
 
 /// A service class to handle all Firebase Authentication operations.
-///
-/// This class abstracts the `FirebaseAuth` calls into a clean, reusable service
-/// that can be injected and used throughout the application.
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  // Initialize GoogleSignIn. For simplicity in a Firebase app, we don't need
-  // to pass clientId or serverClientId here unless strictly necessary for web/server-side code.
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  // FIX 1: Use the singleton instance instead of the constructor
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+
+  // Track initialization status to avoid calling initialize() multiple times
+  bool _isGoogleSignInInitialized = false;
 
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
   User? get currentUser => _firebaseAuth.currentUser;
+
+  /// Helper to ensure Google Sign-In is initialized (Required in v7)
+  Future<void> _ensureGoogleSignInInitialized() async {
+    if (_isGoogleSignInInitialized) return;
+    try {
+      await _googleSignIn.initialize();
+      _isGoogleSignInInitialized = true;
+    } catch (e) {
+      log.e('Failed to initialize Google Sign-In', error: e);
+    }
+  }
 
   /// Signs up a new user with an email and password.
   Future<UserCredential?> signUpWithEmailAndPassword({
@@ -69,22 +80,23 @@ class AuthService {
 
   /// Signs in a user with their Google account and signs them into Firebase.
   Future<UserCredential?> signInWithGoogle() async {
-    try {
-      // 1. Trigger the Google Sign-In flow.
-      // This is the simplest method for Firebase integration.
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    // FIX 2: Ensure initialization is called before use
+    await _ensureGoogleSignInInitialized();
 
-      if (googleUser == null) {
-        log.i('Google sign in cancelled by user.');
-        return null; // The user canceled the sign-in
-      }
+    try {
+      // FIX 3: Use authenticate() instead of signIn()
+      // Note: In v7, this throws an exception if cancelled or failed,
+      // instead of returning null.
+      final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
 
       // 2. Obtain the Google Authentication details (tokens)
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
-      // 3. Create a new credential for Firebase using the tokens
+      // FIX 4: Remove accessToken.
+      // v7 separates Authorization (accessToken) from Authentication (idToken).
+      // For Firebase Auth, the idToken is sufficient to prove identity.
       final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
+        accessToken: null, // explicitly null as it's not available or needed for basic auth
         idToken: googleAuth.idToken,
       );
 
@@ -97,36 +109,46 @@ class AuthService {
       log.e('FirebaseAuth error during Google sign in.', error: e, stackTrace: s);
       return null;
     } catch (e, s) {
+      // Detect cancellation if it comes as a specific error (platform dependent),
+      // otherwise just log it.
       log.e('An error occurred during Google sign in.', error: e, stackTrace: s);
-      // For web, sometimes the sign-in is handled differently, or specific errors occur.
-      // You might add platform-specific handling here if needed.
       return null;
     }
   }
 
   /// Initiates phone number verification and sends an OTP.
-  ///
-  /// This method uses callbacks to communicate the result back to the UI layer,
-  /// which is responsible for handling navigation and showing messages.
   Future<void> signInWithPhone({
     required String phoneNumber,
-    required void Function(PhoneAuthCredential) verificationCompleted,
-    required void Function(FirebaseAuthException) verificationFailed,
     required void Function(String, int?) codeSent,
+    required void Function(FirebaseAuthException) verificationFailed,
+    required void Function(PhoneAuthCredential) verificationCompleted,
     required void Function(String) codeAutoRetrievalTimeout,
   }) async {
-    try {
-      await _firebaseAuth.verifyPhoneNumber(
-        phoneNumber: phoneNumber,
-        verificationCompleted: verificationCompleted,
-        verificationFailed: verificationFailed,
-        codeSent: codeSent,
-        codeAutoRetrievalTimeout: codeAutoRetrievalTimeout,
-      );
-      log.i('OTP code sent to $phoneNumber');
-    } catch (e, s) {
-      log.e('Error during phone number verification.', error: e, stackTrace: s);
-    }
+    await _firebaseAuth.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      timeout: const Duration(seconds: 120), // Give more time
+
+      // 🔥 CRITICAL: This prevents the web redirect issue
+      verificationCompleted: (credential) async {
+        log.i("Phone verification auto-completed");
+        verificationCompleted(credential);
+      },
+
+      verificationFailed: (e) {
+        log.e("Phone verification failed: ${e.code} - ${e.message}");
+        verificationFailed(e);
+      },
+
+      codeSent: (String verificationId, int? resendToken) {
+        log.i("SMS code sent successfully");
+        codeSent(verificationId, resendToken);
+      },
+
+      codeAutoRetrievalTimeout: (String verificationId) {
+        log.i("Auto retrieval timeout");
+        codeAutoRetrievalTimeout(verificationId);
+      },
+    );
   }
 
   /// Verifies the OTP code sent to the user's phone and signs them in.
@@ -166,6 +188,7 @@ class AuthService {
   /// Signs out the current user and disconnects Google Sign-In session.
   Future<void> signOut() async {
     try {
+      await _ensureGoogleSignInInitialized();
       // Also sign out from Google to allow account switching next time.
       await _googleSignIn.signOut();
       await _firebaseAuth.signOut();

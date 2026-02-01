@@ -26,6 +26,7 @@ class PermissionService {
 
     if (status.isPermanentlyDenied) {
       // If permission is permanently denied, open app settings
+      // This call is correct because the entire package is imported above.
       await openAppSettings();
       return false;
     }

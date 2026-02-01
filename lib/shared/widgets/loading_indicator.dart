@@ -1,26 +1,13 @@
+
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../app/config/theme/app_constants.dart';
 
-
-
-/// A reusable shimmer effect placeholder widget.
-///
-/// This widget is used to create skeleton screens or content placeholders
-/// while data is being fetched. It automatically adapts its colors for
-/// light and dark themes.
+/// Enhanced shimmer placeholder with better animations
 class ShimmerPlaceholder extends StatelessWidget {
-  /// The width of the placeholder.
   final double width;
-
-  /// The height of the placeholder.
   final double height;
-
-  /// The shape of the placeholder. Defaults to a rounded rectangle.
   final BoxShape shape;
-
-  /// The border radius for the placeholder. Defaults to a medium radius.
-  /// This is only used if the shape is a rectangle.
   final BorderRadius? borderRadius;
 
   const ShimmerPlaceholder({
@@ -31,18 +18,14 @@ class ShimmerPlaceholder extends StatelessWidget {
     this.borderRadius,
   });
 
-  /// A constructor for creating a rectangular placeholder for a line of text.
-  /// Note: This constructor is not 'const' because it uses a non-constant
-  /// default value for `borderRadius` from AppConstants.
   const ShimmerPlaceholder.line({
     super.key,
     required this.width,
-    this.height = 16.0, // Default height for a line of text
-    this.shape = BoxShape.rectangle, this.borderRadius,
-
+    this.height = 16.0,
+    this.shape = BoxShape.rectangle,
+    this.borderRadius,
   });
 
-  /// A constructor for creating a circular placeholder (e.g., for an avatar).
   const ShimmerPlaceholder.circle({
     super.key,
     required double size,
@@ -51,30 +34,134 @@ class ShimmerPlaceholder extends StatelessWidget {
         shape = BoxShape.circle,
         borderRadius = null;
 
+  const ShimmerPlaceholder.rectangular({
+    super.key,
+    required this.height,
+    this.width = double.infinity,
+    this.shape = BoxShape.rectangle,
+    this.borderRadius,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // Define theme-aware colors for the shimmer effect.
-    final baseColor = isDarkMode ? Colors.grey[850]! : Colors.grey[300]!;
-    final highlightColor = isDarkMode ? Colors.grey[700]! : Colors.grey[100]!;
+    final baseColor = isDarkMode
+        ? Colors.grey[850]!
+        : Colors.grey[300]!;
+    final highlightColor = isDarkMode
+        ? Colors.grey[700]!
+        : Colors.grey[100]!;
 
-    return Shimmer.fromColors(
-      baseColor: baseColor,
-      highlightColor: highlightColor,
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: baseColor, // The shimmer needs a solid background color
-          shape: shape,
-          borderRadius: (shape == BoxShape.rectangle)
-              ? (borderRadius ?? AppConstants.radiusM)
-              : null,
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 400),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: child,
+        );
+      },
+      child: Shimmer.fromColors(
+        baseColor: baseColor,
+        highlightColor: highlightColor,
+        period: const Duration(milliseconds: 1200),
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: baseColor,
+            shape: shape,
+            borderRadius: (shape == BoxShape.rectangle)
+                ? (borderRadius ?? AppConstants.radiusM)
+                : null,
+          ),
         ),
       ),
     );
   }
 }
 
+/// Enhanced loading skeleton for cards
+class ShimmerCard extends StatelessWidget {
+  final double? height;
+
+  const ShimmerCard({super.key, this.height});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height ?? 100,
+      margin: const EdgeInsets.only(bottom: AppConstants.padM),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: AppConstants.radiusL,
+      ),
+      padding: const EdgeInsets.all(AppConstants.padM),
+      child: Row(
+        children: [
+          const ShimmerPlaceholder.circle(size: 48),
+          const SizedBox(width: AppConstants.padL),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ShimmerPlaceholder.line(
+                  width: double.infinity,
+                  height: 16,
+                  borderRadius: AppConstants.radiusS,
+                ),
+                const SizedBox(height: AppConstants.padS),
+                ShimmerPlaceholder.line(
+                  width: 120,
+                  height: 14,
+                  borderRadius: AppConstants.radiusS,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Enhanced loading skeleton for list items
+class ShimmerListTile extends StatelessWidget {
+  const ShimmerListTile({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppConstants.padL,
+        vertical: AppConstants.padS,
+      ),
+      child: Row(
+        children: [
+          const ShimmerPlaceholder.circle(size: 40),
+          const SizedBox(width: AppConstants.padM),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShimmerPlaceholder.line(
+                  width: double.infinity,
+                  height: 14,
+                  borderRadius: AppConstants.radiusS,
+                ),
+                const SizedBox(height: AppConstants.padXS),
+                ShimmerPlaceholder.line(
+                  width: 100,
+                  height: 12,
+                  borderRadius: AppConstants.radiusS,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

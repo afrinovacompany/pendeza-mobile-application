@@ -3,24 +3,14 @@ import '../../app/config/theme/app_colors.dart';
 import '../../app/config/theme/app_constants.dart';
 import '../../app/config/theme/app_text_styles.dart';
 
-/// A custom primary button for the application that uses the predefined
-/// gradient and shadow styles.
-///
-/// This button is highly reusable and should be used for all primary
-/// actions, such as "Login", "Sign Up", or "Confirm Booking".
-class PrimaryGradientButton extends StatelessWidget {
-  /// The callback that is called when the button is tapped.
+/// Enhanced primary button with modern "Aura" effect
+class PrimaryGradientButton extends StatefulWidget {
   final VoidCallback? onPressed;
-
-  /// The text to display inside the button.
   final String text;
-
-  /// An optional icon to display to the left of the text.
   final IconData? iconData;
-
-  /// A boolean to indicate if the button is in a loading state.
-  /// When true, it shows a CircularProgressIndicator instead of the text.
   final bool isLoading;
+  final double? height;
+  final EdgeInsetsGeometry? padding;
 
   const PrimaryGradientButton({
     super.key,
@@ -28,76 +18,135 @@ class PrimaryGradientButton extends StatelessWidget {
     required this.text,
     this.iconData,
     this.isLoading = false,
+    this.height,
+    this.padding,
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Determine if the button is enabled. A null onPressed callback
-    // or isLoading state means the button is disabled.
-    final bool isEnabled = onPressed != null && !isLoading;
+  State<PrimaryGradientButton> createState() => _PrimaryGradientButtonState();
+}
 
-    return Container(
-      // We use the predefined buttonDecoration from AppColors.
-      // This ensures all primary buttons have the same gradient, shadow, and radius.
-      decoration: isEnabled
-          ? AppColors.buttonDecoration
-          : AppColors.buttonDecoration.copyWith(
-        gradient: LinearGradient(
-          colors: [Colors.grey.shade400, Colors.grey.shade500],
-        ),
-        boxShadow: const [], // No shadow for disabled state
-      ),
-      child: Material(
-        // Material widget is used to provide the ripple effect on tap.
-        color: Colors.transparent,
-        child: InkWell(
-          // Only enable the tap functionality if the button is enabled.
-          onTap: isEnabled ? onPressed : null,
-          borderRadius: AppConstants.radiusM,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppConstants.padM,
-              horizontal: AppConstants.padL,
-            ),
-            child: Center(
-              // If in loading state, show a spinner. Otherwise, show the text/icon.
-              child: isLoading
-                  ? const SizedBox(
-                height: 24, // Consistent height for the spinner
-                width: 24,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
+class _PrimaryGradientButtonState extends State<PrimaryGradientButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _glowController;
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _glowController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isEnabled = widget.onPressed != null && !widget.isLoading;
+    final theme = Theme.of(context);
+
+    return GestureDetector(
+      onTapDown: isEnabled ? (_) => setState(() => _isPressed = true) : null,
+      onTapUp: isEnabled ? (_) => setState(() => _isPressed = false) : null,
+      onTapCancel: isEnabled ? () => setState(() => _isPressed = false) : null,
+      child: AnimatedBuilder(
+        animation: _glowController,
+        builder: (context, child) {
+          final glowIntensity = isEnabled ? _glowController.value : 0.0;
+
+          return AnimatedContainer(
+            duration: AppConstants.durationFast,
+            height: widget.height ?? 50,
+            decoration: BoxDecoration(
+              gradient: isEnabled
+                  ? const LinearGradient(
+                colors: [AppColors.primary, AppColors.primaryDark],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               )
-                  : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                // **FIX: Wrap the Text widget in Expanded to prevent horizontal overflow**
-                children: [
-                  if (iconData != null) ...[
-                    Icon(
-                      iconData,
-                      color: Colors.white,
-                      size: AppConstants.iconSizeM,
-                    ),
-                    const SizedBox(width: AppConstants.padXS),
-                  ],
-                  // Use Flexible instead of Expanded here to allow the Row to shrink
-                  // while still applying constraints to the text, which is the actual issue.
-                  // For a button, Flexible combined with text alignment gives the best result
-                  // when the button itself is constrained (like in the floating footer).
-                  Flexible(
-                    child: Text(
-                      text,
-                      textAlign: TextAlign.center, // Center the text if space is tight
-                      style: AppTextStyles.button.copyWith(color: Colors.white),
-                    ),
-                  ),
+                  : LinearGradient(
+                colors: [
+                  theme.disabledColor.withOpacity(0.3),
+                  theme.disabledColor.withOpacity(0.2),
                 ],
               ),
+              borderRadius: BorderRadius.circular(AppConstants.radiusValM),
+              boxShadow: isEnabled
+                  ? [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.3 + (glowIntensity * 0.2)),
+                  blurRadius: 12 + (glowIntensity * 8),
+                  offset: const Offset(0, 4),
+                  spreadRadius: glowIntensity * 2,
+                ),
+              ]
+                  : [],
             ),
-          ),
-        ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: isEnabled ? widget.onPressed : null,
+                borderRadius: BorderRadius.circular(AppConstants.radiusValM),
+                child: AnimatedScale(
+                  scale: _isPressed ? 0.96 : 1.0,
+                  duration: AppConstants.durationFast,
+                  child: Container(
+                    padding: widget.padding ??
+                        const EdgeInsets.symmetric(
+                          vertical: AppConstants.padS,
+                          horizontal: AppConstants.padL,
+                        ),
+                    child: widget.isLoading
+                        ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      ),
+                    )
+                        : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (widget.iconData != null) ...[
+                          Icon(
+                            widget.iconData,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(width: AppConstants.padXS),
+                        ],
+                        Flexible(
+                          child: Text(
+                            widget.text,
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.button.copyWith(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

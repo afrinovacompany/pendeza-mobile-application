@@ -34,18 +34,20 @@ class EmptyStateWidget extends StatelessWidget {
   /// A specific constructor for a generic "Not Found" state.
   const EmptyStateWidget.notFound({
     super.key,
+    IconData? iconData, // FIX: Added optional iconData parameter
     required this.message,
     this.onActionPressed,
     this.actionText,
-  })  : iconData = Icons.search_off_rounded,
+  })  : iconData = iconData ?? Icons.search_off_rounded, // Use provided icon or default
         title = 'Nothing Found';
 
   /// A specific constructor for a generic "Error" state.
   const EmptyStateWidget.error({
     super.key,
+    IconData? iconData, // FIX: Added optional iconData parameter
     required this.message,
     this.onActionPressed,
-  })  : iconData = Icons.error_outline_rounded,
+  })  : iconData = iconData ?? Icons.error_outline_rounded, // Use provided icon or default
         title = 'An Error Occurred',
         actionText = 'Try Again';
 
@@ -63,7 +65,8 @@ class EmptyStateWidget extends StatelessWidget {
             Icon(
               iconData,
               size: 80,
-              color: theme.colorScheme.primary.withOpacity(0.6),
+              // FIX: Replaced withOpacity(0.6) with withAlpha(153)
+              color: theme.colorScheme.primary.withAlpha(153), // 0.6 * 255
             ),
             const SizedBox(height: AppConstants.padL),
             Text(
@@ -76,7 +79,8 @@ class EmptyStateWidget extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                // FIX: Replaced withOpacity(0.7) with withAlpha(179)
+                color: theme.textTheme.bodyMedium?.color?.withAlpha(179), // 0.7 * 255
               ),
             ),
             if (actionText != null) ...[

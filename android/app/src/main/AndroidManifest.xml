@@ -1,42 +1,72 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.bps.pendeza">
+    package="com.bps.pendeza">
 
     <!-- Example permissions -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
 
     <application
-            android:label="pendeza"
-            android:name="${applicationName}"
-            android:icon="@mipmap/ic_launcher">
+        android:label="pendeza"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher">
 
         <activity
-                android:name="com.bps.pendeza.MainActivity"
-                android:exported="true"
-                android:launchMode="singleTop"
-                android:taskAffinity=""
-                android:theme="@style/LaunchTheme"
-                android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
-                android:hardwareAccelerated="true"
-                android:windowSoftInputMode="adjustResize">
+            android:name="com.bps.pendeza.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
 
             <meta-data
-                    android:name="io.flutter.embedding.android.NormalTheme"
-                    android:resource="@style/NormalTheme"
-            />
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme"
+                />
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+            <!-- 🔥 FIREBASE AUTH SPECIFIC - Keep your deep link filter -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- Your app deep links (for sharing salons) -->
+                <data android:scheme="https" />
+                <data android:host="bpsa-8bde0.web.app" />
+                <data android:scheme="https" />
+                <data android:host="bpsa-8bde0.firebaseapp.com" />
+            </intent-filter>
+
+            <!-- 🔥 ADD THIS NEW ONE - Custom scheme for Firebase Auth callback -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- Custom scheme that Firebase Auth can use -->
+                <data android:scheme="com.bps.pendeza" />
+            </intent-filter>
+
         </activity>
 
         <meta-data
-                android:name="flutterEmbedding"
-                android:value="2" />
+            android:name="flutterEmbedding"
+            android:value="2" />
     </application>
 
     <queries>

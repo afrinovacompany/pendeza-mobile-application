@@ -37,8 +37,8 @@ class AppConstants {
 
 
   //============================================================================
-  // BORDER RADIUS CONSTANTS
-  // Use these for consistent corner rounding on cards, buttons, etc.
+  // BORDER RADIUS CONSTANTS (OBJECTS)
+  // Use these for BoxDecoration, ClipRRect, etc.
   //============================================================================
 
   /// 4.0 - Subtle corner rounding.
@@ -58,6 +58,30 @@ class AppConstants {
 
   /// A fully circular border radius.
   static final BorderRadius radiusCircular = BorderRadius.circular(100.0);
+
+
+  //============================================================================
+  // BORDER RADIUS CONSTANTS (VALUES)
+  // Use these for widgets that expect a double for radius (e.g., Shimmer).
+  //============================================================================
+
+  /// 4.0 - Subtle corner rounding value.
+  static const double radiusValXS = 4.0;
+
+  /// 8.0 - Small, common corner rounding value.
+  static const double radiusValS = 8.0;
+
+  /// 12.0 - The default radius value for most buttons and input fields.
+  static const double radiusValM = 12.0;
+
+  /// 16.0 - The default radius value for cards.
+  static const double radiusValL = 16.0;
+
+  /// 24.0 - Larger rounding value for profile pictures or prominent elements.
+  static const double radiusValXL = 24.0;
+
+  /// A fully circular border radius value.
+  static const double radiusValCircular = 100.0;
 
 
   //============================================================================

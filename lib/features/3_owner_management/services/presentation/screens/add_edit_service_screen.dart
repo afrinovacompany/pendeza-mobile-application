@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -115,19 +116,23 @@ class _AddEditServiceScreenState extends State<AddEditServiceScreen> {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text('Confirm Deletion'),
+          // Key: "owner.services.delete_confirm_title"
+          title: Text('owner.services.delete_confirm_title'.tr()),
+          // Key: "owner.services.delete_confirm_msg" -> "Are you sure you want to delete the service \"{}\"?"
           content: Text(
-              'Are you sure you want to delete the service "${widget.service!.name}"? This action cannot be undone.'),
+              'owner.services.delete_confirm_msg'.tr(args: [widget.service!.name])),
           actions: <Widget>[
             TextButton(
-              child: const Text('Cancel'),
+              // Key: "common.cancel"
+              child: Text('common.cancel'.tr()),
               onPressed: () {
                 Navigator.of(dialogContext).pop();
               },
             ),
             TextButton(
               style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Delete'),
+              // Key: "owner.services.delete_btn"
+              child: Text('owner.services.delete_btn'.tr()),
               onPressed: () {
                 context
                     .read<ServicesBloc>()
@@ -145,7 +150,8 @@ class _AddEditServiceScreenState extends State<AddEditServiceScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Service' : 'Add New Service'),
+        // Key: "owner.services.edit_title" or "owner.services.add_title"
+        title: Text(_isEditing ? 'owner.services.edit_title'.tr() : 'owner.services.add_title'.tr()),
         actions: [
           if (_isEditing)
             IconButton(
@@ -200,29 +206,36 @@ class _AddEditServiceScreenState extends State<AddEditServiceScreen> {
                   const SizedBox(height: AppConstants.padL),
                   CustomTextFormField(
                     controller: _priceController,
-                    labelText: 'Price (TSh)',
-                    hintText: 'e.g., 25000',
+                    // Key: "owner.services.price_label"
+                    labelText: 'owner.services.price_label'.tr(),
+                    // Key: "owner.services.price_hint"
+                    hintText: 'owner.services.price_hint'.tr(),
                     keyboardType: TextInputType.number,
                     validator: (value) => AppValidators.notEmpty(value),
                   ),
                   const SizedBox(height: AppConstants.padL),
                   CustomTextFormField(
                     controller: _durationController,
-                    labelText: 'Duration (in minutes)',
-                    hintText: 'e.g., 45',
+                    // Key: "owner.services.duration_label"
+                    labelText: 'owner.services.duration_label'.tr(),
+                    // Key: "owner.services.duration_hint"
+                    hintText: 'owner.services.duration_hint'.tr(),
                     keyboardType: TextInputType.number,
                     validator: (value) => AppValidators.notEmpty(value),
                   ),
                   const SizedBox(height: AppConstants.padL),
                   CustomTextFormField(
                     controller: _descriptionController,
-                    labelText: 'Description (Optional)',
-                    hintText: 'A short description of the service...',
+                    // Key: "owner.services.desc_label"
+                    labelText: 'owner.services.desc_label'.tr(),
+                    // Key: "owner.services.desc_hint"
+                    hintText: 'owner.services.desc_hint'.tr(),
                     maxLines: 3,
                   ),
                   const SizedBox(height: AppConstants.padXL),
                   PrimaryGradientButton(
-                    text: _isEditing ? 'SAVE CHANGES' : 'ADD SERVICE',
+                    // Key: "owner.services.save_btn" or "owner.services.add_btn"
+                    text: _isEditing ? 'owner.services.save_btn'.tr() : 'owner.services.add_btn'.tr(),
                     onPressed: isSaving ? null : _saveService,
                     isLoading: isSaving,
                   ),

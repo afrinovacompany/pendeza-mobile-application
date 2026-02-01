@@ -3,7 +3,6 @@ import 'package:pendeza/features/2_client_booking/domain/repositories/booking_re
 import 'package:pendeza/shared/models/appointment_model.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
 import 'package:pendeza/shared/models/service_model.dart';
-import 'package:pendeza/shared/models/staff_model.dart';
 
 class BookingRepositoryImpl implements BookingRepository {
   final FirestoreService _firestoreService;
@@ -25,13 +24,17 @@ class BookingRepositoryImpl implements BookingRepository {
     return _firestoreService.getServicesForSalon(salonId);
   }
 
+  // CHANGE: Return result from service
   @override
-  Future<List<StaffModel>> getStaffForSalon(String salonId) {
-    return _firestoreService.getStaffForSalon(salonId);
-  }
-
-  @override
-  Future<void> createAppointment(AppointmentModel appointment) {
+  Future<String> createAppointment(AppointmentModel appointment) {
     return _firestoreService.createAppointment(appointment);
   }
+
+  // === NEW METHOD ===
+  @override
+  Future<List<AppointmentModel>> getAppointmentsForSalonOnDate(
+      String salonId, DateTime date) {
+    return _firestoreService.getAppointmentsForSalonOnDate(salonId, date);
+  }
+// ==================
 }

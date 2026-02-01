@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 // Import your custom color and text style classes.
@@ -88,6 +89,46 @@ class AppTheme {
       labelColor: AppColors.textLight,
     ),
     pageTransitionsTheme: _pageTransitionsTheme,
+  );
+
+  //==========================================================================
+  // CUPERTINO LIGHT THEME CONFIGURATION
+  //==========================================================================
+  static final CupertinoThemeData cupertinoLightTheme = CupertinoThemeData(
+    brightness: Brightness.light,
+    primaryColor: AppColors.primary,
+    primaryContrastingColor: Colors.white,
+    scaffoldBackgroundColor: AppColors.background,
+    barBackgroundColor: AppColors.surface,
+    textTheme: CupertinoTextThemeData(
+      primaryColor: AppColors.primary,
+      textStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+      actionTextStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary),
+      navTitleTextStyle: AppTextStyles.appBarTitle.copyWith(color: AppColors.textPrimary),
+      navLargeTitleTextStyle: AppTextStyles.headline1.copyWith(color: AppColors.textPrimary),
+      navActionTextStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.primary),
+      tabLabelTextStyle: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+    ),
+  );
+
+  //==========================================================================
+  // CUPERTINO DARK THEME CONFIGURATION
+  //==========================================================================
+  static final CupertinoThemeData cupertinoDarkTheme = CupertinoThemeData(
+    brightness: Brightness.dark,
+    primaryColor: AppColors.primaryLight,
+    primaryContrastingColor: AppColors.darkOnPrimary,
+    scaffoldBackgroundColor: AppColors.darkBackground,
+    barBackgroundColor: AppColors.darkSurface,
+    textTheme: CupertinoTextThemeData(
+      primaryColor: AppColors.primaryLight,
+      textStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.darkOnBackground),
+      actionTextStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.primaryLight),
+      navTitleTextStyle: AppTextStyles.appBarTitle.copyWith(color: AppColors.darkOnBackground),
+      navLargeTitleTextStyle: AppTextStyles.headline1.copyWith(color: AppColors.darkOnBackground),
+      navActionTextStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.primaryLight),
+      tabLabelTextStyle: AppTextStyles.caption.copyWith(color: AppColors.textLight),
+    ),
   );
 
   //==========================================================================

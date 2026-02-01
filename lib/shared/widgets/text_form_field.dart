@@ -20,7 +20,9 @@ class CustomTextFormField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final List<TextInputFormatter>? inputFormatters;
   final bool? enabled;
-  final int? maxLines; // <-- ADDED: maxLines property
+  final int? maxLines;
+  // ✅ FIX: Added the onChanged parameter
+  final ValueChanged<String>? onChanged;
 
   const CustomTextFormField({
     super.key,
@@ -35,7 +37,9 @@ class CustomTextFormField extends StatelessWidget {
     this.textInputAction,
     this.inputFormatters,
     this.enabled,
-    this.maxLines = 1, // <-- ADDED: Default to a single line
+    this.maxLines = 1,
+    // ✅ FIX: Added onChanged to the constructor
+    this.onChanged,
   });
 
   @override
@@ -55,14 +59,17 @@ class CustomTextFormField extends StatelessWidget {
         TextFormField(
           controller: controller,
           validator: validator,
-          // If maxLines > 1, use multiline keyboard type unless another is specified
-          keyboardType: maxLines! > 1 ? TextInputType.multiline : keyboardType,
+          keyboardType: maxLines != null && maxLines! > 1
+              ? TextInputType.multiline
+              : keyboardType,
           obscureText: obscureText,
           textInputAction: textInputAction,
           inputFormatters: inputFormatters,
           enabled: enabled,
           style: theme.textTheme.bodyMedium,
-          maxLines: maxLines, // <-- ADDED: Pass maxLines to the TextFormField
+          maxLines: maxLines,
+          // ✅ FIX: Passed onChanged to the underlying TextFormField
+          onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hintText,
             prefixIcon: prefixIcon != null

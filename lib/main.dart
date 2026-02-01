@@ -1,24 +1,37 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_app_check/firebase_app_check.dart'; // 🔥 Import this
 import 'app.dart';
-import 'app/services/service_locator.dart'; // The new App Root widget
+import 'app/services/service_locator.dart';
+import 'app/services/notification_service.dart';
 import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 Future<void> main() async {
-  // STEP 1: Ensure that Flutter's widget bindings are ready.
-  // This is required before any async operations in main.
   WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
 
-  // STEP 2: Initialize Firebase.
-  // This MUST happen before we initialize our own dependencies (GetIt)
-  // because our services (like AuthService) depend on Firebase being ready.
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+  // 1. Initialize Firebase
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // 🔥 2. ACTIVATE APP CHECK (Debug Provider) - Updated to new parameter names to avoid deprecation warnings
+  // This tells Firebase: "I am a developer, please trust this device if I give you the token."
+  await FirebaseAppCheck.instance.activate(
+    providerAndroid: AndroidDebugProvider(),
+    providerApple: AppleDebugProvider(),
   );
 
-  // STEP 3: Now that Firebase is ready, initialize our services.
   await initializeDependencies();
+  NotificationService().init();
 
-  // STEP 4: Run the main application widget.
-  runApp(const App());
+  runApp(
+    EasyLocalization(
+      supportedLocales: const [Locale('en'), Locale('sw')],
+      path: 'assets/language',
+      fallbackLocale: const Locale('en'),
+      startLocale: const Locale('en'),
+      saveLocale: true,
+      child: const App(),
+    ),
+  );
 }

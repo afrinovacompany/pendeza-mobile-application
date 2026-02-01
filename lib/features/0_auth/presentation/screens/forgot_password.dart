@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -27,7 +28,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
-  // Helper method to show a snackbar
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -38,7 +38,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  /// NEW: Method now calls the repository directly.
   Future<void> _sendResetLink() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
@@ -47,8 +46,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       await sl<AuthRepository>().sendPasswordResetEmail(
         email: _emailController.text.trim(),
       );
-      // On success, show confirmation and pop the screen.
-      _showSnackBar('Password reset link sent! Check your email.');
+      // Key: "auth.forgot_password.email_sent" -> "Password reset email sent!"
+      _showSnackBar('auth.forgot_password.email_sent'.tr());
       if (mounted) context.pop();
     } catch (e) {
       _showSnackBar(e.toString(), isError: true);
@@ -86,12 +85,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Forgot Password?',
+                  // Key: "auth.forgot_password.title" -> "Forgot Password?"
+                  Text('auth.forgot_password.title'.tr(),
                       textAlign: TextAlign.center,
                       style: theme.textTheme.displayMedium),
                   const SizedBox(height: AppConstants.padS),
+                  // Key: "auth.forgot_password.description"
                   Text(
-                    'No worries! Enter your email and we will send you a reset link.',
+                    'auth.forgot_password.description'.tr(),
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyLarge?.copyWith(
                         color: theme.colorScheme.onSurface.withAlpha(178)),
@@ -99,15 +100,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   const SizedBox(height: AppConstants.padXXL),
                   CustomTextFormField(
                     controller: _emailController,
-                    labelText: 'Email Address',
-                    hintText: 'you@example.com',
+                    // Key: "auth.login.email_label" or similar
+                    labelText: 'auth.login.email_label'.tr(),
+                    // Key: "common.email_hint"
+                    hintText: 'common.email_hint'.tr(),
                     keyboardType: TextInputType.emailAddress,
                     validator: AppValidators.email,
                     enabled: !_isLoading,
                   ),
                   const SizedBox(height: AppConstants.padXL),
                   PrimaryGradientButton(
-                    text: 'SEND RESET LINK',
+                    // Key: "auth.forgot_password.button" -> "SEND RESET LINK"
+                    text: 'auth.forgot_password.button'.tr(),
                     onPressed: _isLoading ? null : _sendResetLink,
                     isLoading: _isLoading,
                   ),

@@ -1,171 +1,217 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:pendeza/app/config/theme/app_constants.dart';
+import 'package:pendeza/app/config/theme/app_text_styles.dart';
+import 'package:pendeza/app/services/service_locator.dart';
 
-// --- Adjust these import paths to match your project structure ---
-import '../../../../app/config/theme/app_constants.dart';
-import '../../../../shared/widgets/custom_card.dart';
+import '../../data/model/inspiration_article_model.dart';
+import '../../data/model/lookbook_image_model.dart';
+import '../../domain/repository/inspiration_repository.dart';
+import '../bloc/inspiration_bloc.dart';
+import '../bloc/inspiration_event.dart';
+import '../bloc/inspiration_state.dart';
+import 'package:pendeza/shared/widgets/custom_card.dart';
+import 'article_details_screen.dart'; // IMPORT THE NEW SCREEN
 
 class InspirationScreen extends StatelessWidget {
   const InspirationScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    // Using a DefaultTabController to manage the state of the tabs.
-    return DefaultTabController(
-      length: 2, // We have two tabs: Trends and Lookbook
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Inspiration Hub'),
-          bottom: TabBar(
-            indicatorColor: theme.colorScheme.primary,
-            labelColor: theme.colorScheme.primary,
-            unselectedLabelColor: theme.colorScheme.onSurface.withAlpha(178),
-            tabs: const [
-              Tab(icon: Icon(CupertinoIcons.chart_bar_alt_fill), text: 'Market Trends'),
-              Tab(icon: Icon(CupertinoIcons.photo_on_rectangle), text: 'Lookbook'),
+    return BlocProvider(
+      create: (_) => InspirationBloc(sl<InspirationRepository>())..add(const LoadInspiration()),
+      child: DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('Inspiration Hub'), // Could be localized: "Inspiration Hub"
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () => context.read<InspirationBloc>().add(const RefreshInspiration()),
+              ),
             ],
-          ),
-        ),
-        body: const TabBarView(
-          children: [
-            // --- Content for the "Market Trends" tab ---
-            _MarketTrendsView(),
-            // --- Content for the "Lookbook" tab ---
-            _LookbookView(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// A private widget for the "Market Trends" view.
-class _MarketTrendsView extends StatelessWidget {
-  const _MarketTrendsView();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(AppConstants.padL),
-      children: [
-        _buildTrendCard(
-          context,
-          title: 'Most Booked Service in Dar es Salaam',
-          value: 'Hair Braiding',
-          trend: '+15% this month',
-          icon: CupertinoIcons.scissors,
-        ),
-        _buildTrendCard(
-          context,
-          title: 'Fastest Growing Trend',
-          value: 'Nail Art (Chrome Finish)',
-          trend: '+28% this month',
-          icon: CupertinoIcons.sparkles,
-        ),
-        _buildTrendCard(
-          context,
-          title: 'Peak Booking Time',
-          value: 'Saturdays, 2 PM - 5 PM',
-          trend: 'Plan your staff accordingly',
-          icon: CupertinoIcons.time_solid,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTrendCard(BuildContext context,
-      {required String title,
-        required String value,
-        required String trend,
-        required IconData icon}) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppConstants.padM),
-      child: CustomCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: theme.colorScheme.primary),
-                const SizedBox(width: AppConstants.padS),
-                Text(
-                  title,
-                  style: theme.textTheme.labelLarge
-                      ?.copyWith(color: theme.colorScheme.onSurface.withAlpha(178)),
-                ),
+            bottom: TabBar(
+              onTap: (index) {
+                final tab = index == 0 ? InspirationTab.trends : InspirationTab.lookbook;
+                context.read<InspirationBloc>().add(SwitchTab(tab));
+              },
+              tabs: const [
+                Tab(icon: Icon(CupertinoIcons.chart_bar_alt_fill), text: 'Market Trends'),
+                Tab(icon: Icon(CupertinoIcons.photo_on_rectangle), text: 'Lookbook'),
               ],
             ),
-            const SizedBox(height: AppConstants.padS),
-            Text(
-              value,
-              style: theme.textTheme.displaySmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: AppConstants.padXXS),
-            Text(
-              trend,
-              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.green.shade600),
-            )
-          ],
+          ),
+          body: BlocBuilder<InspirationBloc, InspirationState>(
+            builder: (context, state) {
+              if (state is InspirationLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (state is InspirationError) {
+                return Center(child: Text(state.message));
+              }
+              if (state is InspirationLoaded) {
+                return TabBarView(
+                  children: [
+                    _TrendsTab(articles: state.articles),
+                    _LookbookTab(images: state.lookbook),
+                  ],
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
         ),
       ),
     );
   }
 }
 
-/// A private widget for the "Lookbook" view.
-class _LookbookView extends StatelessWidget {
-  const _LookbookView();
+class _TrendsTab extends StatelessWidget {
+  final List<InspirationArticleModel> articles;
+  const _TrendsTab({required this.articles});
 
   @override
   Widget build(BuildContext context) {
-    // A GridView is perfect for a visual lookbook.
+    if (articles.isEmpty) {
+      return const Center(child: Text('No trends yet. Check back soon!'));
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(AppConstants.padL),
+      itemCount: articles.length,
+      itemBuilder: (context, i) {
+        final article = articles[i];
+        return CustomCard(
+          onTap: () {
+            // Navigate to full article view
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => ArticleDetailScreen(article: article)),
+            );
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (article.imageUrl != null)
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: CachedNetworkImage(
+                    imageUrl: article.imageUrl!,
+                    height: 160,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    placeholder: (_, _) => const ColoredBox(color: Colors.grey),
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(AppConstants.padM),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      article.title,
+                      style: AppTextStyles.headline3.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: AppConstants.padS),
+                    Text(
+                      article.summary, // Using summary instead of body
+                      style: AppTextStyles.bodyMedium,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: AppConstants.padS),
+                    Text(
+                      DateFormat('MMM d, yyyy').format(article.publishedAt),
+                      style: AppTextStyles.caption.copyWith(color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _LookbookTab extends StatelessWidget {
+  final List<LookbookImageModel> images;
+  const _LookbookTab({required this.images});
+
+  @override
+  Widget build(BuildContext context) {
+    if (images.isEmpty) {
+      return const Center(child: Text('Lookbook coming soon!'));
+    }
     return GridView.builder(
       padding: const EdgeInsets.all(AppConstants.padL),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: AppConstants.padM,
         mainAxisSpacing: AppConstants.padM,
-        childAspectRatio: 0.8, // Taller cards for images
+        childAspectRatio: 0.75,
       ),
-      itemCount: 8, // Using mock data
-      itemBuilder: (context, index) {
-        return _buildLookbookItem(context, 'Style Name ${index + 1}');
+      itemCount: images.length,
+      itemBuilder: (context, i) {
+        final img = images[i];
+        return CustomCard(
+          onTap: () => _showImageDialog(context, img),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: CachedNetworkImage(
+                    imageUrl: img.imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (_, _) => const Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(AppConstants.padS),
+                child: Text(
+                  img.title,
+                  style: AppTextStyles.bodyMedium,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
       },
     );
   }
 
-  Widget _buildLookbookItem(BuildContext context, String styleName) {
-    final theme = Theme.of(context);
-    return CustomCard(
-      onTap: () {},
-      padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Container(
-              color: theme.dividerColor,
-              child: Center(
-                child: Icon(
-                  CupertinoIcons.photo,
-                  size: 40,
-                  color: theme.colorScheme.onSurface.withAlpha(100),
-                ),
+  void _showImageDialog(BuildContext context, LookbookImageModel img) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CachedNetworkImage(imageUrl: img.imageUrl),
+            Padding(
+              padding: const EdgeInsets.all(AppConstants.padM),
+              child: Text(img.title, style: AppTextStyles.headline3),
+            ),
+            if (img.description != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppConstants.padM),
+                child: Text(img.description!, style: AppTextStyles.bodyMedium),
               ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('common.close'.tr()), // "Close"
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(AppConstants.padS),
-            child: Text(
-              styleName,
-              style: theme.textTheme.titleSmall,
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
