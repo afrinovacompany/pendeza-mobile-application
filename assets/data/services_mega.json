@@ -1,0 +1,792 @@
+[
+  {
+    "serviceId": "svc_006_01",
+    "salonId": "salon_006",
+    "name": "Aromatherapy Massage (60 min)",
+    "description": "Combines gentle massage with essential oils for holistic healing.",
+    "price": 60000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_006_02",
+    "salonId": "salon_006",
+    "name": "Thai Massage (90 min)",
+    "description": "Traditional Thai massage combining acupressure and assisted yoga stretches.",
+    "price": 70000,
+    "durationMinutes": 90,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_006_03",
+    "salonId": "salon_006",
+    "name": "Swedish Massage (60 min)",
+    "description": "A gentle, full-body massage ideal for relaxation and relieving muscle tension.",
+    "price": 45000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_006_04",
+    "salonId": "salon_006",
+    "name": "Hot Stone Massage (60 min)",
+    "description": "Uses heated stones to ease muscle stiffness and increase circulation.",
+    "price": 65000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_006_05",
+    "salonId": "salon_006",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 55000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_007_06",
+    "salonId": "salon_007",
+    "name": "Thai Massage (90 min)",
+    "description": "Traditional Thai massage combining acupressure and assisted yoga stretches.",
+    "price": 60000,
+    "durationMinutes": 90,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_007_07",
+    "salonId": "salon_007",
+    "name": "Foot Massage (30 min)",
+    "description": "Relaxing foot reflexology massage to relieve stress and improve circulation.",
+    "price": 35000,
+    "durationMinutes": 30,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_007_08",
+    "salonId": "salon_007",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 60000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_007_09",
+    "salonId": "salon_007",
+    "name": "Couples Massage (60 min)",
+    "description": "Relaxing massage experience for two in a shared treatment room.",
+    "price": 80000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_007_10",
+    "salonId": "salon_007",
+    "name": "Swedish Massage (60 min)",
+    "description": "A gentle, full-body massage ideal for relaxation and relieving muscle tension.",
+    "price": 45000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_008_11",
+    "salonId": "salon_008",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 50000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_008_12",
+    "salonId": "salon_008",
+    "name": "Thai Massage (90 min)",
+    "description": "Traditional Thai massage combining acupressure and assisted yoga stretches.",
+    "price": 65000,
+    "durationMinutes": 90,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_008_13",
+    "salonId": "salon_008",
+    "name": "Foot Massage (30 min)",
+    "description": "Relaxing foot reflexology massage to relieve stress and improve circulation.",
+    "price": 25000,
+    "durationMinutes": 30,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_008_14",
+    "salonId": "salon_008",
+    "name": "Couples Massage (60 min)",
+    "description": "Relaxing massage experience for two in a shared treatment room.",
+    "price": 100000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_008_15",
+    "salonId": "salon_008",
+    "name": "Aromatherapy Massage (60 min)",
+    "description": "Combines gentle massage with essential oils for holistic healing.",
+    "price": 50000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_010_16",
+    "salonId": "salon_010",
+    "name": "Hot Stone Massage (60 min)",
+    "description": "Uses heated stones to ease muscle stiffness and increase circulation.",
+    "price": 65000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_010_17",
+    "salonId": "salon_010",
+    "name": "Couples Massage (60 min)",
+    "description": "Relaxing massage experience for two in a shared treatment room.",
+    "price": 110000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_010_18",
+    "salonId": "salon_010",
+    "name": "Swedish Massage (60 min)",
+    "description": "A gentle, full-body massage ideal for relaxation and relieving muscle tension.",
+    "price": 50000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_010_19",
+    "salonId": "salon_010",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 65000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_012_20",
+    "salonId": "salon_012",
+    "name": "Swedish Massage (60 min)",
+    "description": "A gentle, full-body massage ideal for relaxation and relieving muscle tension.",
+    "price": 50000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_012_21",
+    "salonId": "salon_012",
+    "name": "Foot Massage (30 min)",
+    "description": "Relaxing foot reflexology massage to relieve stress and improve circulation.",
+    "price": 30000,
+    "durationMinutes": 30,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_012_22",
+    "salonId": "salon_012",
+    "name": "Aromatherapy Massage (60 min)",
+    "description": "Combines gentle massage with essential oils for holistic healing.",
+    "price": 55000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_012_23",
+    "salonId": "salon_012",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 60000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_012_24",
+    "salonId": "salon_012",
+    "name": "Hot Stone Massage (60 min)",
+    "description": "Uses heated stones to ease muscle stiffness and increase circulation.",
+    "price": 55000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_013_25",
+    "salonId": "salon_013",
+    "name": "Hot Stone Massage (60 min)",
+    "description": "Uses heated stones to ease muscle stiffness and increase circulation.",
+    "price": 65000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_013_26",
+    "salonId": "salon_013",
+    "name": "Thai Massage (90 min)",
+    "description": "Traditional Thai massage combining acupressure and assisted yoga stretches.",
+    "price": 70000,
+    "durationMinutes": 90,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_013_27",
+    "salonId": "salon_013",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 65000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_013_28",
+    "salonId": "salon_013",
+    "name": "Aromatherapy Massage (60 min)",
+    "description": "Combines gentle massage with essential oils for holistic healing.",
+    "price": 55000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_013_29",
+    "salonId": "salon_013",
+    "name": "Couples Massage (60 min)",
+    "description": "Relaxing massage experience for two in a shared treatment room.",
+    "price": 105000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_016_30",
+    "salonId": "salon_016",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 60000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_016_31",
+    "salonId": "salon_016",
+    "name": "Foot Massage (30 min)",
+    "description": "Relaxing foot reflexology massage to relieve stress and improve circulation.",
+    "price": 30000,
+    "durationMinutes": 30,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_016_32",
+    "salonId": "salon_016",
+    "name": "Hot Stone Massage (60 min)",
+    "description": "Uses heated stones to ease muscle stiffness and increase circulation.",
+    "price": 60000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_016_33",
+    "salonId": "salon_016",
+    "name": "Swedish Massage (60 min)",
+    "description": "A gentle, full-body massage ideal for relaxation and relieving muscle tension.",
+    "price": 50000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_016_34",
+    "salonId": "salon_016",
+    "name": "Couples Massage (60 min)",
+    "description": "Relaxing massage experience for two in a shared treatment room.",
+    "price": 90000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_017_35",
+    "salonId": "salon_017",
+    "name": "Aromatherapy Massage (60 min)",
+    "description": "Combines gentle massage with essential oils for holistic healing.",
+    "price": 45000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_017_36",
+    "salonId": "salon_017",
+    "name": "Couples Massage (60 min)",
+    "description": "Relaxing massage experience for two in a shared treatment room.",
+    "price": 110000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_017_37",
+    "salonId": "salon_017",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 60000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_017_38",
+    "salonId": "salon_017",
+    "name": "Thai Massage (90 min)",
+    "description": "Traditional Thai massage combining acupressure and assisted yoga stretches.",
+    "price": 65000,
+    "durationMinutes": 90,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_017_39",
+    "salonId": "salon_017",
+    "name": "Swedish Massage (60 min)",
+    "description": "A gentle, full-body massage ideal for relaxation and relieving muscle tension.",
+    "price": 45000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_018_40",
+    "salonId": "salon_018",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 60000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_018_41",
+    "salonId": "salon_018",
+    "name": "Couples Massage (60 min)",
+    "description": "Relaxing massage experience for two in a shared treatment room.",
+    "price": 95000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_018_42",
+    "salonId": "salon_018",
+    "name": "Aromatherapy Massage (60 min)",
+    "description": "Combines gentle massage with essential oils for holistic healing.",
+    "price": 50000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_018_43",
+    "salonId": "salon_018",
+    "name": "Foot Massage (30 min)",
+    "description": "Relaxing foot reflexology massage to relieve stress and improve circulation.",
+    "price": 35000,
+    "durationMinutes": 30,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_019_44",
+    "salonId": "salon_019",
+    "name": "Couples Massage (60 min)",
+    "description": "Relaxing massage experience for two in a shared treatment room.",
+    "price": 85000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_019_45",
+    "salonId": "salon_019",
+    "name": "Swedish Massage (60 min)",
+    "description": "A gentle, full-body massage ideal for relaxation and relieving muscle tension.",
+    "price": 45000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_019_46",
+    "salonId": "salon_019",
+    "name": "Thai Massage (90 min)",
+    "description": "Traditional Thai massage combining acupressure and assisted yoga stretches.",
+    "price": 75000,
+    "durationMinutes": 90,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_019_47",
+    "salonId": "salon_019",
+    "name": "Aromatherapy Massage (60 min)",
+    "description": "Combines gentle massage with essential oils for holistic healing.",
+    "price": 50000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_022_48",
+    "salonId": "salon_022",
+    "name": "Swedish Massage (60 min)",
+    "description": "A gentle, full-body massage ideal for relaxation and relieving muscle tension.",
+    "price": 50000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_022_49",
+    "salonId": "salon_022",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 55000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_022_50",
+    "salonId": "salon_022",
+    "name": "Hot Stone Massage (60 min)",
+    "description": "Uses heated stones to ease muscle stiffness and increase circulation.",
+    "price": 65000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_022_51",
+    "salonId": "salon_022",
+    "name": "Couples Massage (60 min)",
+    "description": "Relaxing massage experience for two in a shared treatment room.",
+    "price": 85000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_023_52",
+    "salonId": "salon_023",
+    "name": "Aromatherapy Massage (60 min)",
+    "description": "Combines gentle massage with essential oils for holistic healing.",
+    "price": 50000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_023_53",
+    "salonId": "salon_023",
+    "name": "Foot Massage (30 min)",
+    "description": "Relaxing foot reflexology massage to relieve stress and improve circulation.",
+    "price": 25000,
+    "durationMinutes": 30,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_023_54",
+    "salonId": "salon_023",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 60000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_023_55",
+    "salonId": "salon_023",
+    "name": "Thai Massage (90 min)",
+    "description": "Traditional Thai massage combining acupressure and assisted yoga stretches.",
+    "price": 75000,
+    "durationMinutes": 90,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_023_56",
+    "salonId": "salon_023",
+    "name": "Hot Stone Massage (60 min)",
+    "description": "Uses heated stones to ease muscle stiffness and increase circulation.",
+    "price": 55000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_024_57",
+    "salonId": "salon_024",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 55000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_024_58",
+    "salonId": "salon_024",
+    "name": "Swedish Massage (60 min)",
+    "description": "A gentle, full-body massage ideal for relaxation and relieving muscle tension.",
+    "price": 50000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_024_59",
+    "salonId": "salon_024",
+    "name": "Couples Massage (60 min)",
+    "description": "Relaxing massage experience for two in a shared treatment room.",
+    "price": 105000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_024_60",
+    "salonId": "salon_024",
+    "name": "Foot Massage (30 min)",
+    "description": "Relaxing foot reflexology massage to relieve stress and improve circulation.",
+    "price": 35000,
+    "durationMinutes": 30,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_025_61",
+    "salonId": "salon_025",
+    "name": "Swedish Massage (60 min)",
+    "description": "A gentle, full-body massage ideal for relaxation and relieving muscle tension.",
+    "price": 50000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_025_62",
+    "salonId": "salon_025",
+    "name": "Foot Massage (30 min)",
+    "description": "Relaxing foot reflexology massage to relieve stress and improve circulation.",
+    "price": 30000,
+    "durationMinutes": 30,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_025_63",
+    "salonId": "salon_025",
+    "name": "Hot Stone Massage (60 min)",
+    "description": "Uses heated stones to ease muscle stiffness and increase circulation.",
+    "price": 60000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_025_64",
+    "salonId": "salon_025",
+    "name": "Thai Massage (90 min)",
+    "description": "Traditional Thai massage combining acupressure and assisted yoga stretches.",
+    "price": 75000,
+    "durationMinutes": 90,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_025_65",
+    "salonId": "salon_025",
+    "name": "Aromatherapy Massage (60 min)",
+    "description": "Combines gentle massage with essential oils for holistic healing.",
+    "price": 50000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_029_66",
+    "salonId": "salon_029",
+    "name": "Hot Stone Massage (60 min)",
+    "description": "Uses heated stones to ease muscle stiffness and increase circulation.",
+    "price": 55000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_029_67",
+    "salonId": "salon_029",
+    "name": "Swedish Massage (60 min)",
+    "description": "A gentle, full-body massage ideal for relaxation and relieving muscle tension.",
+    "price": 40000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_029_68",
+    "salonId": "salon_029",
+    "name": "Thai Massage (90 min)",
+    "description": "Traditional Thai massage combining acupressure and assisted yoga stretches.",
+    "price": 70000,
+    "durationMinutes": 90,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_029_69",
+    "salonId": "salon_029",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 60000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_029_70",
+    "salonId": "salon_029",
+    "name": "Couples Massage (60 min)",
+    "description": "Relaxing massage experience for two in a shared treatment room.",
+    "price": 90000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_030_71",
+    "salonId": "salon_030",
+    "name": "Hot Stone Massage (60 min)",
+    "description": "Uses heated stones to ease muscle stiffness and increase circulation.",
+    "price": 65000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_030_72",
+    "salonId": "salon_030",
+    "name": "Aromatherapy Massage (60 min)",
+    "description": "Combines gentle massage with essential oils for holistic healing.",
+    "price": 50000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_030_73",
+    "salonId": "salon_030",
+    "name": "Foot Massage (30 min)",
+    "description": "Relaxing foot reflexology massage to relieve stress and improve circulation.",
+    "price": 30000,
+    "durationMinutes": 30,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_030_74",
+    "salonId": "salon_030",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 55000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_033_75",
+    "salonId": "salon_033",
+    "name": "Couples Massage (60 min)",
+    "description": "Relaxing massage experience for two in a shared treatment room.",
+    "price": 100000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_033_76",
+    "salonId": "salon_033",
+    "name": "Aromatherapy Massage (60 min)",
+    "description": "Combines gentle massage with essential oils for holistic healing.",
+    "price": 50000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_033_77",
+    "salonId": "salon_033",
+    "name": "Deep Tissue Massage (60 min)",
+    "description": "Targets deeper layers of muscle to relieve chronic pain and tension.",
+    "price": 55000,
+    "durationMinutes": 60,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_033_78",
+    "salonId": "salon_033",
+    "name": "Foot Massage (30 min)",
+    "description": "Relaxing foot reflexology massage to relieve stress and improve circulation.",
+    "price": 20000,
+    "durationMinutes": 30,
+    "category": "Massage Therapy",
+    "isActive": true
+  },
+  {
+    "serviceId": "svc_033_79",
+    "salonId": "salon_033",
+    "name": "Thai Massage (90 min)",
+    "description": "Traditional Thai massage combining acupressure and assisted yoga stretches.",
+    "price": 65000,
+    "durationMinutes": 90,
+    "category": "Massage Therapy",
+    "isActive": true
+  }
+]

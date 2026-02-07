@@ -1,0 +1,16 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.bps.pendeza",
+      "sha256_cert_fingerprints": [
+        "F3:51:70:B4:C9:67:71:DF:6F:FD:AD:E7:0B:AC:4E:2D:3F:38:98:E1:F9:98:55:34:08:BC:09:1F:52:2F:CB:1B",
+        "D3:86:61:A7:AD:2C:90:E9:85:C8:1A:1D:C6:F5:CE:E1:BC:F7:58:53:5A:FA:AA:E4:54:EE:DE:5D:FD:62:EB:EE"
+      ]
+    }
+  }
+]
