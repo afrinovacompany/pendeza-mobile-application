@@ -5,7 +5,7 @@ workflows:
     instance_type: mac_mini_m1
     environment:
       vars:
-        # Codemagic will now look for these in your "Global" list
+        # Codemagic will look for these in your "Global" Environment variables
         APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
         APP_STORE_CONNECT_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID
         APP_STORE_CONNECT_KEY_IDENTIFIER: $APP_STORE_CONNECT_KEY_IDENTIFIER
@@ -19,8 +19,8 @@ workflows:
       
       - name: Fetch signing files
         script: |
-          # Use your bundle ID here (e.g., com.bps.pendeza)
-          app-store-connect fetch-signing-files "YOUR_BUNDLE_ID_HERE" \
+          # Fetching files for com.bps.pendeza
+          app-store-connect fetch-signing-files "com.bps.pendeza" \
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
@@ -32,6 +32,7 @@ workflows:
         script: flutter pub get
 
       - name: Install Pods
+        # This now uses the Podfile you just added
         script: find . -name "Podfile" -exec dir {} \; && cd ios && pod install && cd ..
 
       - name: Build IPA
