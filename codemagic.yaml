@@ -43,7 +43,7 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-      - "*.dSYM.zip"   <-- QUOTES ADDED
+      - "*.dSYM.zip"  
 
     publishing:
       app_store_connect:
