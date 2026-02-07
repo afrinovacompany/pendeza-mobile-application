@@ -5,24 +5,26 @@ workflows:
     instance_type: mac_mini_m1
     environment:
       groups:
-        - app_store_creds  # <--- THIS imports your new group
+        - app_store_creds  # Ensure this group contains your API Key variables
       vars:
         XCODE_VERSION: latest
         FCI_KEYCHAIN: codemagic_keychain
         flutter: stable
-        # Note: We REMOVED the manual listing of keys here because 
-        # the 'groups' list above automatically loads them for us!
-    
+        APP_BUNDLE_ID: "com.bps.pendeza"
+
     scripts:
       - name: Set up keychain
         script: keychain initialize
       
       - name: Fetch signing files
         script: |
-          # Fetching files for com.bps.pendeza
-          app-store-connect fetch-signing-files "com.bps.pendeza" \
+          # We use the specific Bundle ID from your screenshot
+          # The --create flag only works if your API Key has "Admin" or "Developer" access
+          app-store-connect fetch-signing-files "$APP_BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create
+          
+          # This command searches for the .p12 created by the step above and installs it
           keychain add-certificates
       
       - name: Set up Xcode signing
@@ -32,11 +34,16 @@ workflows:
         script: flutter pub get
 
       - name: Install Pods
-        # This now uses the Podfile you just added
-        script: find . -name "Podfile" -exec dir {} \; && cd ios && pod install && cd ..
+        # Simplified for Mac environment
+        script: |
+          cd ios
+          pod install
+          cd ..
 
       - name: Build IPA
         script: |
+          # Use --build-name and --build-number if needed, 
+          # but basic release build is fine.
           flutter build ipa --release \
             --export-options-plist=/Users/builder/export_options.plist
 
@@ -47,6 +54,7 @@ workflows:
 
     publishing:
       app_store_connect:
+        # These variables MUST match the names in your Environment Variable Group
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
