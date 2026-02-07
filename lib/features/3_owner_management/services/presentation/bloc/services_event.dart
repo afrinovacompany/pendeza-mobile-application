@@ -30,3 +30,19 @@ class DeleteServiceRequested extends ServicesEvent {
   @override
   List<Object> get props => [serviceId];
 }
+
+/// Toggle service active/inactive status
+class ToggleServiceActiveRequested extends ServicesEvent {
+  final String serviceId;
+  const ToggleServiceActiveRequested(this.serviceId);
+  @override
+  List<Object> get props => [serviceId];
+}
+
+/// Toggle featured status
+class ToggleServiceFeaturedRequested extends ServicesEvent {
+  final String serviceId;
+  const ToggleServiceFeaturedRequested(this.serviceId);
+  @override
+  List<Object> get props => [serviceId];
+}

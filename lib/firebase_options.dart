@@ -69,7 +69,7 @@ class DefaultFirebaseOptions {
     storageBucket: 'bpsa-8bde0.firebasestorage.app',
     androidClientId: '199781494931-k8ttb6092l6aaokc1gupsf1raqjuhch4.apps.googleusercontent.com',
     iosClientId: '199781494931-2c9ocj42fm1glfr98n05qll9v9pkpb8u.apps.googleusercontent.com',
-    iosBundleId: 'com.example.pendeza',
+    iosBundleId: 'com.bps.pendeza',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

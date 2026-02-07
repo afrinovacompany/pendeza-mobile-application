@@ -30,8 +30,8 @@ class DiscoveryBloc extends Bloc<DiscoveryEvent, DiscoveryState> {
     try {
       final salons = await _bookingRepository.getSalons();
 
-      // Apply default sorting (by distance)
-      final sortedSalons = _sortSalons(salons, SortType.distance);
+      // Apply default sorting (by popularity)
+      final sortedSalons = _sortSalons(salons, SortType.popularity);
 
       emit(DiscoveryLoaded(
         allSalons: salons,
@@ -39,7 +39,7 @@ class DiscoveryBloc extends Bloc<DiscoveryEvent, DiscoveryState> {
         filters: DiscoveryFilters.defaults(),
       ));
     } catch (e) {
-      emit(DiscoveryError('Failed to load salons: ${e.toString()}'));
+      emit(DiscoveryError('Failed to load: ${e.toString()}'));
     }
   }
 
@@ -67,7 +67,7 @@ class DiscoveryBloc extends Bloc<DiscoveryEvent, DiscoveryState> {
         ));
       } else {
         // Fresh load
-        final sortedSalons = _sortSalons(salons, SortType.distance);
+        final sortedSalons = _sortSalons(salons, SortType.popularity);
         emit(DiscoveryLoaded(
           allSalons: salons,
           filteredSalons: sortedSalons,
@@ -75,7 +75,7 @@ class DiscoveryBloc extends Bloc<DiscoveryEvent, DiscoveryState> {
         ));
       }
     } catch (e) {
-      emit(DiscoveryError('Failed to refresh salons: ${e.toString()}'));
+      emit(DiscoveryError('Failed to refresh: ${e.toString()}'));
     }
   }
 
@@ -232,7 +232,7 @@ class DiscoveryBloc extends Bloc<DiscoveryEvent, DiscoveryState> {
     if (currentState is! DiscoveryLoaded) return;
 
     final defaultFilters = DiscoveryFilters.defaults();
-    final filtered = _sortSalons(currentState.allSalons, SortType.distance);
+    final filtered = _sortSalons(currentState.allSalons, SortType.popularity);
 
     emit(currentState.copyWith(
       filteredSalons: filtered,
@@ -325,21 +325,20 @@ class DiscoveryBloc extends Bloc<DiscoveryEvent, DiscoveryState> {
     final sorted = List<SalonModel>.from(salons);
 
     switch (sortType) {
-      case SortType.distance:
-      // TODO: Sort by actual distance using user location
-      // For now, sort alphabetically
+      case SortType.popularity:
+        // Sort by booking count or views
+        // For now, sort alphabetically as a baseline
         sorted.sort((a, b) => a.salonName.compareTo(b.salonName));
         break;
 
       case SortType.rating:
-      // TODO: Sort by actual rating from reviews
-      // For now, sort by name reversed
+        // TODO: Sort by actual rating from reviews
+        // For now, sort by name reversed
         sorted.sort((a, b) => b.salonName.compareTo(a.salonName));
         break;
 
-      case SortType.popularity:
-      // TODO: Sort by booking count or views
-      // For now, sort by creation date (newer first)
+      case SortType.newest:
+        // Sort by creation date (newest first)
         sorted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
     }

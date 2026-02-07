@@ -37,4 +37,11 @@ class ServicesError extends ServicesState {
 class ServiceOperationInProgress extends ServicesState {}
 
 // State to signal that an operation was successful
-class ServiceOperationSuccess extends ServicesState {}
+class ServiceOperationSuccess extends ServicesState {
+  final String message;
+
+  const ServiceOperationSuccess([this.message = 'Operation completed successfully']);
+
+  @override
+  List<Object> get props => [message];
+}

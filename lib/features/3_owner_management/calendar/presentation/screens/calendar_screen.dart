@@ -8,6 +8,7 @@ import '../../../../../shared/widgets/profile_avatar.dart';
 import '../../../../../shared/widgets/loading_indicator.dart';
 import '../../../../../shared/widgets/empty_state_widget.dart';
 import '../../../../../app/services/service_locator.dart';
+import '../../../../../app/utils/formatters.dart';
 import '../../../../../shared/models/appointment_model.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_bloc.dart';
 import '../../../../0_auth/data/models/user_model.dart';
@@ -40,6 +41,7 @@ class _CalendarView extends StatefulWidget {
 class _CalendarViewState extends State<_CalendarView> {
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
+  CalendarFormat _calendarFormat = CalendarFormat.month;
   final FirestoreService _firestoreService = sl<FirestoreService>();
   final Map<String, UserModel> _clientCache = {};
 
@@ -93,6 +95,25 @@ class _CalendarViewState extends State<_CalendarView> {
     }
   }
 
+  Color _statusColor(String status) {
+    switch (status) {
+      case AppointmentStatus.confirmed:
+        return Colors.green;
+      case AppointmentStatus.completed:
+        return Colors.blue;
+      case AppointmentStatus.pendingPayment:
+        return Colors.orange;
+      case AppointmentStatus.cancelled:
+        return Colors.red;
+      case AppointmentStatus.noShow:
+        return Colors.grey;
+      case AppointmentStatus.paymentFailed:
+        return Colors.red.shade300;
+      default:
+        return Colors.grey;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -101,6 +122,33 @@ class _CalendarViewState extends State<_CalendarView> {
       appBar: AppBar(
         title: Text('owner.calendar.title'.tr()),
         actions: [
+          // Format toggle button
+          Container(
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: Icon(
+                _calendarFormat == CalendarFormat.month
+                    ? CupertinoIcons.rectangle_split_3x1
+                    : CupertinoIcons.calendar,
+                color: theme.colorScheme.primary,
+                size: 20,
+              ),
+              tooltip: _calendarFormat == CalendarFormat.month
+                  ? 'owner.calendar.week_view'.tr()
+                  : 'owner.calendar.month_view'.tr(),
+              onPressed: () {
+                setState(() {
+                  _calendarFormat = _calendarFormat == CalendarFormat.month
+                      ? CalendarFormat.week
+                      : CalendarFormat.month;
+                });
+              },
+            ),
+          ),
           Container(
             margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
@@ -160,7 +208,12 @@ class _CalendarViewState extends State<_CalendarView> {
               onPageChanged: (focusedDay) {
                 _focusedDay = focusedDay;
               },
-              calendarFormat: CalendarFormat.week,
+              calendarFormat: _calendarFormat,
+              onFormatChanged: (format) {
+                setState(() {
+                  _calendarFormat = format;
+                });
+              },
               headerStyle: HeaderStyle(
                 titleCentered: true,
                 formatButtonVisible: false,
@@ -326,6 +379,7 @@ class _CalendarViewState extends State<_CalendarView> {
 
   Widget _buildAppointmentItem(BuildContext context, AppointmentModel appointment) {
     final theme = Theme.of(context);
+    final statusColor = _statusColor(appointment.status);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppConstants.padM),
@@ -358,96 +412,124 @@ class _CalendarViewState extends State<_CalendarView> {
                 ),
               ],
             ),
-            child: Material(
-              color: Colors.transparent,
+            child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: InkWell(
-                onTap: () => _showAppointmentDetails(appointment),
-                borderRadius: BorderRadius.circular(16),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppConstants.padM),
-                  child: Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [
-                              theme.colorScheme.primary.withValues(alpha: 0.3),
-                              theme.colorScheme.secondary.withValues(alpha: 0.3),
-                            ],
-                          ),
-                        ),
-                        padding: const EdgeInsets.all(2),
-                        child: ProfileAvatar(
-                          fullName: displayName,
-                          imageUrl: snapshot.hasData ? snapshot.data?.profilePictureUrl : null,
-                          radius: 26,
-                        ),
-                      ),
-                      const SizedBox(width: AppConstants.padM),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              displayName,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Icon(
-                                  CupertinoIcons.scissors,
-                                  size: 14,
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${appointment.serviceIds.length} ${'owner.calendar.services_count'.tr()}',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              child: Row(
+                children: [
+                  // Status color strip
+                  Container(
+                    width: 5,
+                    height: 90,
+                    color: statusColor,
+                  ),
+                  Expanded(
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _showAppointmentDetails(appointment),
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppConstants.padM),
+                          child: Row(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      theme.colorScheme.primary.withValues(alpha: 0.3),
+                                      theme.colorScheme.secondary.withValues(alpha: 0.3),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              theme.colorScheme.primary,
-                              theme.colorScheme.secondary,
+                                padding: const EdgeInsets.all(2),
+                                child: ProfileAvatar(
+                                  fullName: displayName,
+                                  imageUrl: snapshot.hasData ? snapshot.data?.profilePictureUrl : null,
+                                  radius: 26,
+                                ),
+                              ),
+                              const SizedBox(width: AppConstants.padM),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      displayName,
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          CupertinoIcons.scissors,
+                                          size: 14,
+                                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${appointment.serviceIds.length} ${'owner.calendar.services_count'.tr()}',
+                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  // Time badge
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          theme.colorScheme.primary,
+                                          theme.colorScheme.secondary,
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      DateFormat.jm().format(appointment.startTime),
+                                      style: theme.textTheme.labelMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  // Price
+                                  Text(
+                                    AppFormatters.formatCurrency(appointment.totalPrice),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: statusColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          DateFormat.jm().format(appointment.startTime),
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           );

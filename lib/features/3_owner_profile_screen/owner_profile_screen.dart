@@ -5,6 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pendeza/app/services/local_storage_service.dart';
 import 'package:pendeza/app/services/service_locator.dart';
+import 'package:pendeza/features/2_client_profile/presentation/bloc/profile_bloc.dart';
+import 'package:pendeza/features/3_owner_profile_screen/edit_owner_profile_screen.dart';
+import 'package:pendeza/features/3_owner_profile_screen/help_support_screen.dart';
+import 'package:pendeza/features/3_owner_profile_screen/notifications_settings_screen.dart';
 
 import '../../app/config/theme/app_constants.dart';
 import '../../app/bloc/theme_cubit.dart';
@@ -104,26 +108,31 @@ class OwnerProfileScreen extends StatelessWidget {
           _buildProfileMenuItem(
             context,
             icon: CupertinoIcons.person_circle,
-            // Key: "client.profile.menu.edit_profile"
             title: 'client.profile.menu.edit_profile'.tr(),
-            subtitle: 'Update your personal information', // Could add key
+            subtitle: 'owner.profile.edit_profile_subtitle'.tr(),
             onTap: isLoading ? null : () {
-              // TODO: Navigate to Edit Owner Profile Screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Edit profile not implemented yet.')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BlocProvider.value(
+                    value: sl<ProfileBloc>(),
+                    child: const EditOwnerProfileScreen(),
+                  ),
+                ),
               );
             },
           ),
           _buildProfileMenuItem(
             context,
             icon: CupertinoIcons.bell,
-            // Key: "client.profile.menu.notifications"
             title: 'client.profile.menu.notifications'.tr(),
-            subtitle: 'Manage alerts and reminders', // Could add key
+            subtitle: 'owner.profile.notifications_subtitle'.tr(),
             onTap: isLoading ? null : () {
-              // TODO: Navigate to Notifications Settings
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Notifications not implemented yet.')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NotificationsSettingsScreen(),
+                ),
               );
             },
           ),
@@ -141,13 +150,14 @@ class OwnerProfileScreen extends StatelessWidget {
           _buildProfileMenuItem(
             context,
             icon: CupertinoIcons.question_circle,
-            // Key: "client.profile.menu.help"
             title: 'client.profile.menu.help'.tr(),
-            subtitle: 'FAQs and support', // Could add key
+            subtitle: 'owner.profile.help_subtitle'.tr(),
             onTap: isLoading ? null : () {
-              // TODO: Navigate to Help/Support Screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Help not implemented yet.')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const HelpSupportScreen(),
+                ),
               );
             },
           ),

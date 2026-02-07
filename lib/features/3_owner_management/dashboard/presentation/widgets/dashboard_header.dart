@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -16,9 +17,9 @@ class DashboardHeader extends StatelessWidget {
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return 'owner.dashboard.greeting_morning'.tr();
+    if (hour < 17) return 'owner.dashboard.greeting_afternoon'.tr();
+    return 'owner.dashboard.greeting_evening'.tr();
   }
 
   @override
@@ -35,7 +36,7 @@ class DashboardHeader extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(AppConstants.padM),  // Reduced from padL (16->12) if needed, but kept same
+      padding: const EdgeInsets.all(AppConstants.padM),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -95,7 +96,7 @@ class DashboardHeader extends StatelessWidget {
                   _getGreeting(),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    fontSize: 14,  // Slightly reduced if needed
+                    fontSize: 14,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -108,7 +109,7 @@ class DashboardHeader extends StatelessWidget {
                         ownerName,
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          fontSize: 18,  // Slightly reduced if overflow is severe
+                          fontSize: 18,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -123,7 +124,7 @@ class DashboardHeader extends StatelessWidget {
                         return Transform.scale(
                           scale: value,
                           child: Text(
-                            '👋',
+                            '\u{1F44B}',
                             style: TextStyle(fontSize: 20 * value),
                           ),
                         );
@@ -134,7 +135,7 @@ class DashboardHeader extends StatelessWidget {
                 const SizedBox(height: 2),
                 Row(
                   children: [
-                    Flexible(  // Wrapped in Flexible to prevent overflow
+                    Flexible(
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -167,7 +168,7 @@ class DashboardHeader extends StatelessWidget {
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.primary,
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 12,  // Reduced slightly
+                                  fontSize: 12,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -202,9 +203,9 @@ class DashboardHeader extends StatelessWidget {
                 IconButton(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Notifications coming soon!'),
-                        duration: Duration(seconds: 2),
+                      SnackBar(
+                        content: Text('owner.dashboard.notifications_coming_soon'.tr()),
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   },

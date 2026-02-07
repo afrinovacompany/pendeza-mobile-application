@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:pendeza/app/services/promotion_service.dart';
 import 'package:pendeza/app/services/payment_service.dart';
 
@@ -63,6 +64,11 @@ import 'package:pendeza/features/3_reviews/presentation/bloc/reviews_bloc.dart';
 // --- NOTIFICATIONS IMPORTS ---
 import 'package:pendeza/features/2_client_notifications/domain/repositories/notification_repository.dart';
 import 'package:pendeza/features/2_client_notifications/presentation/bloc/notification_bloc.dart';
+
+// --- VIDEO SHORTS IMPORTS ---
+import 'package:pendeza/features/video_shorts/domain/video_shorts_repository.dart';
+import 'package:pendeza/features/video_shorts/data/video_shorts_repository_impl.dart';
+import 'package:pendeza/features/video_shorts/presentation/bloc/video_shorts_bloc.dart';
 
 import 'auth_service.dart';
 import 'firestore_service.dart';
@@ -143,6 +149,7 @@ Future<void> initializeDependencies() async {
   // ============================================================================
   sl.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
   sl.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
+  sl.registerLazySingleton<FirebaseStorage>(() => FirebaseStorage.instance);
 
   // ============================================================================
   // REPOSITORIES
@@ -184,7 +191,12 @@ Future<void> initializeDependencies() async {
         () => ClientManagementRepositoryImpl(sl<FirestoreService>()),
   );
   sl.registerLazySingleton<SalonProfileRepository>(
-        () => SalonProfileRepositoryImpl(sl<FirestoreService>()),
+        () => SalonProfileRepositoryImpl(
+      sl<FirestoreService>(),
+      firestore: sl<FirebaseFirestore>(),
+      storage: sl<FirebaseStorage>(),
+      authBloc: sl<AuthBloc>(),
+    ),
   );
   sl.registerLazySingleton<OwnerPromotionsRepository>(
         () => OwnerPromotionsRepositoryImpl(),
@@ -207,6 +219,15 @@ Future<void> initializeDependencies() async {
   // Notification Repository
   sl.registerLazySingleton<NotificationRepository>(
         () => NotificationRepository(),
+  );
+
+  // ════════════════════════════════════════════════════════════════════════
+  // 🆕 VIDEO SHORTS REPOSITORY
+  // ════════════════════════════════════════════════════════════════════════
+  sl.registerLazySingleton<VideoShortsRepository>(
+        () => VideoShortsRepositoryImpl(
+      firestore: sl<FirebaseFirestore>(),
+    ),
   );
 
   // ============================================================================
@@ -302,5 +323,14 @@ Future<void> initializeDependencies() async {
   );
   sl.registerFactory<ReviewsBloc>(
         () => ReviewsBloc(reviewsRepository: sl<ReviewsRepository>()),
+  );
+
+  // ════════════════════════════════════════════════════════════════════════
+  // 🆕 VIDEO SHORTS BLOC
+  // ════════════════════════════════════════════════════════════════════════
+  sl.registerFactory<VideoShortsBloc>(
+        () => VideoShortsBloc(
+      repository: sl<VideoShortsRepository>(),
+    ),
   );
 }

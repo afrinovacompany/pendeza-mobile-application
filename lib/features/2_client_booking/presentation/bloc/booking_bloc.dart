@@ -7,6 +7,7 @@ import 'package:pendeza/features/0_auth/presentation/bloc/auth_bloc.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_state.dart';
 import 'package:pendeza/features/2_client_booking/domain/repositories/booking_repository.dart';
 import 'package:pendeza/shared/models/appointment_model.dart';
+import 'package:pendeza/shared/models/salon_model.dart';
 
 import 'booking_event.dart';
 import 'booking_state.dart';
@@ -20,6 +21,7 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
       : _authBloc = authBloc,
         super(BookingInitial()) {
     on<StartBooking>(_onStartBooking);
+    on<StartBookingWithId>(_onStartBookingWithId); // ✅ Handler for ID start
     on<FetchServicesForSalon>(_onFetchServicesForSalon);
     on<ServicesSelected>(_onServicesSelected);
     on<DateSelected>(_onDateSelected);
@@ -27,370 +29,286 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     on<TimeSlotSelected>(_onTimeSlotSelected);
     on<ConfirmBooking>(_onConfirmBooking);
     on<ResetBooking>(_onResetBooking);
+    on<PaymentCompleted>(_onPaymentCompleted);
+    on<PaymentFailed>(_onPaymentFailed);
   }
 
-  Future<void> _onStartBooking(
-      StartBooking event,
-      Emitter<BookingState> emit,
-      ) async {
-    log.i('BookingBloc: StartBooking event for Salon ID: ${event.salon.id}');
-
-    final authState = _authBloc.state;
-    log.d('BookingBloc: Auth state is ${authState.runtimeType}');
-
-    // Allow guests to browse, but they'll be prompted at confirmation
+  void _onStartBooking(StartBooking event, Emitter<BookingState> emit) {
     emit(BookingInProgress(
       salon: event.salon,
-      status: BookingStatus.loadingServices,
+      status: BookingStatus.selectingServices,
       availableServices: const [],
       selectedServices: const [],
       availableTimeSlots: const [],
     ));
-
     add(FetchServicesForSalon());
   }
 
-  Future<void> _onFetchServicesForSalon(
-      FetchServicesForSalon event,
-      Emitter<BookingState> emit,
-      ) async {
-    final currentState = state;
-    if (currentState is! BookingInProgress) return;
+  // ✅ New Handler: Fetches the salon details first if only ID is provided
+  Future<void> _onStartBookingWithId(StartBookingWithId event, Emitter<BookingState> emit) async {
+    try {
+      // Fetch full salon model using the ID
+      final SalonModel salon = await _bookingRepository.getSalonDetails(event.salonId);
+      // Trigger the standard start booking flow with the fetched model
+      add(StartBooking(salon));
+    } catch (e) {
+      emit(BookingFailure(error: "Could not load salon details: $e"));
+    }
+  }
 
-    log.i('BookingBloc: Fetching services for Salon ID: ${currentState.salon.id}');
+  Future<void> _onFetchServicesForSalon(FetchServicesForSalon event, Emitter<BookingState> emit) async {
+    if (state is! BookingInProgress) return;
+    final currentState = state as BookingInProgress;
+
+    emit(currentState.copyWith(status: BookingStatus.loadingServices));
 
     try {
       final services = await _bookingRepository.getServicesForSalon(currentState.salon.id);
-      log.i('BookingBloc: Fetched ${services.length} services.');
-
       emit(currentState.copyWith(
         status: BookingStatus.selectingServices,
         availableServices: services,
       ));
-    } catch (e, s) {
-      log.e('BookingBloc: Error fetching services', error: e, stackTrace: s);
-      emit(BookingFailure(
-        error: 'Failed to load services: ${e.toString()}',
-        isGuestAttempt: false,
+    } catch (e) {
+      emit(currentState.copyWith(
+        status: BookingStatus.failure,
+        errorMessage: e.toString(),
       ));
     }
   }
 
-  void _onServicesSelected(
-      ServicesSelected event,
-      Emitter<BookingState> emit,
-      ) {
-    final currentState = state;
-    if (currentState is! BookingInProgress) return;
-
-    log.i('BookingBloc: ServicesSelected event with ${event.services.length} services.');
-
-    emit(currentState.copyWith(
-      status: BookingStatus.selectingTime,
-      selectedServices: event.services,
-    ));
+  void _onServicesSelected(ServicesSelected event, Emitter<BookingState> emit) {
+    if (state is! BookingInProgress) return;
+    final currentState = state as BookingInProgress;
+    emit(currentState.copyWith(selectedServices: event.services));
   }
 
-  Future<void> _onDateSelected(
-      DateSelected event,
-      Emitter<BookingState> emit,
-      ) async {
-    final currentState = state;
-    if (currentState is! BookingInProgress) return;
-
-    final formattedDate = DateFormat.yMd().format(event.date);
-    log.i('BookingBloc: DateSelected event - Date: $formattedDate');
-
-    emit(currentState.copyWith(
-      selectedDate: event.date,
-      selectedTimeSlot: null, // Clear previous selection
-      availableTimeSlots: const [], // Clear while loading
-    ));
-
+  void _onDateSelected(DateSelected event, Emitter<BookingState> emit) {
+    if (state is! BookingInProgress) return;
+    final currentState = state as BookingInProgress;
+    emit(currentState.copyWith(selectedDate: event.date));
     add(FetchTimeSlots());
   }
 
-  Future<void> _onFetchTimeSlots(
-      FetchTimeSlots event,
-      Emitter<BookingState> emit,
-      ) async {
-    final currentState = state;
-    if (currentState is! BookingInProgress) return;
+  Future<void> _onFetchTimeSlots(FetchTimeSlots event, Emitter<BookingState> emit) async {
+    if (state is! BookingInProgress) return;
+    final currentState = state as BookingInProgress;
     if (currentState.selectedDate == null) return;
 
-    final date = currentState.selectedDate!;
-    final formattedDate = DateFormat.yMd().format(date);
-    log.i('BookingBloc: Generating time slots for $formattedDate...');
-
-    try {
-      // Get salon's opening hours
-      final salon = currentState.salon;
-      final openingTime = _parseTime(salon.openingTime);
-      final closingTime = _parseTime(salon.closingTime);
-
-      // Get total duration of selected services
-      final totalDuration = currentState.selectedServices.fold<int>(
-        0,
-            (sum, service) => sum + service.durationMinutes,
-      );
-
-      // Generate base time slots (15-minute intervals)
-      final baseSlots = _generateTimeSlots(
-        openingTime: openingTime,
-        closingTime: closingTime,
-        intervalMinutes: 15,
-        serviceDuration: totalDuration,
-      );
-
-      log.i('BookingBloc: Generated ${baseSlots.length} base slots.');
-
-      // Fetch existing appointments for this date to filter out booked slots
-      final existingAppointments = await _bookingRepository
-          .getAppointmentsForSalonOnDate(salon.id, date);
-
-      // Filter out slots that conflict with existing bookings
-      final availableSlots = _filterBookedSlots(
-        baseSlots: baseSlots,
-        existingAppointments: existingAppointments,
-        date: date,
-        serviceDuration: totalDuration,
-      );
-
-      log.i('BookingBloc: ${availableSlots.length} slots available after filtering.');
-
-      emit(currentState.copyWith(
-        status: BookingStatus.selectingTime,
-        availableTimeSlots: availableSlots,
-      ));
-    } catch (e, s) {
-      log.e('BookingBloc: Error fetching time slots', error: e, stackTrace: s);
-      emit(currentState.copyWith(
-        status: BookingStatus.failure,
-        errorMessage: 'Failed to load available times.',
-      ));
-    }
-  }
-
-  void _onTimeSlotSelected(
-      TimeSlotSelected event,
-      Emitter<BookingState> emit,
-      ) {
-    final currentState = state;
-    if (currentState is! BookingInProgress) return;
-
-    log.i('BookingBloc: TimeSlotSelected event - Time: ${event.timeSlot}');
-
-    emit(currentState.copyWith(
-      status: BookingStatus.reviewing,
-      selectedTimeSlot: event.timeSlot,
-    ));
-  }
-
-  Future<void> _onConfirmBooking(
-      ConfirmBooking event,
-      Emitter<BookingState> emit,
-      ) async {
-    final currentState = state;
-    if (currentState is! BookingInProgress) return;
-
-    log.i('BookingBloc: ConfirmBooking event initiated.');
-
-    // Check authentication
-    final authState = _authBloc.state;
-    if (authState is GuestMode) {
-      log.w('BookingBloc: Guest attempted to confirm booking');
-      emit(BookingFailure(
-        error: 'Please sign in to complete your booking.',
-        isGuestAttempt: true,
-      ));
-      return;
-    }
-
-    if (authState is! Authenticated) {
-      emit(const BookingFailure(
-        error: 'You must be signed in to book an appointment.',
-        isGuestAttempt: false,
-      ));
-      return;
-    }
-
-    log.i('BookingBloc: Processing booking...');
     emit(currentState.copyWith(status: BookingStatus.processing));
 
     try {
-      // Validate required data
-      if (currentState.selectedDate == null ||
-          currentState.selectedTimeSlot == null ||
-          currentState.selectedServices.isEmpty) {
-        throw Exception('Missing booking details');
+      final appointments = await _bookingRepository.getAppointmentsForSalonOnDate(
+        currentState.salon.id,
+        currentState.selectedDate!,
+      );
+
+      final availableSlots = _generateTimeSlots(
+        openingTime: currentState.salon.openingTime ?? '08:00',
+        closingTime: currentState.salon.closingTime ?? '20:00',
+        interval: 30,
+      );
+
+      // ✅ Uses the 'totalDurationMinutes' implicitly here via fold, matching getter logic
+      final int totalDuration = currentState.selectedServices.fold(0, (sum, s) => sum + s.durationMinutes);
+
+      var filteredSlots = _filterBookedSlots(
+        baseSlots: availableSlots,
+        existingAppointments: appointments,
+        date: currentState.selectedDate!,
+        serviceDuration: totalDuration,
+      );
+
+      // Filter out past time slots if the selected date is today
+      filteredSlots = _filterPastSlots(
+        slots: filteredSlots,
+        date: currentState.selectedDate!,
+      );
+
+      emit(currentState.copyWith(
+        status: BookingStatus.selectingTime,
+        availableTimeSlots: filteredSlots,
+      ));
+    } catch (e) {
+      emit(currentState.copyWith(
+        status: BookingStatus.failure,
+        errorMessage: e.toString(),
+      ));
+    }
+  }
+
+  void _onTimeSlotSelected(TimeSlotSelected event, Emitter<BookingState> emit) {
+    if (state is! BookingInProgress) return;
+    final currentState = state as BookingInProgress;
+    emit(currentState.copyWith(selectedTimeSlot: event.timeSlot));
+  }
+
+  Future<void> _onConfirmBooking(ConfirmBooking event, Emitter<BookingState> emit) async {
+    if (state is! BookingInProgress) return;
+    final currentState = state as BookingInProgress;
+
+    // Validate we have all required data
+    if (currentState.selectedDate == null || currentState.selectedTimeSlot == null) {
+      emit(BookingFailure(error: 'Please select a date and time slot.'));
+      return;
+    }
+    if (currentState.selectedServices.isEmpty) {
+      emit(BookingFailure(error: 'Please select at least one service.'));
+      return;
+    }
+
+    emit(currentState.copyWith(status: BookingStatus.processing));
+
+    try {
+      // Parse the selected time slot into a full DateTime
+      DateTime parsedTime;
+      try {
+        parsedTime = DateFormat('HH:mm').parse(currentState.selectedTimeSlot!);
+      } catch (_) {
+        parsedTime = DateFormat.jm().parse(currentState.selectedTimeSlot!);
       }
 
-      final clientId = authState.user.uid;
-      log.d('BookingBloc: Client ID: $clientId');
-
-      // Parse time slot to DateTime
-      final timeSlot = currentState.selectedTimeSlot!;
-      final parsedTime = DateFormat.jm().parse(timeSlot);
-      final startTime = DateTime(
+      final appointmentDateTime = DateTime(
         currentState.selectedDate!.year,
         currentState.selectedDate!.month,
         currentState.selectedDate!.day,
         parsedTime.hour,
         parsedTime.minute,
       );
-      log.d('BookingBloc: Calculated startTime: $startTime');
 
-      // Calculate totals
-      final totalDuration = currentState.selectedServices.fold<int>(
-        0,
-            (sum, service) => sum + service.durationMinutes,
-      );
-      final totalPrice = currentState.selectedServices.fold<double>(
-        0.0,
-            (sum, service) => sum + service.price,
-      );
+      // Get current user ID from AuthBloc
+      final authState = _authBloc.state;
+      if (authState is! Authenticated) {
+        emit(BookingFailure(error: 'You must be logged in to book.', isGuestAttempt: authState is GuestMode));
+        return;
+      }
+      final clientId = authState.user.uid;
 
-      //========================================================================
-      // CRITICAL FIX: Create appointment with "Pending Payment" status
-      //========================================================================
+      // Create the appointment
       final appointment = AppointmentModel(
-        id: '', // Will be set by Firestore
+        id: '', // Firestore will generate
         clientId: clientId,
         salonId: currentState.salon.id,
-        staffId: null, // Optional
         serviceIds: currentState.selectedServices.map((s) => s.id).toList(),
-        startTime: startTime,
-        durationMinutes: totalDuration,
-        totalPrice: totalPrice,
-        status: AppointmentStatus.pendingPayment, // ← FIXED: Not "Confirmed"!
+        startTime: appointmentDateTime,
+        durationMinutes: currentState.totalDurationMinutes,
+        totalPrice: currentState.totalPrice,
+        status: AppointmentStatus.pendingPayment,
         createdAt: DateTime.now(),
       );
 
-      log.d('BookingBloc: Created AppointmentModel: $appointment');
+      final appointmentId = await _bookingRepository.createAppointment(appointment);
 
-      // Save to Firestore and get the document ID
-      final appointmentId = await _firestoreService.createAppointment(appointment);
-      log.i('BookingBloc: Booking created with ID: $appointmentId. Emitting BookingPaymentRequired.');
-
-      //========================================================================
-      // Emit state to trigger payment flow
-      //========================================================================
       emit(BookingPaymentRequired(
         appointmentId: appointmentId,
-        amount: totalPrice,
+        amount: currentState.totalPrice,
         salon: currentState.salon,
         services: currentState.selectedServices,
-        appointmentDateTime: startTime,
+        appointmentDateTime: appointmentDateTime,
       ));
-
-    } catch (e, s) {
-      log.e('BookingBloc: Error confirming booking', error: e, stackTrace: s);
-      emit(BookingFailure(
-        error: 'Failed to create booking: ${e.toString()}',
-        isGuestAttempt: false,
-      ));
+    } catch (e) {
+      log.e('ConfirmBooking error: $e');
+      emit(BookingFailure(error: 'Failed to create booking: $e'));
     }
   }
 
-  void _onResetBooking(
-      ResetBooking event,
-      Emitter<BookingState> emit,
-      ) {
-    log.i('BookingBloc: ResetBooking event.');
-    emit(BookingInitial());
+  void _onResetBooking(ResetBooking event, Emitter<BookingState> emit) => emit(BookingInitial());
+
+  void _onPaymentCompleted(PaymentCompleted event, Emitter<BookingState> emit) {
+    emit(BookingSuccess(appointmentId: event.appointmentId));
   }
 
-  //============================================================================
-  // HELPER METHODS
-  //============================================================================
-
-  /// Parse time string like "08:00" to TimeOfDay-like structure
-  ({int hour, int minute}) _parseTime(String timeStr) {
-    final parts = timeStr.split(':');
-    return (
-    hour: int.tryParse(parts[0]) ?? 8,
-    minute: int.tryParse(parts[1]) ?? 0,
-    );
+  void _onPaymentFailed(PaymentFailed event, Emitter<BookingState> emit) {
+    emit(BookingFailure(error: event.reason ?? 'Payment failed'));
   }
 
-  /// Generate time slots between opening and closing time
-  List<String> _generateTimeSlots({
-    required ({int hour, int minute}) openingTime,
-    required ({int hour, int minute}) closingTime,
-    required int intervalMinutes,
-    required int serviceDuration,
-  }) {
-    final slots = <String>[];
+  // --- HELPERS ---
 
-    var currentHour = openingTime.hour;
-    var currentMinute = openingTime.minute;
+  List<String> _generateTimeSlots({required String openingTime, required String closingTime, int interval = 30}) {
+    List<String> slots = [];
+    DateFormat format = DateFormat("HH:mm");
 
-    // Calculate last possible slot (must finish before closing)
-    final closingMinutes = closingTime.hour * 60 + closingTime.minute;
-    final lastSlotMinutes = closingMinutes - serviceDuration;
+    try {
+      DateTime open = format.parse(openingTime);
+      DateTime close = format.parse(closingTime);
 
-    while (true) {
-      final currentMinutes = currentHour * 60 + currentMinute;
-
-      if (currentMinutes > lastSlotMinutes) break;
-
-      // Format as "8:00 AM", "8:15 AM", etc.
-      final time = DateTime(2024, 1, 1, currentHour, currentMinute);
-      final formatted = DateFormat.jm().format(time);
-      slots.add(formatted);
-
-      // Increment by interval
-      currentMinute += intervalMinutes;
-      if (currentMinute >= 60) {
-        currentHour += currentMinute ~/ 60;
-        currentMinute = currentMinute % 60;
+      // Handle case where closing time is early morning next day (e.g., 01:00)
+      if (close.isBefore(open)) {
+        close = close.add(const Duration(days: 1));
       }
-    }
 
+      DateTime current = open;
+      while (current.isBefore(close)) {
+        slots.add(format.format(current));
+        current = current.add(Duration(minutes: interval));
+      }
+    } catch (e) {
+      log.e("Error parsing time slots: $e");
+    }
     return slots;
   }
 
-  /// Filter out time slots that conflict with existing bookings
   List<String> _filterBookedSlots({
     required List<String> baseSlots,
     required List<AppointmentModel> existingAppointments,
     required DateTime date,
     required int serviceDuration,
   }) {
-    // Only consider confirmed appointments (not pending payment, cancelled, etc.)
     final confirmedAppointments = existingAppointments
         .where((a) => a.status == AppointmentStatus.confirmed)
         .toList();
 
-    if (confirmedAppointments.isEmpty) {
-      return baseSlots;
-    }
+    if (confirmedAppointments.isEmpty) return baseSlots;
 
     return baseSlots.where((slot) {
-      final parsedTime = DateFormat.jm().parse(slot);
-      final slotStart = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        parsedTime.hour,
-        parsedTime.minute,
-      );
-      final slotEnd = slotStart.add(Duration(minutes: serviceDuration));
+      try {
+        final parsedTime = DateFormat("HH:mm").parse(slot);
+        final slotStart = DateTime(
+          date.year, date.month, date.day, parsedTime.hour, parsedTime.minute,
+        );
+        final slotEnd = slotStart.add(Duration(minutes: serviceDuration));
 
-      // Check if this slot conflicts with any existing appointment
-      for (final existing in confirmedAppointments) {
-        final existingEnd = existing.endTime;
+        for (final existing in confirmedAppointments) {
+          // Assuming appointment model has startTime and endTime as DateTime
+          // If not, they would need parsing here too
+          final existingStart = existing.startTime;
+          final existingEnd = existing.endTime;
 
-        // Check for overlap
-        final hasOverlap = slotStart.isBefore(existingEnd) &&
-            slotEnd.isAfter(existing.startTime);
-
-        if (hasOverlap) {
-          return false; // Slot is not available
+          final hasOverlap = slotStart.isBefore(existingEnd) && slotEnd.isAfter(existingStart);
+          if (hasOverlap) return false;
         }
+        return true;
+      } catch (e) {
+        return false;
       }
+    }).toList();
+  }
 
-      return true; // Slot is available
+  /// Removes time slots that have already passed when [date] is today.
+  /// Adds a 15-minute buffer so users can't book a slot starting in 5 minutes.
+  List<String> _filterPastSlots({
+    required List<String> slots,
+    required DateTime date,
+  }) {
+    final now = DateTime.now();
+    final isToday = date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
+
+    if (!isToday) return slots;
+
+    final bufferMinutes = 15;
+    final cutoff = now.add(Duration(minutes: bufferMinutes));
+
+    return slots.where((slot) {
+      try {
+        final parsed = DateFormat('HH:mm').parse(slot);
+        final slotTime = DateTime(
+          date.year, date.month, date.day, parsed.hour, parsed.minute,
+        );
+        return slotTime.isAfter(cutoff);
+      } catch (_) {
+        return false;
+      }
     }).toList();
   }
 }

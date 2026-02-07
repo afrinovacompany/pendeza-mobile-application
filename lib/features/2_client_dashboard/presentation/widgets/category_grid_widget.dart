@@ -18,36 +18,29 @@ class CategoryGridWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final displayList = showAll ? categories : categories.take(6).toList();
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Responsive: 2 columns for phones, 3 for tablets
+    final crossAxisCount = screenWidth > 600 ? 3 : 2;
+    // Adjust aspect ratio based on screen width
+    final childAspectRatio = screenWidth > 600 ? 2.6 : 2.4;
 
     return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
+      padding: EdgeInsets.zero, // Remove internal padding - parent handles it
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
         crossAxisSpacing: AppConstants.padM,
         mainAxisSpacing: AppConstants.padM,
-        childAspectRatio: 2.4,
+        childAspectRatio: childAspectRatio,
       ),
       itemCount: displayList.length,
       itemBuilder: (context, index) {
-        return TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.0, end: 1.0),
-          duration: Duration(milliseconds: 300 + (index * 80)),
-          curve: Curves.easeOutCubic,
-          builder: (context, value, child) {
-            return Transform.scale(
-              scale: value,
-              child: Opacity(
-                opacity: value,
-                child: child,
-              ),
-            );
-          },
-          child: _CategoryCard(
-            category: displayList[index],
-            onTap: () => onCategorySelected(displayList[index].id),
-          ),
+        // Simplified animation - single fade-in for entire grid on load
+        return _CategoryCard(
+          category: displayList[index],
+          onTap: () => onCategorySelected(displayList[index].id),
         );
       },
     );
@@ -107,79 +100,87 @@ class _CategoryCardState extends State<_CategoryCard> {
               ),
             ],
           ),
-          child: Stack(
-            children: [
-              // Gradient overlay
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.primary.withValues(alpha: 0.02),
-                        Colors.transparent,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Calculate responsive dimensions once
+              final imageWidth = (constraints.maxWidth * 0.38).clamp(60.0, 90.0);
+              final textRightPadding = (constraints.maxWidth * 0.40).clamp(50.0, 80.0);
 
-              // Text
-              Positioned.fill(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      left: 16.0,
-                      right: 60.0,
-                    ),
-                    child: Text(
-                      widget.category.name.tr(),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                        height: 1.2,
-                        fontSize: 14,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Image
-              Positioned(
-                right: 0,
-                bottom: 0,
-                top: 0,
-                width: 75,
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
-                  ),
-                  child: widget.category.iconUrl != null
-                      ? Image.asset(
-                    widget.category.iconUrl!,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.bottomCenter,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Center(
-                        child: Icon(
-                          Icons.spa,
-                          color: textColor.withValues(alpha: 0.2),
-                          size: 28,
+              return Stack(
+                children: [
+                  // Gradient overlay
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            theme.colorScheme.primary.withValues(alpha: 0.02),
+                            Colors.transparent,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                      );
-                    },
-                  )
-                      : const SizedBox.shrink(),
-                ),
-              ),
-            ],
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+
+                  // Text - adaptive padding
+                  Positioned.fill(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          left: 14.0,
+                          right: textRightPadding,
+                        ),
+                        child: Text(
+                          'categories.${widget.category.name}'.tr(),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                            height: 1.2,
+                            fontSize: 13,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Image - responsive width
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    top: 0,
+                    width: imageWidth,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topRight: Radius.circular(16),
+                        bottomRight: Radius.circular(16),
+                      ),
+                      child: widget.category.iconUrl != null
+                          ? Image.asset(
+                        widget.category.iconUrl!,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.bottomCenter,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Icon(
+                              Icons.spa,
+                              color: textColor.withValues(alpha: 0.2),
+                              size: 28,
+                            ),
+                          );
+                        },
+                      )
+                          : const SizedBox.shrink(),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),

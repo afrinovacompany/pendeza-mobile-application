@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/config/theme/app_constants.dart';
-import '../../../../app/config/theme/adaptive_theme.dart';
 import '../../../../app/config/app_router.dart';
 import '../../../../app/services/service_locator.dart';
 import '../../../../app/services/local_storage_service.dart';
@@ -36,6 +35,11 @@ import '../widgets/upcoming_appointment_widget.dart';
 import '../widgets/category_grid_widget.dart';
 import '../widgets/dashboard_header.dart';
 import '../../../wallet/presentation/widgets/wallet_balance_card.dart';
+
+// 🆕 Video Shorts imports
+import '../../../video_shorts/presentation/bloc/video_shorts_bloc.dart';
+import '../../../video_shorts/presentation/bloc/video_shorts_event.dart';
+import '../../../video_shorts/presentation/widgets/video_story_widget.dart';
 
 class ClientDashboardScreen extends StatefulWidget {
   const ClientDashboardScreen({super.key});
@@ -70,6 +74,10 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
         BlocProvider(
           create: (context) => sl<PromotionsBloc>()..add(LoadDashboardPromotions()),
         ),
+        // 🆕 Add VideoShortsBloc
+        BlocProvider(
+          create: (context) => sl<VideoShortsBloc>()..add(const LoadVideoShorts()),
+        ),
       ],
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
@@ -91,7 +99,16 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                 const SliverToBoxAdapter(child: SizedBox(height: AppConstants.padM)),
 
                 // ════════════════════════════════════════════════════════
-                // 🔥 2. WALLET BALANCE CARD
+                // 🆕 2. VIDEO STORIES WIDGET (NEW!)
+                // ════════════════════════════════════════════════════════
+                const SliverToBoxAdapter(
+                  child: VideoStoryWidget(),
+                ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: AppConstants.padL)),
+
+                // ════════════════════════════════════════════════════════
+                // 3. WALLET BALANCE CARD
                 // ════════════════════════════════════════════════════════
                 const SliverToBoxAdapter(
                   child: Padding(
@@ -104,14 +121,14 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                 const SliverToBoxAdapter(child: SizedBox(height: AppConstants.padL)),
 
                 // ════════════════════════════════════════════════════════
-                // 3. UPCOMING APPOINTMENT (Priority Visibility)
+                // 4. UPCOMING APPOINTMENT (Priority Visibility)
                 // ════════════════════════════════════════════════════════
                 SliverToBoxAdapter(
                   child: _buildUpcomingAppointment(context, theme),
                 ),
 
                 // ════════════════════════════════════════════════════════
-                // 4. QUICK ACTIONS BAR
+                // 5. QUICK ACTIONS BAR
                 // ════════════════════════════════════════════════════════
                 SliverToBoxAdapter(
                   child: Padding(
@@ -131,7 +148,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                 ),
 
                 // ════════════════════════════════════════════════════════
-                // 5. PROMOTIONS CAROUSEL (Hero Section)
+                // 6. PROMOTIONS CAROUSEL (Hero Section)
                 // ════════════════════════════════════════════════════════
                 SliverToBoxAdapter(
                   child: _buildPromotionsSection(context, theme),
@@ -141,7 +158,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                 const SliverToBoxAdapter(child: SizedBox(height: AppConstants.padXL)),
 
                 // ════════════════════════════════════════════════════════
-                // 6. CATEGORIES GRID WITH SECTION HEADER
+                // 7. CATEGORIES GRID WITH SECTION HEADER
                 // ════════════════════════════════════════════════════════
                 SliverToBoxAdapter(
                   child: _buildCategoriesSection(context, theme),
@@ -151,7 +168,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                 const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
                 // ════════════════════════════════════════════════════════
-                // 7. RECOMMENDED SALONS WITH SECTION HEADER
+                // 8. RECOMMENDED SALONS WITH SECTION HEADER
                 // ════════════════════════════════════════════════════════
                 SliverToBoxAdapter(
                   child: _buildSectionHeader(
@@ -168,7 +185,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                 const SliverToBoxAdapter(child: SizedBox(height: AppConstants.padM)),
 
                 // ════════════════════════════════════════════════════════
-                // 8. SALONS HORIZONTAL LIST
+                // 9. SALONS HORIZONTAL LIST
                 // ════════════════════════════════════════════════════════
                 SliverToBoxAdapter(
                   child: _buildSalonsCarousel(context),
@@ -189,10 +206,25 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
   // ══════════════════════════════════════════════════════════════════════════
 
   /// Upcoming appointment with better visual hierarchy
+  /// Shows both pending-payment and confirmed upcoming appointments
   Widget _buildUpcomingAppointment(BuildContext context, ThemeData theme) {
     return BlocBuilder<AppointmentsBloc, AppointmentsState>(
       builder: (context, state) {
-        if (state is AppointmentsLoaded && state.upcomingAppointments.isNotEmpty) {
+        if (state is AppointmentsLoaded) {
+          // Combine pending payment + confirmed upcoming, sorted by start time
+          final allUpcoming = [
+            ...state.pendingPaymentAppointments,
+            ...state.upcomingAppointments,
+          ];
+          // Sort by nearest first
+          allUpcoming.sort((a, b) =>
+              a.appointment.startTime.compareTo(b.appointment.startTime));
+
+          if (allUpcoming.isEmpty) return const SizedBox.shrink();
+
+          final nearest = allUpcoming.first;
+          final isPending = nearest.appointment.isPendingPayment;
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -210,25 +242,44 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // Key: "client.dashboard.up_next"
                     Text(
                       'client.dashboard.up_next'.tr(),
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                    if (isPending) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: Colors.orange.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Text(
+                          'Pending Payment',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: Colors.orange.shade700,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
-              const SizedBox(height: AppConstants.padM),
-
-              // Appointment card
+              const SizedBox(height: 12),
               UpcomingAppointmentWidget(
-                appointmentWithDetails: state.upcomingAppointments.first,
+                appointmentWithDetails: nearest,
                 onTap: () => context.go(AppRoutes.clientBookings),
               ),
-
-              const SizedBox(height: AppConstants.padXL),
             ],
           );
         }
@@ -237,88 +288,24 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
     );
   }
 
-  /// Promotions section with elegant presentation
   Widget _buildPromotionsSection(BuildContext context, ThemeData theme) {
     return BlocBuilder<PromotionsBloc, PromotionsState>(
       builder: (context, state) {
         if (state is PromotionsLoading) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Shimmer for section title
-                Container(
-                  width: 150,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                const SizedBox(height: AppConstants.padM),
-                // Shimmer for carousel
-                const ShimmerPlaceholder.rectangular(
-                  height: 200,
-                  width: double.infinity,
-                ),
-              ],
-            ),
+          return const SizedBox(
+            height: 180,
+            child: Center(child: CircularProgressIndicator()),
           );
         }
 
-        if (state is PromotionsLoaded && state.promotions.isNotEmpty) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Section header with badge
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.local_offer_rounded,
-                      color: theme.colorScheme.primary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    // Key: "client.dashboard.special_offers"
-                    Text(
-                      'client.dashboard.special_offers'.tr(),
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${state.promotions.length}',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppConstants.padM),
+        if (state is PromotionsLoaded) {
+          if (state.promotions.isEmpty) {
+            return const SizedBox.shrink();
+          }
 
-              // Carousel
-              PromotionCarousel(
-                promotions: state.promotions,
-                onPromotionTap: _handlePromotionTap,
-                height: 200,
-              ),
-            ],
+          return PromotionCarousel(
+            promotions: state.promotions,
+            onPromotionTap: _handlePromotionTap,
           );
         }
 
@@ -327,104 +314,35 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
     );
   }
 
-  /// Categories section with modern layout
   Widget _buildCategoriesSection(BuildContext context, ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section header
+        _buildSectionHeader(
+          context,
+          theme,
+          // Key: "client.dashboard.categories"
+          title: 'client.dashboard.browse_categories'.tr(),
+        ),
+        const SizedBox(height: AppConstants.padM),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.category_rounded,
-                      color: theme.colorScheme.primary,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Key: "client.dashboard.browse_categories"
-                  Text(
-                    'client.dashboard.browse_categories'.tr(),
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: AppConstants.padL),
-
-        // Categories grid
-        CategoryGridWidget(
-          categories: CategoriesData.allCategories,
-          onCategorySelected: _handleCategorySelected,
-          showAll: false,
-        ),
-
-        // "View All" button with enhanced styling
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppConstants.padL,
-            AppConstants.padM,
-            AppConstants.padL,
-            0,
-          ),
-          child: SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                context.push(AppRoutes.clientCategories);
-              },
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(
-                  color: theme.colorScheme.outline.withOpacity(0.3),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              icon: Icon(
-                Icons.grid_view_rounded,
-                size: 18,
-                color: theme.colorScheme.onSurface,
-              ),
-              // Key: "client.dashboard.view_all_categories"
-              label: Text(
-                'client.dashboard.view_all_categories'.tr(),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+          child: CategoryGridWidget(
+            categories: CategoriesData.allCategories,
+            onCategorySelected: _handleCategorySelected,
           ),
         ),
       ],
     );
   }
 
-  /// Reusable section header component
   Widget _buildSectionHeader(
       BuildContext context,
       ThemeData theme, {
         required String title,
+        IconData? icon,
         String? actionLabel,
         VoidCallback? onActionTap,
-        IconData? icon,
       }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
@@ -488,8 +406,12 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
             return _buildEmptySalonsState(context);
           }
 
+          // Responsive card width based on screen size
+          final screenWidth = MediaQuery.of(context).size.width;
+          final cardWidth = (screenWidth * 0.65).clamp(220.0, 280.0);
+
           return SizedBox(
-            height: 290,
+            height: 280,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(
@@ -503,7 +425,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                 final salon = state.allSalons[index];
                 return SalonCard(
                   salon: salon,
-                  width: 250,
+                  width: cardWidth,
                   onTap: () => _handleSalonTap(salon),
                 );
               },
@@ -518,8 +440,11 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
 
   /// Loading shimmer for salons carousel
   Widget _buildLoadingCarousel() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = (screenWidth * 0.65).clamp(220.0, 280.0);
+
     return SizedBox(
-      height: 290,
+      height: 280,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
@@ -528,9 +453,10 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
           width: AppConstants.padM,
         ),
         itemBuilder: (context, index) {
-          return const ShimmerPlaceholder.rectangular(
-            width: 250,
-            height: 290,
+          return ShimmerPlaceholder.rectangular(
+            width: cardWidth,
+            height: 280,
+            borderRadius: BorderRadius.circular(20),
           );
         },
       ),
@@ -631,12 +557,13 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
     }
     context.push(
       AppRoutes.salonDetail.replaceFirst(':salonId', salon.id),
-      extra: salon,
     );
   }
 
   Future<void> _handleRefresh() async {
     context.read<DiscoveryBloc>().add(const RefreshSalons());
     context.read<PromotionsBloc>().add(RefreshPromotions());
+    // 🆕 Refresh video shorts
+    context.read<VideoShortsBloc>().add(const RefreshVideoShorts());
   }
 }

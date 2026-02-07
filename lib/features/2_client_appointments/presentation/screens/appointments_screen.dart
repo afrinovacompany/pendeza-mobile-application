@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:pendeza/app/config/app_router.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/app/services/service_locator.dart';
-import 'package:pendeza/app/widgets/adaptive/adaptive_app_bar.dart';
 import 'package:pendeza/app/widgets/adaptive/adaptive_button.dart';
 import 'package:pendeza/features/2_client_appointments/domain/models/appointment_with_details.dart';
 import 'package:pendeza/features/2_client_appointments/presentation/bloc/appointments_bloc.dart';
@@ -33,119 +32,225 @@ class AppointmentsScreen extends StatelessWidget {
         length: 3,
         child: Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
-          appBar: AppBar(
-            title: Text('client.appointments.title'.tr()),
-            elevation: 0,
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(48),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: theme.colorScheme.outline.withValues(alpha: 0.1),
-                    ),
+          body: SafeArea(
+            child: Column(
+              children: [
+                // Header matching Discovery screen style
+                _buildHeader(context, theme),
+                // Enhanced Tab Bar
+                _buildTabBar(context, theme),
+                // Tab content
+                const Expanded(
+                  child: TabBarView(
+                    children: [
+                      _PendingPaymentListView(),
+                      _AppointmentsListView(listType: _ListType.upcoming),
+                      _AppointmentsListView(listType: _ListType.past),
+                    ],
                   ),
                 ),
-                child: TabBar(
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicator: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.primary,
-                        theme.colorScheme.secondary,
-                      ],
-                    ),
-                    borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(4),
-                    ),
-                  ),
-                  labelColor: theme.colorScheme.primary,
-                  unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  labelStyle: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                  unselectedLabelStyle: theme.textTheme.titleSmall,
-                  indicatorWeight: 3.0,
-                  tabs: [
-                    BlocBuilder<AppointmentsBloc, AppointmentsState>(
-                      builder: (context, state) {
-                        final pendingCount = state is AppointmentsLoaded
-                            ? state.pendingPaymentAppointments.length
-                            : 0;
-                        return Tab(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text('client.appointments.tab_pending'.tr()),
-                              if (pendingCount > 0) ...[
-                                const SizedBox(width: 6),
-                                TweenAnimationBuilder<double>(
-                                  tween: Tween(begin: 0.0, end: 1.0),
-                                  duration: const Duration(milliseconds: 400),
-                                  curve: Curves.elasticOut,
-                                  builder: (context, value, child) {
-                                    return Transform.scale(
-                                      scale: value,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 7,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Colors.orange.shade600,
-                                              Colors.orange.shade500,
-                                            ],
-                                          ),
-                                          borderRadius: BorderRadius.circular(12),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.orange.withValues(alpha: 0.3),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Text(
-                                          '$pendingCount',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                    Tab(text: 'client.appointments.tab_upcoming'.tr()),
-                    Tab(text: 'client.appointments.tab_past'.tr()),
-                  ],
-                ),
-              ),
+              ],
             ),
-          ),
-          body: const TabBarView(
-            children: [
-              _PendingPaymentListView(),
-              _AppointmentsListView(listType: _ListType.upcoming),
-              _AppointmentsListView(listType: _ListType.past),
-            ],
           ),
         ),
       ),
     );
   }
+
+  Widget _buildHeader(BuildContext context, ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppConstants.padL,
+        AppConstants.padL,
+        AppConstants.padL,
+        AppConstants.padS,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.colorScheme.surface,
+            theme.colorScheme.surface.withValues(alpha: 0.95),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'client.appointments.title'.tr(),
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.5,
+            ),
+          ),
+          // Appointment count badge
+          BlocBuilder<AppointmentsBloc, AppointmentsState>(
+            builder: (context, state) {
+              if (state is AppointmentsLoaded) {
+                final totalActive = state.pendingPaymentAppointments.length +
+                    state.upcomingAppointments.length;
+                if (totalActive > 0) {
+                  return TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 400),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Transform.scale(
+                        scale: value,
+                        child: child,
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            theme.colorScheme.primary,
+                            theme.colorScheme.primary.withValues(alpha: 0.8),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        'client.appointments.active_count'.tr(args: ['$totalActive']),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabBar(BuildContext context, ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppConstants.padL,
+        vertical: AppConstants.padS,
+      ),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: TabBar(
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        dividerColor: Colors.transparent,
+        labelColor: theme.colorScheme.primary,
+        unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+        labelStyle: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
+        unselectedLabelStyle: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w500,
+        ),
+        splashBorderRadius: BorderRadius.circular(10),
+        labelPadding: EdgeInsets.zero,
+        tabs: [
+          BlocBuilder<AppointmentsBloc, AppointmentsState>(
+            builder: (context, state) {
+              final pendingCount = state is AppointmentsLoaded
+                  ? state.pendingPaymentAppointments.length
+                  : 0;
+              return Tab(
+                height: 40,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('client.appointments.tab_pending'.tr()),
+                    if (pendingCount > 0) ...[
+                      const SizedBox(width: 6),
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.elasticOut,
+                        builder: (context, value, child) {
+                          return Transform.scale(
+                            scale: value,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.orange.shade600,
+                                    Colors.orange.shade500,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '$pendingCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            },
+          ),
+          Tab(
+            height: 40,
+            child: Text('client.appointments.tab_upcoming'.tr()),
+          ),
+          Tab(
+            height: 40,
+            child: Text('client.appointments.tab_past'.tr()),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-enum _ListType { pending, upcoming, past }
+enum _ListType { upcoming, past }
 
 class _PendingPaymentListView extends StatelessWidget {
   const _PendingPaymentListView();

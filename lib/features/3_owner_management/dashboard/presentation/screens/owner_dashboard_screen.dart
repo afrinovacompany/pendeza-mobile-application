@@ -1,6 +1,8 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:pendeza/app/config/app_router.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/app/utils/formatters.dart';
 import 'package:pendeza/app/services/service_locator.dart';
@@ -48,7 +50,7 @@ class _DashboardView extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Loading dashboard...',
+                      'owner.dashboard.loading'.tr(),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
@@ -70,7 +72,7 @@ class _DashboardView extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Error loading dashboard',
+                      'owner.dashboard.error_title'.tr(),
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -88,7 +90,7 @@ class _DashboardView extends StatelessWidget {
                       onPressed: () {
                         context.read<OwnerDashboardBloc>().add(const LoadDashboardData());
                       },
-                      child: const Text('Retry'),
+                      child: Text('common.retry'.tr()),
                     ),
                   ],
                 ),
@@ -113,6 +115,10 @@ class _DashboardView extends StatelessWidget {
                       DashboardHeader(
                         salonName: state.salonName,
                       ),
+                      const SizedBox(height: AppConstants.padL),
+
+                      // Quick Action: Manage Salon Profile
+                      _buildManageSalonCard(context, theme),
                       const SizedBox(height: AppConstants.padXL),
 
                       // Section label for stats
@@ -133,7 +139,7 @@ class _DashboardView extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Today\'s Overview',
+                            'owner.dashboard.todays_overview'.tr(),
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -209,9 +215,11 @@ class _DashboardView extends StatelessWidget {
 
                       const SizedBox(height: AppConstants.padXXL),
 
-                      // Upcoming appointments
+                      // Upcoming appointments (next 7 days)
                       UpcomingAppointmentsList(
-                        appointments: stats.upcomingToday,
+                        appointments: stats.upcomingAll.isNotEmpty
+                            ? stats.upcomingAll
+                            : stats.upcomingToday,
                       ),
 
                       const SizedBox(height: 100),
@@ -246,6 +254,77 @@ class _DashboardView extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildManageSalonCard(BuildContext context, ThemeData theme) {
+    return GestureDetector(
+      onTap: () => context.push(AppRoutes.ownerSalonProfile),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppConstants.padL),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primary,
+              theme.colorScheme.primary.withValues(alpha: 0.8),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: AppConstants.radiusL,
+          boxShadow: [
+            BoxShadow(
+              color: theme.colorScheme.primary.withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.store_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: AppConstants.padM),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'owner.dashboard.manage_salon'.tr(),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'owner.dashboard.manage_salon_desc'.tr(),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

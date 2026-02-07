@@ -39,7 +39,7 @@ class DiscoveryLoaded extends DiscoveryState {
       filters.categoryId != null ||
           filters.maxDistanceKm != null ||
           filters.minRating != null ||
-          filters.sortType != SortType.distance ||
+          filters.sortType != SortType.popularity ||
           (searchQuery != null && searchQuery!.isNotEmpty);
 
   /// Count of active filters (for badge)
@@ -97,7 +97,7 @@ class DiscoveryFilters extends Equatable {
     this.categoryId,
     this.maxDistanceKm,
     this.minRating,
-    this.sortType = SortType.distance,
+    this.sortType = SortType.popularity,
   });
 
   /// Default filters (no filtering applied)

@@ -256,9 +256,12 @@ class _RedesignedQuickInfoCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTimeRow('Open', salon.openingTime),
-            const SizedBox(height: 8),
-            _buildTimeRow('Close', salon.closingTime),
+            if (salon.hasBusinessHours) ...[
+              _buildTimeRow('Open', salon.openingTime!),
+              const SizedBox(height: 8),
+              _buildTimeRow('Close', salon.closingTime!),
+            ] else
+              const Text('Business hours not set yet'),
           ],
         ),
         actions: [

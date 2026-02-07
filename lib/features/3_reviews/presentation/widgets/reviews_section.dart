@@ -276,7 +276,6 @@ class ReviewsSection extends StatelessWidget {
 
     context.push(
       AppRoutes.writeReview.replaceFirst(':salonId', salon.id),
-      extra: salon,
     );
   }
 }

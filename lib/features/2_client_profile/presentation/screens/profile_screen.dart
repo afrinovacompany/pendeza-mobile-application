@@ -174,19 +174,16 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       // 🆕 WALLET SECTION
-                      _buildSectionHeader(context, 'Wallet'),
+                      _buildSectionHeader(context, 'client.profile.section_wallet'.tr()),
                       BlocBuilder<WalletBloc, WalletState>(
                         builder: (context, walletState) {
-                          String balance = "TZS 0";
-                          String subtitle = "Loading...";
+                          String subtitle = 'common.loading'.tr();
 
                           if (walletState is WalletLoaded) {
-                            balance = "TZS ${walletState.wallet.balance.toStringAsFixed(0)}";
-                            subtitle = "Balance: $balance";
+                            final balance = "TZS ${walletState.wallet.balance.toStringAsFixed(0)}";
+                            subtitle = 'client.profile.wallet_balance'.tr(args: [balance]);
                           } else if (walletState is WalletError) {
-                            subtitle = "Unable to load balance";
-                          } else if (walletState is WalletLoading) {
-                            subtitle = "Loading...";
+                            subtitle = 'client.profile.wallet_error'.tr();
                           }
 
                           return ProfileSectionCard(
@@ -194,7 +191,7 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
                               ProfileMenuTile(
                                 icon: CupertinoIcons.creditcard_fill,
                                 iconColor: Colors.blueAccent,
-                                title: 'My Wallet',
+                                title: 'client.profile.menu.wallet'.tr(),
                                 subtitle: subtitle,
                                 onTap: () => context.push(AppRoutes.clientWallet),
                               ),
@@ -205,18 +202,18 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
 
                       const SizedBox(height: AppConstants.padL),
 
-                      _buildSectionHeader(context, 'Account'),
+                      _buildSectionHeader(context, 'client.profile.section_account'.tr()),
                       ProfileSectionCard(
                         children: [
                           ProfileMenuTile(
                             icon: CupertinoIcons.person_crop_circle_fill,
-                            title: 'Edit Profile',
-                            subtitle: 'Name, Phone, and Gender',
+                            title: 'client.profile.menu.edit_profile'.tr(),
+                            subtitle: 'client.profile.edit_profile_subtitle'.tr(),
                             onTap: () => context.push(AppRoutes.editProfile),
                           ),
                           ProfileMenuTile(
                             icon: CupertinoIcons.heart_fill,
-                            title: 'My Favorites',
+                            title: 'client.profile.menu.favorites'.tr(),
                             onTap: () => context.push(AppRoutes.clientFavorites),
                           ),
                         ],
@@ -224,14 +221,32 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
 
                       const SizedBox(height: AppConstants.padL),
 
-                      _buildSectionHeader(context, 'Preferences'),
+                      ProfileMenuTile(
+                        icon: CupertinoIcons.question_circle_fill,
+                        title: 'client.profile.menu.help'.tr(),
+                        onTap: () {
+                          // Navigate with showFAQ=false
+                          context.push(
+                              Uri(
+                                  path: '/help-support',
+                                  queryParameters: {'showFAQ': 'false'}
+                              ).toString()
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: AppConstants.padL),
+
+                      _buildSectionHeader(context, 'client.profile.section_preferences'.tr()),
                       ProfileSectionCard(
                         children: [
                           ProfileMenuTile(
                             icon: CupertinoIcons.globe,
-                            title: 'Language',
+                            title: 'client.profile.menu.language'.tr(),
                             trailing: Text(
-                              context.locale.languageCode == 'sw' ? 'Kiswahili' : 'English',
+                              context.locale.languageCode == 'sw'
+                                  ? 'client.profile.language_selector.swahili'.tr()
+                                  : 'client.profile.language_selector.english'.tr(),
                               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),
                             ),
                             onTap: () => _showLanguagePicker(context),
@@ -245,7 +260,7 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
                         children: [
                           ProfileMenuTile(
                             icon: CupertinoIcons.square_arrow_right,
-                            title: 'Log Out',
+                            title: 'client.profile.menu.logout'.tr(),
                             isDestructive: true,
                             showChevron: false,
                             onTap: () => _showLogoutDialog(context),
@@ -281,21 +296,21 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
   void _showLanguagePicker(BuildContext context) {
     showAdaptiveActionSheet<String>(
       context: context,
-      title: 'Select Language',
+      title: 'client.profile.language_selector.title'.tr(),
       actions: [
         AdaptiveSheetAction(
-          label: 'English',
+          label: 'client.profile.language_selector.english'.tr(),
           value: 'en',
           onPressed: () => context.setLocale(const Locale('en')),
         ),
         AdaptiveSheetAction(
-          label: 'Kiswahili',
+          label: 'client.profile.language_selector.swahili'.tr(),
           value: 'sw',
           onPressed: () => context.setLocale(const Locale('sw')),
         ),
       ],
-      cancelAction: const AdaptiveSheetAction(
-        label: 'Cancel',
+      cancelAction: AdaptiveSheetAction(
+        label: 'common.cancel'.tr(),
         isDefault: true,
       ),
     );
@@ -304,10 +319,10 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
   void _showLogoutDialog(BuildContext context) async {
     final confirmed = await showAdaptiveConfirmDialog(
       context: context,
-      title: 'Log Out',
-      content: 'Are you sure you want to log out?',
-      confirmText: 'Log Out',
-      cancelText: 'Cancel',
+      title: 'client.profile.logout_title'.tr(),
+      content: 'client.profile.logout_confirm'.tr(),
+      confirmText: 'client.profile.menu.logout'.tr(),
+      cancelText: 'common.cancel'.tr(),
       isDestructive: true,
     );
 

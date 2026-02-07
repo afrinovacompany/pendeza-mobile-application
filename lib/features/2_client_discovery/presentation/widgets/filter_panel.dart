@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../app/config/theme/app_constants.dart';
@@ -18,7 +19,7 @@ class _FilterPanelState extends State<FilterPanel>
     with SingleTickerProviderStateMixin {
   String? _selectedCategoryId;
   double? _selectedMinRating;
-  SortType _selectedSortType = SortType.distance;
+  SortType _selectedSortType = SortType.popularity;
   late AnimationController _controller;
   late Animation<double> _slideAnimation;
 
@@ -92,7 +93,7 @@ class _FilterPanelState extends State<FilterPanel>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Filter Salons',
+                      'client.discover.filter.title'.tr(),
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -100,7 +101,7 @@ class _FilterPanelState extends State<FilterPanel>
                     TextButton.icon(
                       onPressed: _resetFilters,
                       icon: const Icon(Icons.refresh_rounded, size: 18),
-                      label: const Text('Reset'),
+                      label: Text('client.discover.filter.reset'.tr()),
                     ),
                   ],
                 ),
@@ -115,15 +116,15 @@ class _FilterPanelState extends State<FilterPanel>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildSectionTitle(theme, 'Category'),
+                      _buildSectionTitle(theme, 'client.discover.filter.category'.tr()),
                       const SizedBox(height: AppConstants.padM),
                       _buildCategoryChips(theme),
                       const SizedBox(height: AppConstants.padXXL),
-                      _buildSectionTitle(theme, 'Minimum Rating'),
+                      _buildSectionTitle(theme, 'client.discover.filter.min_rating'.tr()),
                       const SizedBox(height: AppConstants.padM),
                       _buildRatingFilter(theme),
                       const SizedBox(height: AppConstants.padXXL),
-                      _buildSectionTitle(theme, 'Sort By'),
+                      _buildSectionTitle(theme, 'client.discover.filter.sort_by'.tr()),
                       const SizedBox(height: AppConstants.padM),
                       _buildSortOptions(theme),
                       const SizedBox(height: AppConstants.padXL),
@@ -157,14 +158,14 @@ class _FilterPanelState extends State<FilterPanel>
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text('Cancel'),
+                        child: Text('common.cancel'.tr()),
                       ),
                     ),
                     const SizedBox(width: AppConstants.padM),
                     Expanded(
                       flex: 2,
                       child: PrimaryGradientButton(
-                        text: 'Apply Filters',
+                        text: 'client.discover.filter.apply'.tr(),
                         onPressed: _applyFilters,
                       ),
                     ),
@@ -211,7 +212,7 @@ class _FilterPanelState extends State<FilterPanel>
       children: [
         _buildCategoryChip(
           theme: theme,
-          label: 'All Categories',
+          label: 'client.discover.filter.all_categories'.tr(),
           isSelected: _selectedCategoryId == null,
           onTap: () => setState(() => _selectedCategoryId = null),
         ),
@@ -219,7 +220,7 @@ class _FilterPanelState extends State<FilterPanel>
           final isSelected = _selectedCategoryId == category.id;
           return _buildCategoryChip(
             theme: theme,
-            label: category.name,
+            label: 'categories.${category.name}'.tr(),
             isSelected: isSelected,
             color: Color(category.color),
             onTap: () => setState(() => _selectedCategoryId = category.id),
@@ -290,7 +291,7 @@ class _FilterPanelState extends State<FilterPanel>
         _buildRatingChip(
           theme: theme,
           rating: null,
-          label: 'Any Rating',
+          label: 'client.discover.filter.any_rating'.tr(),
           isSelected: _selectedMinRating == null,
         ),
         ...ratings.map((rating) {
@@ -395,17 +396,17 @@ class _FilterPanelState extends State<FilterPanel>
     String description;
 
     switch (sortType) {
-      case SortType.distance:
-        icon = Icons.near_me_rounded;
-        description = 'Nearest salons first';
+      case SortType.popularity:
+        icon = Icons.trending_up_rounded;
+        description = 'client.discover.filter.sort_popularity_desc'.tr();
         break;
       case SortType.rating:
         icon = Icons.star_rounded;
-        description = 'Highest rated first';
+        description = 'client.discover.filter.sort_rating_desc'.tr();
         break;
-      case SortType.popularity:
-        icon = Icons.trending_up_rounded;
-        description = 'Most popular first';
+      case SortType.newest:
+        icon = Icons.schedule_rounded;
+        description = 'client.discover.filter.sort_newest_desc'.tr();
         break;
     }
 
@@ -522,7 +523,7 @@ class _FilterPanelState extends State<FilterPanel>
     setState(() {
       _selectedCategoryId = null;
       _selectedMinRating = null;
-      _selectedSortType = SortType.distance;
+      _selectedSortType = SortType.popularity;
     });
   }
 }

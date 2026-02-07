@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/cupertino.dart';
 
 import '../app/config/app_router.dart';
 import '../app/widgets/adaptive/adaptive_bottom_nav.dart';
+import '../app/widgets/adaptive/adaptive_dialog.dart';
 import '../app/utils/navigation_guard.dart';
 
 // Import the Appointments Bloc
@@ -13,6 +15,7 @@ import '../features/2_client_appointments/presentation/bloc/appointments_bloc.da
 import '../features/2_client_appointments/presentation/bloc/appoitments_state.dart';
 
 // --- OWNER NAV ITEMS ---
+// NOTE: Inspiration tab temporarily removed - will return in future months
 final ownerNavItems = [
   const AdaptiveNavItem(
     icon: CupertinoIcons.chart_bar,
@@ -33,11 +36,6 @@ final ownerNavItems = [
     icon: CupertinoIcons.group,
     activeIcon: CupertinoIcons.group_solid,
     label: 'Clients',
-  ),
-  const AdaptiveNavItem(
-    icon: CupertinoIcons.lightbulb,
-    activeIcon: CupertinoIcons.lightbulb_fill,
-    label: 'Inspiration',
   ),
   const AdaptiveNavItem(
     icon: CupertinoIcons.person,
@@ -61,6 +59,20 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> with NavigationGuard {
+  Future<void> _showExitConfirmation() async {
+    final shouldExit = await showAdaptiveConfirmDialog(
+      context: context,
+      title: 'Exit Pendeza?',
+      content: 'Are you sure you want to leave the app?',
+      confirmText: 'Exit',
+      cancelText: 'Stay',
+      isDestructive: true,
+    );
+    if (shouldExit && mounted) {
+      SystemNavigator.pop();
+    }
+  }
+
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
 
@@ -74,8 +86,7 @@ class _MainScreenState extends State<MainScreen> with NavigationGuard {
       if (location.startsWith(AppRoutes.ownerSchedule)) return 1;
       if (location.startsWith(AppRoutes.ownerServices)) return 2;
       if (location.startsWith(AppRoutes.ownerClients)) return 3;
-      if (location.startsWith(AppRoutes.ownerInspiration)) return 4;
-      if (location.startsWith(AppRoutes.ownerProfile)) return 5;
+      if (location.startsWith(AppRoutes.ownerProfile)) return 4;
     }
     return 0;
   }
@@ -96,8 +107,7 @@ class _MainScreenState extends State<MainScreen> with NavigationGuard {
           case 1: context.go(AppRoutes.ownerSchedule); break;
           case 2: context.go(AppRoutes.ownerServices); break;
           case 3: context.go(AppRoutes.ownerClients); break;
-          case 4: context.go(AppRoutes.ownerInspiration); break;
-          case 5: context.go(AppRoutes.ownerProfile); break;
+          case 4: context.go(AppRoutes.ownerProfile); break;
         }
       }
     });
@@ -105,7 +115,13 @@ class _MainScreenState extends State<MainScreen> with NavigationGuard {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _showExitConfirmation();
+      },
+      child: Scaffold(
       body: widget.child,
       bottomNavigationBar: widget.userRole == 'client'
           ? BlocBuilder<AppointmentsBloc, AppointmentsState>(
@@ -152,6 +168,7 @@ class _MainScreenState extends State<MainScreen> with NavigationGuard {
         currentIndex: _calculateSelectedIndex(context),
         onTap: (index) => _onItemTapped(index, context),
       ),
+    ),
     );
   }
 }

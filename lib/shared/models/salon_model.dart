@@ -74,8 +74,8 @@ class SalonModel extends Equatable {
   // BUSINESS INFO
   //============================================================================
   final String? description; // About the salon
-  final String openingTime; // "08:00"
-  final String closingTime; // "20:00"
+  final String? openingTime; // "08:00" (optional)
+  final String? closingTime; // "20:00" (optional)
 
   //============================================================================
   // AMENITIES (Simple list!)
@@ -111,8 +111,8 @@ class SalonModel extends Equatable {
     this.facebook,
     // Business info
     this.description,
-    this.openingTime = '08:00',
-    this.closingTime = '20:00',
+    this.openingTime,
+    this.closingTime,
     // Amenities
     this.amenities,
   });
@@ -158,8 +158,8 @@ class SalonModel extends Equatable {
       facebook: data['facebook'] as String?,
       // Business info
       description: data['description'] as String?,
-      openingTime: data['openingTime'] as String? ?? '08:00',
-      closingTime: data['closingTime'] as String? ?? '20:00',
+      openingTime: data['openingTime'] as String?,
+      closingTime: data['closingTime'] as String?,
       // Amenities
       amenities: data['amenities'] != null
           ? List<String>.from(data['amenities'])
@@ -207,8 +207,8 @@ class SalonModel extends Equatable {
       if (facebook != null) 'facebook': facebook,
       // Business info
       if (description != null) 'description': description,
-      'openingTime': openingTime,
-      'closingTime': closingTime,
+      if (openingTime != null) 'openingTime': openingTime,
+      if (closingTime != null) 'closingTime': closingTime,
       // Amenities
       'amenities': amenities ?? [],
     };
@@ -270,6 +270,35 @@ class SalonModel extends Equatable {
     }
     return null;
   }
+
+  /// Whether the salon has business hours set
+  bool get hasBusinessHours => openingTime != null && closingTime != null;
+
+  /// Check if salon is currently open based on opening/closing times.
+  /// Returns true if hours are not set (assume open).
+  bool get isOpen {
+    if (!hasBusinessHours) return true;
+    try {
+      final now = DateTime.now();
+      final openParts = openingTime!.split(':');
+      final closeParts = closingTime!.split(':');
+
+      final openHour = int.parse(openParts[0]);
+      final openMinute = int.parse(openParts[1]);
+      final closeHour = int.parse(closeParts[0]);
+      final closeMinute = int.parse(closeParts[1]);
+
+      final openTime = DateTime(now.year, now.month, now.day, openHour, openMinute);
+      final closeTime = DateTime(now.year, now.month, now.day, closeHour, closeMinute);
+
+      return now.isAfter(openTime) && now.isBefore(closeTime);
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Check if booking is allowed (only blocked for pending approval salons)
+  bool get isBookable => verificationStatus != 'pending';
 
   //============================================================================
   // COPY WITH

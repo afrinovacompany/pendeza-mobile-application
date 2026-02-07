@@ -5,6 +5,7 @@ import 'package:pendeza/shared/models/service_model.dart';
 /// Booking flow status enum
 enum BookingStatus {
   initial,
+  loading, // Used when fetching salon by ID
   loadingServices,
   selectingServices,
   selectingTime,
@@ -14,18 +15,14 @@ enum BookingStatus {
   failure,
 }
 
-/// Base class for booking states
 abstract class BookingState extends Equatable {
   const BookingState();
-
   @override
   List<Object?> get props => [];
 }
 
-/// Initial state before booking starts
 class BookingInitial extends BookingState {}
 
-/// In-progress booking with all current selections
 class BookingInProgress extends BookingState {
   final SalonModel salon;
   final BookingStatus status;
@@ -47,34 +44,12 @@ class BookingInProgress extends BookingState {
     this.errorMessage,
   });
 
-  /// Calculate total price of selected services
-  double get totalPrice =>
-      selectedServices.fold(0.0, (sum, s) => sum + s.price);
-
-  /// Calculate total duration of selected services
+  // ✅ ADDED THIS BACK: Required for TimeslotSelectionScreen
   int get totalDurationMinutes =>
-      selectedServices.fold(0, (sum, s) => sum + s.durationMinutes);
+      selectedServices.fold(0, (sum, service) => sum + service.durationMinutes);
 
-  /// Check if ready to proceed to time selection
-  bool get canSelectTime => selectedServices.isNotEmpty;
-
-  /// Check if ready to review booking
-  bool get canReview =>
-      selectedServices.isNotEmpty &&
-          selectedDate != null &&
-          selectedTimeSlot != null;
-
-  @override
-  List<Object?> get props => [
-    salon,
-    status,
-    availableServices,
-    selectedServices,
-    selectedDate,
-    selectedTimeSlot,
-    availableTimeSlots,
-    errorMessage,
-  ];
+  double get totalPrice =>
+      selectedServices.fold(0, (sum, item) => sum + item.price);
 
   BookingInProgress copyWith({
     SalonModel? salon,
@@ -97,10 +72,14 @@ class BookingInProgress extends BookingState {
       errorMessage: errorMessage ?? this.errorMessage,
     );
   }
+
+  @override
+  List<Object?> get props => [
+    salon, status, availableServices, selectedServices,
+    selectedDate, selectedTimeSlot, availableTimeSlots, errorMessage,
+  ];
 }
 
-/// Booking created, now requires payment to confirm
-/// This is the KEY state that triggers the payment flow
 class BookingPaymentRequired extends BookingState {
   final String appointmentId;
   final double amount;
@@ -117,39 +96,21 @@ class BookingPaymentRequired extends BookingState {
   });
 
   @override
-  List<Object?> get props => [
-    appointmentId,
-    amount,
-    salon,
-    services,
-    appointmentDateTime,
-  ];
+  List<Object?> get props => [appointmentId, amount, salon, services, appointmentDateTime];
 }
 
-/// Booking was successful (for free bookings or after payment)
 class BookingSuccess extends BookingState {
   final String appointmentId;
   final String message;
-
-  const BookingSuccess({
-    required this.appointmentId,
-    this.message = 'Booking confirmed successfully!',
-  });
-
+  const BookingSuccess({required this.appointmentId, this.message = 'Booking confirmed successfully!'});
   @override
   List<Object?> get props => [appointmentId, message];
 }
 
-/// Booking failed with error message
 class BookingFailure extends BookingState {
   final String error;
   final bool isGuestAttempt;
-
-  const BookingFailure({
-    required this.error,
-    this.isGuestAttempt = false,
-  });
-
+  const BookingFailure({required this.error, this.isGuestAttempt = false});
   @override
   List<Object?> get props => [error, isGuestAttempt];
 }

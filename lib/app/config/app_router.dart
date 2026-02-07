@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -42,6 +43,7 @@ import '../../features/3_owner_management/clients/presentation/screens/client_de
 import '../../features/3_owner_management/clients/presentation/screens/client_list_screen.dart';
 import '../../features/3_owner_management/dashboard/presentation/screens/owner_dashboard_screen.dart';
 import '../../features/3_owner_management/services/presentation/screens/service_list_screen.dart';
+import '../../features/3_owner_profile_screen/help_support_screen.dart';
 import '../../features/3_owner_profile_screen/owner_profile_screen.dart';
 import '../../features/3_owner_management/salon_profile/presentation/screens/salon_profile_screen.dart';
 import '../../features/3_reviews/data/models/review_model.dart';
@@ -51,6 +53,7 @@ import '../../features/5_admin_panel/presentation/screens/admin_manage_salon_scr
 import '../../features/5_admin_panel/presentation/screens/admin_manage_user_screen.dart';
 import '../../features/5_admin_panel/presentation/screens/admin_manage_inspiration_screen.dart';
 import '../../features/5_admin_panel/presentation/screens/admin_manage_promotion_screen.dart';
+import '../../features/5_admin_panel/presentation/screens/admin_manage_transactions_screen.dart';
 import '../../features/5_admin_panel/presentation/widgets/admin_shell_route.dart';
 import '../../features/wallet/presentation/screens/transaction_history_screen.dart';
 import '../../features/wallet/presentation/screens/wallet_screen.dart';
@@ -62,7 +65,6 @@ import '../../features/2_client_booking/presentation/screens/service_selection_s
 import '../../features/2_client_booking/presentation/screens/timeslot_selection_screen.dart';
 import '../../features/2_client_booking/presentation/screens/booking_confirmation_screen.dart';
 
-import 'package:pendeza/features/2_client_booking/domain/repositories/booking_repository.dart';
 
 import '../../shared/models/service_model.dart';
 import 'package:pendeza/features/3_owner_management/services/presentation/screens/add_edit_service_screen.dart';
@@ -134,7 +136,7 @@ class AppRoutes {
   static const String adminManageInspiration = '/admin/inspiration';
   static const String adminManagePromotions = '/admin/promotions';
   static const String adminManageNotifications = '/admin/notifications';
-// In AppRoutes class
+  static const String adminManageTransactions = '/admin/transactions';
 
 }
 
@@ -336,18 +338,16 @@ class AppRouter {
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.salonGallery,
         pageBuilder: (context, state) {
+          final salonId = state.pathParameters['salonId'] ?? '';
           final salon = state.extra as SalonModel?;
-          if (salon == null) {
-            return _buildPage(
-              context,
-              state,
-              const Scaffold(body: Center(child: Text('Error: Salon not found'))),
-            );
-          }
           return _buildPage(
-              context,
-              state,
-              SalonGalleryScreen(salon: salon)
+            context,
+            state,
+            _SalonFetchWrapper(
+              salonId: salonId,
+              initialSalon: salon,
+              builder: (salon) => SalonGalleryScreen(salon: salon),
+            ),
           );
         },
       ),
@@ -356,6 +356,7 @@ class AppRouter {
         path: AppRoutes.writeReview,
         name: 'write-review',
         pageBuilder: (context, state) {
+          final salonId = state.pathParameters['salonId'] ?? '';
           final extra = state.extra;
           SalonModel? salon;
           ReviewModel? review;
@@ -367,20 +368,16 @@ class AppRouter {
             review = extra['review'] as ReviewModel?;
           }
 
-          if (salon == null) {
-            return _buildPage(
-              context,
-              state,
-              const Scaffold(body: Center(child: Text('Error: Salon data missing'))),
-            );
-          }
-
           return _buildPage(
             context,
             state,
-            WriteReviewScreen(
-              salon: salon,
-              existingReview: review,
+            _SalonFetchWrapper(
+              salonId: salonId,
+              initialSalon: salon,
+              builder: (fetchedSalon) => WriteReviewScreen(
+                salon: fetchedSalon,
+                existingReview: review,
+              ),
             ),
           );
         },
@@ -407,6 +404,15 @@ class AppRouter {
       ),
 
       GoRoute(
+        path: '/help-support',
+        name: 'helpSupport',
+        builder: (context, state) {
+          final showFAQ = state.uri.queryParameters['showFAQ'] != 'false';
+          return HelpSupportScreen(showFAQ: showFAQ);
+        },
+      ),
+
+      GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.timeslotSelection,
         pageBuilder: (context, state) {
@@ -417,22 +423,11 @@ class AppRouter {
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.bookingConfirmation,
         pageBuilder: (context, state) {
-          final details = state.extra as BookingDetailsArguments?;
-          if (details == null) {
-            return _buildPage(
-                context,
-                state,
-                Scaffold(
-                    appBar: AppBar(),
-                    body: const Center(
-                        child: Text("Error: Booking details missing"))));
-          }
           return _buildPage(
-              context,
-              state,
-              BookingConfirmationScreen(
-                bookingDetails: details,
-              ));
+            context,
+            state,
+            const BookingConfirmationScreen(),
+          );
         },
       ),
 
@@ -504,6 +499,13 @@ class AppRouter {
             name: AppRoutes.adminManageNotifications,
             pageBuilder: (context, state) =>
                 _buildPage(context, state, const AdminManageNotificationsScreen()),
+          ),
+          // Transactions Management
+          GoRoute(
+            path: AppRoutes.adminManageTransactions,
+            name: AppRoutes.adminManageTransactions,
+            pageBuilder: (context, state) =>
+                _buildPage(context, state, const AdminManageTransactionsScreen()),
           ),
         ],
       ),
@@ -672,6 +674,8 @@ class AppRouter {
 
 
 
+
+
           GoRoute(
             path: AppRoutes.ownerSalonProfile,
             pageBuilder: (context, state) =>
@@ -729,6 +733,7 @@ class _SalonDeepLinkResolverState extends State<SalonDeepLinkResolver> {
   SalonModel? _salon;
   bool _isLoading = true;
   bool _hasError = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -743,15 +748,184 @@ class _SalonDeepLinkResolverState extends State<SalonDeepLinkResolver> {
 
   Future<void> _fetchSalon() async {
     try {
-      final salons = await sl<BookingRepository>().getSalons();
-      final foundSalon = salons.firstWhere(
-            (s) => s.id == widget.salonId,
-        orElse: () => throw Exception('Salon not found'),
-      );
+      // First try to get salon directly by ID from Firestore
+      final doc = await FirebaseFirestore.instance
+          .collection('salons')
+          .doc(widget.salonId)
+          .get();
+
+      if (!doc.exists) {
+        throw Exception('Salon not found');
+      }
+
+      final foundSalon = SalonModel.fromFirestore(doc);
 
       if (mounted) {
         setState(() {
           _salon = foundSalon;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('SalonDeepLinkResolver: Error fetching salon ${widget.salonId}: $e');
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                'Loading salon details...',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_hasError || _salon == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Salon Not Found'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                context.go(AppRoutes.clientDiscover);
+              }
+            },
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.store_outlined,
+                  size: 64,
+                  color: theme.colorScheme.onSurface.withOpacity(0.3),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Could not load salon details',
+                  style: theme.textTheme.titleMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'The salon may have been removed or is temporarily unavailable.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _isLoading = true;
+                          _hasError = false;
+                        });
+                        _fetchSalon();
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => context.go(AppRoutes.clientDiscover),
+                      icon: const Icon(Icons.explore),
+                      label: const Text('Discover Salons'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return PopScope(
+      canPop: Navigator.canPop(context),
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go(AppRoutes.clientDiscover);
+      },
+      child: SalonDetailScreen(salon: _salon!),
+    );
+  }
+}
+
+/// A lightweight wrapper that fetches a [SalonModel] from Firestore if not
+/// provided via GoRouter's extra parameter, then builds the child widget.
+class _SalonFetchWrapper extends StatefulWidget {
+  final String salonId;
+  final SalonModel? initialSalon;
+  final Widget Function(SalonModel salon) builder;
+
+  const _SalonFetchWrapper({
+    required this.salonId,
+    this.initialSalon,
+    required this.builder,
+  });
+
+  @override
+  State<_SalonFetchWrapper> createState() => _SalonFetchWrapperState();
+}
+
+class _SalonFetchWrapperState extends State<_SalonFetchWrapper> {
+  SalonModel? _salon;
+  bool _isLoading = true;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialSalon != null) {
+      _salon = widget.initialSalon;
+      _isLoading = false;
+    } else {
+      _fetchSalon();
+    }
+  }
+
+  Future<void> _fetchSalon() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('salons')
+          .doc(widget.salonId)
+          .get();
+      if (!doc.exists) throw Exception('Salon not found');
+      if (mounted) {
+        setState(() {
+          _salon = SalonModel.fromFirestore(doc);
           _isLoading = false;
         });
       }
@@ -772,33 +946,26 @@ class _SalonDeepLinkResolverState extends State<SalonDeepLinkResolver> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
-
     if (_hasError || _salon == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Error')),
+        appBar: AppBar(),
         body: Center(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Could not load salon details.'),
+              const Text('Could not load salon details'),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => context.go(AppRoutes.clientDiscover),
-                child: const Text('Go to Discovery'),
+                onPressed: () => Navigator.canPop(context)
+                    ? Navigator.pop(context)
+                    : context.go(AppRoutes.clientDiscover),
+                child: const Text('Go Back'),
               ),
             ],
           ),
         ),
       );
     }
-
-    return PopScope(
-      canPop: Navigator.canPop(context),
-      onPopInvoked: (didPop) {
-        if (didPop) return;
-        context.go(AppRoutes.clientDiscover);
-      },
-      child: SalonDetailScreen(salon: _salon!),
-    );
+    return widget.builder(_salon!);
   }
 }

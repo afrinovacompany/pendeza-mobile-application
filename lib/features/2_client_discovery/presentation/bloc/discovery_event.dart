@@ -79,7 +79,7 @@ class ApplyFilters extends DiscoveryEvent {
     this.categoryId,
     this.maxDistanceKm,
     this.minRating,
-    this.sortType = SortType.distance,
+    this.sortType = SortType.popularity,
   });
 
   @override
@@ -93,21 +93,21 @@ class ResetFilters extends DiscoveryEvent {
 
 /// Sort options for salons
 enum SortType {
-  distance,   // Closest first
+  popularity, // Most popular first (default)
   rating,     // Highest rated first
-  popularity, // Most popular first
+  newest,     // Recently added first
 }
 
 /// Extension to get display names for sort types
 extension SortTypeExtension on SortType {
   String get displayName {
     switch (this) {
-      case SortType.distance:
-        return 'Closest';
-      case SortType.rating:
-        return 'Rating';
       case SortType.popularity:
         return 'Popular';
+      case SortType.rating:
+        return 'Top Rated';
+      case SortType.newest:
+        return 'Newest';
     }
   }
 }

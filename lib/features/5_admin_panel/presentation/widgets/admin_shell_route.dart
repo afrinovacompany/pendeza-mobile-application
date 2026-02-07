@@ -23,13 +23,14 @@ class AdminShellRoute extends StatefulWidget {
 class _AdminShellRouteState extends State<AdminShellRoute> {
   bool _isRailExtended = false;
 
+  // NOTE: Inspiration tab temporarily removed - will return in future months
   int _calculateCurrentIndex(String location) {
     if (location.startsWith(AppRoutes.adminHome)) return 0;
     if (location.startsWith(AppRoutes.adminManageUsers)) return 1;
     if (location.startsWith(AppRoutes.adminManageSalons)) return 2;
-    if (location.startsWith(AppRoutes.adminManageInspiration)) return 3;
-    if (location.startsWith(AppRoutes.adminManagePromotions)) return 4;
-    if (location.startsWith(AppRoutes.adminManageNotifications)) return 5; // ADDED
+    if (location.startsWith(AppRoutes.adminManagePromotions)) return 3;
+    if (location.startsWith(AppRoutes.adminManageNotifications)) return 4;
+    if (location.startsWith(AppRoutes.adminManageTransactions)) return 5;
     return 0;
   }
 
@@ -45,13 +46,13 @@ class _AdminShellRouteState extends State<AdminShellRoute> {
         context.go(AppRoutes.adminManageSalons);
         break;
       case 3:
-        context.go(AppRoutes.adminManageInspiration);
-        break;
-      case 4:
         context.go(AppRoutes.adminManagePromotions);
         break;
-      case 5: // ADDED
+      case 4:
         context.go(AppRoutes.adminManageNotifications);
+        break;
+      case 5:
+        context.go(AppRoutes.adminManageTransactions);
         break;
     }
   }
@@ -226,19 +227,19 @@ class _AdminShellRouteState extends State<AdminShellRoute> {
           label: Text('Salons'),
         ),
         NavigationRailDestination(
-          icon: Icon(CupertinoIcons.lightbulb),
-          selectedIcon: Icon(CupertinoIcons.lightbulb_fill),
-          label: Text('Inspiration'),
-        ),
-        NavigationRailDestination(
           icon: Icon(CupertinoIcons.tag),
           selectedIcon: Icon(CupertinoIcons.tag_fill),
           label: Text('Promotions'),
         ),
-        NavigationRailDestination(  // ADDED: Notifications tab
+        NavigationRailDestination(
           icon: Icon(CupertinoIcons.bell),
           selectedIcon: Icon(CupertinoIcons.bell_fill),
           label: Text('Notifications'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(CupertinoIcons.creditcard),
+          selectedIcon: Icon(CupertinoIcons.creditcard_fill),
+          label: Text('Transactions'),
         ),
       ],
     );
@@ -251,6 +252,8 @@ class _AdminShellRouteState extends State<AdminShellRoute> {
       type: BottomNavigationBarType.fixed,
       selectedItemColor: Theme.of(context).colorScheme.primary,
       unselectedItemColor: Colors.grey,
+      selectedFontSize: 10,
+      unselectedFontSize: 10,
       items: const [
         BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.chart_bar),
@@ -268,19 +271,19 @@ class _AdminShellRouteState extends State<AdminShellRoute> {
           label: 'Salons',
         ),
         BottomNavigationBarItem(
-          icon: Icon(CupertinoIcons.lightbulb),
-          activeIcon: Icon(CupertinoIcons.lightbulb_fill),
-          label: 'Tips',
-        ),
-        BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.tag),
           activeIcon: Icon(CupertinoIcons.tag_fill),
           label: 'Promos',
         ),
-        BottomNavigationBarItem(  // ADDED
+        BottomNavigationBarItem(
           icon: Icon(CupertinoIcons.bell),
           activeIcon: Icon(CupertinoIcons.bell_fill),
           label: 'Notifs',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(CupertinoIcons.creditcard),
+          activeIcon: Icon(CupertinoIcons.creditcard_fill),
+          label: 'Trans',
         ),
       ],
     );

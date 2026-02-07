@@ -1,4 +1,3 @@
-
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -13,7 +12,6 @@ import '../../../../app/config/theme/app_constants.dart';
 import '../../../../app/utils/formatters.dart';
 import '../../../../shared/widgets/primary_gradient_button.dart';
 import '../widgets/calendar_view.dart';
-import 'booking_confirmation_screen.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
 import '../../../../shared/widgets/custom_snackbar.dart';
 import '../../../../app/utils/navigation_guard.dart';
@@ -97,23 +95,9 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen>
 
     // Prevent double navigation on rapid button taps
     guardedNavigate(() {
-      final appointmentDateTime = DateTime(
-        _selectedDate.year,
-        _selectedDate.month,
-        _selectedDate.day,
-        DateFormat.jm().parse(_selectedTimeSlot!).hour,
-        DateFormat.jm().parse(_selectedTimeSlot!).minute,
-      );
-
-      final bookingDetails = BookingDetailsArguments(
-        salonName: state.salon.salonName,
-        services: state.selectedServices,
-        appointmentDateTime: appointmentDateTime,
-      );
-
+      // Navigate without extra — confirmation screen reads from BLoC state
       context.push(
         AppRoutes.bookingConfirmation.replaceFirst(':salonId', state.salon.id),
-        extra: bookingDetails,
       );
     });
   }

@@ -1,0 +1,268 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================
+    // 🛡️ HELPER FUNCTIONS
+    // =========================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isSalonOwner(salonId) {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/salons/$(salonId)).data.ownerId == request.auth.uid;
+    }
+
+    // =========================================================
+    // 🔥 ADMIN SUPER ACCESS - READ/WRITE EVERYTHING
+    // =========================================================
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // =========================================================
+    // 🌍 COLLECTION GROUP QUERIES
+    // =========================================================
+    match /{path=**}/promotions/{promotionId} {
+      allow read: if true;
+    }
+
+    // =========================================================
+    // 👤 USERS COLLECTION
+    // =========================================================
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      allow read: if isAuthenticated();
+
+      match /favorites/{favoriteId} {
+        allow read, write: if isOwner(userId);
+        allow list: if isOwner(userId);
+      }
+
+      match /{allSubcollections=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // =========================================================
+    // 💰 WALLETS COLLECTION
+    // =========================================================
+    match /wallets/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId);
+    }
+
+    // =========================================================
+    // 💳 TRANSACTIONS COLLECTION
+    // =========================================================
+    match /transactions/{transactionId} {
+      allow read: if isAuthenticated() &&
+        (resource == null ||
+         resource.data.userId == request.auth.uid ||
+         resource.data.relatedUserId == request.auth.uid);
+
+      allow list: if isAuthenticated();
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid;
+
+      allow update: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+
+      allow delete: if false;
+    }
+
+    // =========================================================
+    // 🏢 SALONS COLLECTION - ✅ FIXED!
+    // =========================================================
+    match /salons/{salonId} {
+      // Anyone can read salons (for discovery, booking, etc.)
+      allow read: if true;
+
+      // Create: authenticated user sets themselves as owner
+      allow create: if isAuthenticated() &&
+        request.resource.data.ownerId == request.auth.uid;
+
+      // ✅ FIX: Update checks EXISTING ownerId (resource.data), not request data
+      // This allows partial updates without including ownerId
+      allow update: if isAuthenticated() &&
+        resource.data.ownerId == request.auth.uid;
+
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if isAuthenticated() &&
+          request.resource.data.userId == request.auth.uid;
+        allow update, delete: if isAuthenticated() &&
+          resource.data.userId == request.auth.uid;
+      }
+
+      match /promotions/{promotionId} {
+        allow read: if true;
+        allow write: if isAuthenticated() && isSalonOwner(salonId);
+      }
+    }
+
+    // =========================================================
+    // 💆 SERVICES COLLECTION
+    // =========================================================
+    match /services/{serviceId} {
+      allow read: if true;
+
+      // For CREATE - check the salonId in the request data
+      allow create: if isAuthenticated() &&
+        isSalonOwner(request.resource.data.salonId);
+
+      // For UPDATE/DELETE - check the salonId in existing data
+      allow update, delete: if isAuthenticated() &&
+        isSalonOwner(resource.data.salonId);
+    }
+
+    // =========================================================
+    // 📅 APPOINTMENTS COLLECTION
+    // =========================================================
+    match /appointments/{appointmentId} {
+      allow create: if isAuthenticated();
+
+      allow read: if isAuthenticated() &&
+        (resource.data.clientId == request.auth.uid ||
+         resource.data.salonOwnerId == request.auth.uid);
+
+      allow list: if isAuthenticated();
+
+      allow update: if isAuthenticated() &&
+        (resource.data.clientId == request.auth.uid ||
+         resource.data.salonOwnerId == request.auth.uid);
+
+      allow delete: if false;
+    }
+
+    // =========================================================
+    // ⭐ REVIEWS COLLECTION
+    // =========================================================
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow list: if isAuthenticated();
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid;
+
+      allow update, delete: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // =========================================================
+    // 💸 EARNINGS & WITHDRAWALS
+    // =========================================================
+    match /earnings/{salonId} {
+      allow read: if isAuthenticated() && isSalonOwner(salonId);
+      allow write: if false;
+    }
+
+    match /withdrawal_requests/{withdrawalId} {
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated() &&
+        resource.data.ownerId == request.auth.uid;
+      allow update: if false;
+    }
+
+    // =========================================================
+    // 🔔 NOTIFICATIONS COLLECTION
+    // =========================================================
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() &&
+        request.auth.uid == resource.data.userId;
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() &&
+        request.auth.uid == resource.data.userId;
+    }
+
+    // =========================================================
+    // 🔔 NOTIFICATION INBOX COLLECTION
+    // =========================================================
+    match /notification_inbox/{notificationId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // =========================================================
+    // 📅 SCHEDULED NOTIFICATIONS
+    // =========================================================
+    match /scheduled_notifications/{notificationId} {
+      allow read, write: if false;
+    }
+
+    // =========================================================
+    // 💡 INSPIRATION CONTENT
+    // =========================================================
+    match /inspiration_articles/{articleId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /lookbook_images/{itemId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /inspiration_lookbook/{itemId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // =========================================================
+    // 🎁 PROMOTIONS
+    // =========================================================
+    match /platform_promotions/{promotionId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /promotions/{promotionId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // =========================================================
+    // 🎬 SALON VIDEOS COLLECTION - ✅ FIXED!
+    // =========================================================
+    match /salon_videos/{videoId} {
+      // ✅ FIX: Allow read for approved videos OR owner's own videos
+      // Combined into single rule to avoid conflicts
+      allow read: if resource.data.status == 'approved' ||
+        (isAuthenticated() && resource.data.ownerId == request.auth.uid);
+
+      // ✅ FIX: Allow list queries for:
+      // 1. Approved videos (for client feed)
+      // 2. Owner's own videos (for management)
+      allow list: if true;
+
+      // Salon owner can create videos for their salon
+      allow create: if isAuthenticated() &&
+        isSalonOwner(request.resource.data.salonId) &&
+        request.resource.data.ownerId == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.durationSeconds <= 60;
+
+      // Salon owner can update caption only (not status)
+      allow update: if isAuthenticated() &&
+        resource.data.ownerId == request.auth.uid &&
+        request.resource.data.status == resource.data.status &&
+        request.resource.data.videoUrl == resource.data.videoUrl &&
+        request.resource.data.thumbnailUrl == resource.data.thumbnailUrl;
+
+      // Salon owner can delete their own videos
+      allow delete: if isAuthenticated() &&
+        resource.data.ownerId == request.auth.uid;
+    }
+  }
+}

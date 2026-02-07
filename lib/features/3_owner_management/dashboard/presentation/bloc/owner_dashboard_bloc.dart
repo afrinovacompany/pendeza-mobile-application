@@ -68,13 +68,16 @@ class OwnerDashboardBloc
       final endOfWeek = startOfWeek.add(const Duration(days: 6));
 
       // Fetch all required data in parallel for speed
+      final next7Days = today.add(const Duration(days: 7));
       final results = await Future.wait([
         _repository.getAppointmentsForDate(salon.id, today),
         _repository.getNewClientsCount(salon.id, startOfWeek, endOfWeek),
+        _repository.getAppointmentsForDateRange(salon.id, today, next7Days),
       ]);
 
       final todayAppointments = results[0] as List<AppointmentModel>;
       final newClientsCount = results[1] as int;
+      final weekAppointments = results[2] as List<AppointmentModel>;
 
       // Calculate today's revenue (only completed/confirmed appointments)
       final todayRevenue = todayAppointments
@@ -98,14 +101,23 @@ class OwnerDashboardBloc
       // Sort upcoming by start time
       upcomingToday.sort((a, b) => a.startTime.compareTo(b.startTime));
 
+      // Get all upcoming appointments across the next 7 days
+      final upcomingAll = weekAppointments
+          .where((app) =>
+      app.startTime.isAfter(now) &&
+          app.status.toLowerCase() != 'cancelled' &&
+          app.status.toLowerCase() != 'payment failed')
+          .toList();
+      upcomingAll.sort((a, b) => a.startTime.compareTo(b.startTime));
+
       // Calculate occupancy rate
       // Formula: (Total booked minutes / Total available minutes) * 100
       final occupancyRate = _calculateOccupancyRate(
         todayAppointments
             .where((app) => app.status.toLowerCase() != 'cancelled')
             .toList(),
-        salon.openingTime,
-        salon.closingTime,
+        salon.openingTime ?? '08:00',
+        salon.closingTime ?? '20:00',
       );
 
       log.i('OwnerDashboardBloc: Dashboard stats calculated successfully');
@@ -121,6 +133,7 @@ class OwnerDashboardBloc
         newClientsThisWeek: newClientsCount,
         occupancyRate: occupancyRate,
         upcomingToday: upcomingToday.take(5).toList(), // Show max 5
+        upcomingAll: upcomingAll.take(10).toList(), // Show max 10
         lastUpdated: DateTime.now(),
       );
 

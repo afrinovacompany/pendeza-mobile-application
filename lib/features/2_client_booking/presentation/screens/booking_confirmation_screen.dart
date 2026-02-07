@@ -21,30 +21,8 @@ import '../../../0_auth/presentation/dialog/auth_prompt_dialog.dart';
 import '../../../4_payments/presentation/screens/payment_screen.dart';
 import '../../../../app/utils/navigation_guard.dart';
 
-class BookingDetailsArguments {
-  final String salonName;
-  final List<ServiceModel> services;
-  final DateTime appointmentDateTime;
-
-  const BookingDetailsArguments({
-    required this.salonName,
-    required this.services,
-    required this.appointmentDateTime,
-  });
-
-  double get totalPrice =>
-      services.fold(0.0, (sum, service) => sum + service.price);
-  int get totalDuration =>
-      services.fold(0, (sum, service) => sum + service.durationMinutes);
-}
-
 class BookingConfirmationScreen extends StatefulWidget {
-  final BookingDetailsArguments bookingDetails;
-
-  const BookingConfirmationScreen({
-    super.key,
-    required this.bookingDetails,
-  });
+  const BookingConfirmationScreen({super.key});
 
   @override
   State<BookingConfirmationScreen> createState() =>
@@ -62,6 +40,28 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
+  }
+
+  /// Compute appointmentDateTime from BLoC state's selectedDate + selectedTimeSlot
+  DateTime? _getAppointmentDateTime(BookingInProgress state) {
+    if (state.selectedDate == null || state.selectedTimeSlot == null) return null;
+    try {
+      DateTime parsedTime;
+      try {
+        parsedTime = DateFormat('HH:mm').parse(state.selectedTimeSlot!);
+      } catch (_) {
+        parsedTime = DateFormat.jm().parse(state.selectedTimeSlot!);
+      }
+      return DateTime(
+        state.selectedDate!.year,
+        state.selectedDate!.month,
+        state.selectedDate!.day,
+        parsedTime.hour,
+        parsedTime.minute,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
@@ -173,6 +173,16 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
             return Center(child: Text(state.error));
           }
 
+          // Extract booking data from BLoC state
+          final bookingState = state is BookingInProgress ? state : null;
+          final services = bookingState?.selectedServices ?? [];
+          final salonName = bookingState?.salon.salonName ?? '';
+          final appointmentDateTime = bookingState != null
+              ? _getAppointmentDateTime(bookingState)
+              : null;
+          final totalPrice = bookingState?.totalPrice ?? 0.0;
+          final totalDuration = bookingState?.totalDurationMinutes ?? 0;
+
           return Stack(
             children: [
               // Gradient background
@@ -191,16 +201,17 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
                       children: [
                         _buildSuccessIndicator(theme),
                         const SizedBox(height: AppConstants.padXL),
-                        _buildAppointmentSummaryCard(context, theme),
+                        _buildAppointmentSummaryCard(
+                            context, theme, salonName, appointmentDateTime),
                         const SizedBox(height: AppConstants.padXL),
                         _buildSectionTitle(
                             context, 'client.booking.summary_title'.tr()),
                         const SizedBox(height: AppConstants.padM),
-                        ...widget.bookingDetails.services.map(
+                        ...services.map(
                               (service) => TweenAnimationBuilder<double>(
                             duration: Duration(
                                 milliseconds:
-                                300 + (widget.bookingDetails.services.indexOf(service) * 100)),
+                                300 + (services.indexOf(service) * 100)),
                             tween: Tween(begin: 0.0, end: 1.0),
                             builder: (context, value, child) {
                               return Transform.translate(
@@ -219,14 +230,14 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
                           context,
                           'common.duration'.tr(),
                           'client.booking.est_duration'.tr(
-                              args: ['${widget.bookingDetails.totalDuration}']),
+                              args: ['$totalDuration']),
                           theme,
                         ),
                       ],
                     ),
                   ),
                   _buildEnhancedFooter(
-                      context, theme, widget.bookingDetails.totalPrice, isLoading),
+                      context, theme, totalPrice, isLoading),
                 ],
               ),
             ],
@@ -293,7 +304,8 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
     );
   }
 
-  Widget _buildAppointmentSummaryCard(BuildContext context, ThemeData theme) {
+  Widget _buildAppointmentSummaryCard(
+      BuildContext context, ThemeData theme, String salonName, DateTime? appointmentDateTime) {
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 500),
       tween: Tween(begin: 0.0, end: 1.0),
@@ -329,7 +341,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
                 const SizedBox(width: AppConstants.padM),
                 Expanded(
                   child: Text(
-                    widget.bookingDetails.salonName,
+                    salonName,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.primary,
@@ -339,21 +351,21 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
               ],
             ),
             const SizedBox(height: AppConstants.padL),
-            _buildDetailRow(
-              context,
-              theme,
-              icon: CupertinoIcons.calendar_today,
-              value: DateFormat.yMMMMEEEEd()
-                  .format(widget.bookingDetails.appointmentDateTime),
-            ),
-            const SizedBox(height: AppConstants.padM),
-            _buildDetailRow(
-              context,
-              theme,
-              icon: CupertinoIcons.time,
-              value: DateFormat.jm()
-                  .format(widget.bookingDetails.appointmentDateTime),
-            ),
+            if (appointmentDateTime != null) ...[
+              _buildDetailRow(
+                context,
+                theme,
+                icon: CupertinoIcons.calendar_today,
+                value: DateFormat.yMMMMEEEEd().format(appointmentDateTime),
+              ),
+              const SizedBox(height: AppConstants.padM),
+              _buildDetailRow(
+                context,
+                theme,
+                icon: CupertinoIcons.time,
+                value: DateFormat.jm().format(appointmentDateTime),
+              ),
+            ],
           ],
         ),
       ),

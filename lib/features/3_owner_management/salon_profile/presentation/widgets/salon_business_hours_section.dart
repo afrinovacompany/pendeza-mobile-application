@@ -44,13 +44,19 @@ class SalonBusinessHoursSection extends StatelessWidget {
               _buildDayRow(
                 context,
                 day: 'Monday - Friday',
-                time: '${salon.openingTime} - ${salon.closingTime}',
+                time: salon.hasBusinessHours
+                    ? '${salon.openingTime} - ${salon.closingTime}'
+                    : 'Not set',
+                isClosed: !salon.hasBusinessHours,
               ),
               const Divider(height: AppConstants.padL),
               _buildDayRow(
                 context,
                 day: 'Saturday',
-                time: '${salon.openingTime} - ${salon.closingTime}',
+                time: salon.hasBusinessHours
+                    ? '${salon.openingTime} - ${salon.closingTime}'
+                    : 'Not set',
+                isClosed: !salon.hasBusinessHours,
               ),
               const Divider(height: AppConstants.padL),
               _buildDayRow(

@@ -45,6 +45,30 @@ class LocalStorageService {
   }
 
   // ============================================================================
+  // GENERIC PREFERENCES
+  // ============================================================================
+
+  /// Get a boolean value from preferences
+  bool? getBool(String key) {
+    return _prefs.getBool(key);
+  }
+
+  /// Set a boolean value in preferences
+  Future<void> setBool(String key, bool value) async {
+    await _prefs.setBool(key, value);
+  }
+
+  /// Get a string value from preferences
+  String? getString(String key) {
+    return _prefs.getString(key);
+  }
+
+  /// Set a string value in preferences
+  Future<void> setString(String key, String value) async {
+    await _prefs.setString(key, value);
+  }
+
+  // ============================================================================
   // FIRST LAUNCH
   // ============================================================================
 

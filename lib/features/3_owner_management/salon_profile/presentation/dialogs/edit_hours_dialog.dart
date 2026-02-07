@@ -25,8 +25,8 @@ class _EditHoursDialogState extends State<EditHoursDialog> {
   @override
   void initState() {
     super.initState();
-    _openingTime = _parseTime(widget.salon.openingTime);
-    _closingTime = _parseTime(widget.salon.closingTime);
+    _openingTime = _parseTime(widget.salon.openingTime ?? '08:00');
+    _closingTime = _parseTime(widget.salon.closingTime ?? '20:00');
   }
 
   TimeOfDay _parseTime(String time) {

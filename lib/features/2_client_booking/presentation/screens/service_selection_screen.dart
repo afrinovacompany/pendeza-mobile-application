@@ -333,7 +333,7 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
                       ),
                       const SizedBox(width: AppConstants.padXS),
                       Text(
-                        '${_selectedServices.length} ${_selectedServices.length == 1 ? 'service' : 'services'} selected',
+                        'client.booking.services_selected'.tr(args: ['${_selectedServices.length}']),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.w600,

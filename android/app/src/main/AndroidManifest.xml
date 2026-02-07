@@ -69,7 +69,28 @@
             android:value="2" />
     </application>
 
+    <!-- 🔥 FIX FOR URL LAUNCHER ERRORS 🔥 -->
     <queries>
+        <!-- Allows opening the Phone Dialer -->
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+        <!-- Allows opening Email Apps -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+        <!-- Allows opening Web Links (https) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <!-- Allows opening WhatsApp -->
+        <package android:name="com.whatsapp" />
+        <!-- Allows opening WhatsApp Business (Optional but recommended) -->
+        <package android:name="com.whatsapp.w4b" />
+        <!-- Keep existing text processing intent -->
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

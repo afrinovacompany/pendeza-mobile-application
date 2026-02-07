@@ -20,11 +20,11 @@ class ServicesBloc extends Bloc<ServicesEvent, ServicesState> {
     on<AddServiceRequested>(_onAddServiceRequested);
     on<UpdateServiceRequested>(_onUpdateServiceRequested);
     on<DeleteServiceRequested>(_onDeleteServiceRequested);
+    on<ToggleServiceActiveRequested>(_onToggleServiceActive);
+    on<ToggleServiceFeaturedRequested>(_onToggleServiceFeatured);
 
-    // --- THIS IS THE FIX ---
-    // Add this event immediately when the BLoC is created.
+    // Fetch services immediately when the BLoC is created
     add(FetchServicesRequested());
-    // -----------------------
   }
 
   Future<void> _onFetchServicesRequested(
@@ -60,8 +60,8 @@ class ServicesBloc extends Bloc<ServicesEvent, ServicesState> {
       final salonId = await _getSalonId();
       await _servicesRepository
           .addService(event.service.copyWith(salonId: salonId));
-      emit(ServiceOperationSuccess());
-      add(FetchServicesRequested()); // This is still correct!
+      emit(const ServiceOperationSuccess('Service added successfully'));
+      add(FetchServicesRequested());
     } catch (e, s) {
       log.e('Failed to add service', error: e, stackTrace: s);
       // FIX: Go back to the previous state (the list) on failure
@@ -81,8 +81,8 @@ class ServicesBloc extends Bloc<ServicesEvent, ServicesState> {
     try {
       log.i('Updating service: ${event.service.id}');
       await _servicesRepository.updateService(event.service);
-      emit(ServiceOperationSuccess());
-      add(FetchServicesRequested()); // This is still correct!
+      emit(const ServiceOperationSuccess('Service updated successfully'));
+      add(FetchServicesRequested());
     } catch (e, s) {
       log.e('Failed to update service', error: e, stackTrace: s);
       if (currentState is ServicesLoadSuccess) {
@@ -101,13 +101,83 @@ class ServicesBloc extends Bloc<ServicesEvent, ServicesState> {
     try {
       log.i('Deleting service: ${event.serviceId}');
       await _servicesRepository.deleteService(event.serviceId);
-      emit(ServiceOperationSuccess());
-      add(FetchServicesRequested()); // This is still correct!
+      emit(const ServiceOperationSuccess('Service deleted successfully'));
+      add(FetchServicesRequested());
     } catch (e, s) {
       log.e('Failed to delete service', error: e, stackTrace: s);
       if (currentState is ServicesLoadSuccess) {
         emit(currentState);
       }
+      emit(ServicesError(e.toString()));
+    }
+  }
+
+  Future<void> _onToggleServiceActive(
+      ToggleServiceActiveRequested event,
+      Emitter<ServicesState> emit,
+      ) async {
+    final currentState = state;
+    if (currentState is! ServicesLoadSuccess) return;
+
+    try {
+      // Find the service
+      final service = currentState.services.firstWhere(
+        (s) => s.id == event.serviceId,
+      );
+      final newStatus = !service.isActive;
+
+      log.i('Toggling service active: ${event.serviceId} -> $newStatus');
+
+      // Update locally first for immediate feedback
+      final updatedServices = currentState.services.map((s) {
+        if (s.id == event.serviceId) {
+          return s.copyWith(isActive: newStatus);
+        }
+        return s;
+      }).toList();
+      emit(ServicesLoadSuccess(updatedServices));
+
+      // Then update in database
+      await _servicesRepository.updateService(service.copyWith(isActive: newStatus));
+      emit(ServiceOperationSuccess(newStatus ? 'Service activated' : 'Service paused'));
+    } catch (e, s) {
+      log.e('Failed to toggle service', error: e, stackTrace: s);
+      emit(currentState); // Revert to previous state
+      emit(ServicesError(e.toString()));
+    }
+  }
+
+  Future<void> _onToggleServiceFeatured(
+      ToggleServiceFeaturedRequested event,
+      Emitter<ServicesState> emit,
+      ) async {
+    final currentState = state;
+    if (currentState is! ServicesLoadSuccess) return;
+
+    try {
+      final service = currentState.services.firstWhere(
+        (s) => s.id == event.serviceId,
+      );
+      final newStatus = !service.isFeatured;
+
+      log.i('Toggling service featured: ${event.serviceId} -> $newStatus');
+
+      // Update locally first
+      final updatedServices = currentState.services.map((s) {
+        if (s.id == event.serviceId) {
+          return s.copyWith(isFeatured: newStatus);
+        }
+        return s;
+      }).toList();
+      emit(ServicesLoadSuccess(updatedServices));
+
+      // Then update in database
+      await _servicesRepository.updateService(service.copyWith(isFeatured: newStatus));
+      emit(ServiceOperationSuccess(
+          newStatus ? 'Service marked as featured' : 'Service unfeatured'));
+    } catch (e, s) {
+      log.e('Failed to toggle featured', error: e, stackTrace: s);
+      emit(currentState);
       emit(ServicesError(e.toString()));
     }
   }

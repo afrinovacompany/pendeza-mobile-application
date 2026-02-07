@@ -147,7 +147,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
                   if (state is DiscoveryLoaded) {
                     if (state.filteredSalons.isEmpty) {
                       return EmptyStateWidget.notFound(
-                        message: 'No salons found matching your criteria.'.tr(),
+                        message: 'client.discover.no_results'.tr(),
                       );
                     }
 
@@ -231,7 +231,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Discover Salons'.tr(),
+                'client.discover.title'.tr(),
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.5,
@@ -311,7 +311,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
                     controller: _searchController,
                     onChanged: _handleSearch,
                     decoration: InputDecoration(
-                      hintText: 'Search salons, services...'.tr(),
+                      hintText: 'client.discover.search_hint'.tr(),
                       hintStyle: TextStyle(
                         color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                       ),
@@ -382,7 +382,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
               padding: const EdgeInsets.only(right: AppConstants.padS),
               child: _buildCategoryChip(
                 theme: theme,
-                label: 'All'.tr(),
+                label: 'client.discover.all'.tr(),
                 isSelected: isSelected,
                 onTap: () => _handleCategoryFilter(null),
               ),
@@ -396,7 +396,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
             padding: const EdgeInsets.only(right: AppConstants.padS),
             child: _buildCategoryChip(
               theme: theme,
-              label: category.name.tr(),
+              label: 'categories.${category.name}'.tr(),
               isSelected: isSelected,
               color: Color(category.color),
               onTap: () => _handleCategoryFilter(category.id),
@@ -503,7 +503,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
 
       context.push(
         AppRoutes.salonDetail.replaceFirst(':salonId', salon.id),
-        extra: salon,
       );
     });
   }

@@ -138,12 +138,37 @@
   "client": {
     "salon_details": {
       "no_services": "Hakuna huduma zilizopatikana",
-      "book_now": "Weka Miadi Sasa"
+      "book_now": "Weka Miadi Sasa",
+      "tab_overview": "Muhtasari",
+      "tab_services": "Huduma",
+      "tab_reviews": "Maoni"
+    },
+    "discover": {
+      "title": "Gundua",
+      "search_hint": "Tafuta huduma, vituo vya urembo...",
+      "all": "Zote",
+      "no_results": "Hakuna matokeo yanayolingana na utafutaji wako.",
+      "filter": {
+        "title": "Vichujio",
+        "reset": "Weka upya",
+        "category": "Aina",
+        "min_rating": "Kiwango cha Chini",
+        "sort_by": "Panga kwa",
+        "apply": "Tumia Vichujio",
+        "all_categories": "Aina Zote",
+        "any_rating": "Kiwango Chochote",
+        "sort_popularity_desc": "Maarufu zaidi kwanza",
+        "sort_rating_desc": "Kiwango cha juu kwanza",
+        "sort_newest_desc": "Iliyoongezwa hivi karibuni kwanza"
+      }
     },
     "favorites": {
       "clear_dialog_title": "Futa Vipendwa Vyote?",
       "clear_dialog_content": "Hii itaondoa saluni zote kwenye orodha yako ya vipendwa. Hatua hii haiwezi kubatilishwa.",
-      "clear_all_action": "Futa Vyote"
+      "clear_all_action": "Futa Vyote",
+      "empty_title": "Hakuna Vipendwa Bado",
+      "empty_msg": "Gusa ikoni ya moyo kwenye saluni yoyote ili kuiongeza kwenye vipendwa vyako.",
+      "explore_salons": "Tafuta Saluni"
     },
     "appointments": {
       "title": "Miadi Yangu",
@@ -158,7 +183,8 @@
       "payment_warning": "Kamilisha malipo ili kuthibitisha. Miadi isiyolipiwa itafutwa baada ya dakika 15.",
       "details_title": "Kamilisha Miadi",
       "appointment_details": "Maelezo ya Miadi",
-      "payment_expires": "Muda wa malipo unaisha hivi karibuni. Lipa sasa."
+      "payment_expires": "Muda wa malipo unaisha hivi karibuni. Lipa sasa.",
+      "active_count": "{} zinaendelea"
     },
     "booking": {
       "confirm_title": "Thibitisha Miadi",
@@ -185,7 +211,8 @@
       "complete_payment_btn": "Kamilisha Malipo",
       "mark_complete": "Weka Imekamilika",
       "cancel_booking": "Ghairi",
-      "reschedule": "Panga Tena"
+      "reschedule": "Panga Tena",
+      "services_selected": "Huduma {} zimechaguliwa"
     },
     "dashboard": {
       "greeting": {
@@ -220,13 +247,56 @@
         "security": "Usalama",
         "help": "Msaada",
         "language": "Lugha",
-        "logout": "ONDOKA"
+        "logout": "ONDOKA",
+        "wallet": "Pochi Yangu"
       },
       "language_selector": {
         "title": "Chagua Lugha",
         "english": "Kiingereza",
         "swahili": "Kiswahili"
-      }
+      },
+      "section_wallet": "Pochi",
+      "section_account": "Akaunti",
+      "section_preferences": "Mapendeleo",
+      "wallet_balance": "Salio: {}",
+      "wallet_error": "Imeshindwa kupakia pochi",
+      "edit_profile_subtitle": "Badili taarifa zako binafsi",
+      "logout_title": "Ondoka",
+      "logout_confirm": "Una uhakika unataka kuondoka?"
+    },
+    "guest_profile": {
+      "title": "Wasifu wa Mgeni",
+      "welcome": "Karibu, Mgeni!",
+      "subtitle": "Unavinjari kama mgeni. Fungua akaunti ili kutumia huduma zote!",
+      "favorites_subtitle": "Angalia saluni ulizozihifadhi",
+      "wallet_subtitle": "Simamia malipo na salio lako",
+      "wallet_locked": "Ingia ili kutumia pochi",
+      "create_account": "Fungua Akaunti Bure",
+      "why_create_account": "Kwa Nini Ufungue Akaunti?",
+      "benefit_book_title": "Weka Miadi",
+      "benefit_book_desc": "Panga na simamia ziara zako za saluni",
+      "benefit_wallet_title": "Pochi ya Dijitali",
+      "benefit_wallet_desc": "Malipo salama na historia ya miamala",
+      "benefit_favorites_title": "Sawazisha Vipendwa",
+      "benefit_favorites_desc": "Fikia vipendwa vyako kwenye kifaa chochote",
+      "benefit_notifications_title": "Pata Taarifa",
+      "benefit_notifications_desc": "Endelea kupata vikumbusho na ofa",
+      "available_as_guest": "Inapatikana kama Mgeni",
+      "browse_salons": "Vinjari Saluni",
+      "browse_salons_desc": "Tafuta saluni na huduma zote zinazopatikana",
+      "view_details": "Angalia Maelezo",
+      "view_details_desc": "Angalia bei, maoni, na taarifa za saluni"
+    },
+    "edit_profile": {
+      "title": "Badili Wasifu",
+      "full_name": "Jina Kamili",
+      "name_hint": "Weka jina lako",
+      "name_required": "Jina linahitajika",
+      "phone": "Namba ya Simu",
+      "phone_hint": "mfano 712345678",
+      "phone_required": "Namba ya simu inahitajika",
+      "gender": "Jinsia",
+      "save": "HIFADHI MABADILIKO"
     }
   },
   "owner": {
@@ -240,21 +310,64 @@
       "help_subtitle": "Maswali na msaada"
     },
     "dashboard": {
+      "loading": "Inapakia dashibodi yako...",
+      "error_title": "Kuna Tatizo",
+      "error_retry": "Jaribu Tena",
+      "todays_overview": "Muhtasari wa Leo",
       "revenue": "Mapato ya Leo",
       "appointments": "Miadi",
       "appointments_today": "{} Leo",
       "new_clients": "Wateja Wapya",
       "clients_week": "{} Wiki Hii",
+      "occupancy": "Utumiaji",
+      "occupancy_rate": "{}%",
       "promotions": "Matangazo",
       "promotions_desc": "Ongeza Mauzo",
-      "upcoming": "Miadi Ijayo"
+      "upcoming": "Miadi Ijayo",
+      "upcoming_count": "Miadi {} ijayo",
+      "no_upcoming": "Hakuna miadi ijayo",
+      "no_upcoming_desc": "Hakuna miadi iliyopangwa kwa siku 7 zijazo",
+      "manage_salon": "Simamia Wasifu wa Saluni",
+      "manage_salon_desc": "Badili picha, saa, mawasiliano na zaidi",
+      "greeting_morning": "Habari ya Asubuhi",
+      "greeting_afternoon": "Habari ya Mchana",
+      "greeting_evening": "Habari ya Jioni",
+      "notifications_coming_soon": "Arifa zinakuja hivi karibuni!",
+      "services_count": "Huduma {}",
+      "view_schedule": "Angalia Ratiba Kamili"
     },
     "calendar": {
       "title": "Ratiba Yangu",
+      "week_view": "Mtazamo wa Wiki",
+      "month_view": "Mtazamo wa Mwezi",
       "list_header": "Miadi ya {}",
       "no_appointments": "Hakuna Miadi",
       "no_appointments_msg": "Hakuna miadi iliyopangwa kwa siku hii.",
-      "services_count": "huduma"
+      "services_count": "huduma",
+      "appointment_details": "Maelezo ya Miadi",
+      "client_section": "Mteja",
+      "date_time_section": "Tarehe na Muda",
+      "services_section": "Huduma Zilizowekwa",
+      "status_section": "Hali",
+      "no_services_found": "Hakuna huduma zilizopatikana",
+      "total_label": "Jumla: {}",
+      "minutes_label": "Dakika {}",
+      "mark_complete": "Weka Imekamilika",
+      "mark_complete_title": "Weka Imekamilika",
+      "mark_complete_confirm": "Una uhakika unataka kuweka miadi hii kama imekamilika?",
+      "mark_complete_success": "Miadi imewekwa imekamilika",
+      "cancel_title": "Ghairi Miadi",
+      "cancel_confirm": "Una uhakika unataka kughairi miadi hii? Hatua hii haiwezi kubatilishwa.",
+      "cancel_keep": "Hapana, Weka",
+      "cancel_yes": "Ndiyo, Ghairi",
+      "cancel_success": "Miadi imeghairiwa",
+      "unknown_client": "Mteja Asiyejulikana",
+      "status_confirmed": "Imethibitishwa",
+      "status_completed": "Imekamilika",
+      "status_cancelled": "Imeghairiwa",
+      "status_pending_payment": "Inasubiri Malipo",
+      "status_no_show": "Hakuja",
+      "status_payment_failed": "Malipo Yameshindwa"
     },
     "services": {
       "title": "Simamia Huduma",
@@ -377,6 +490,18 @@
     },
     "inspiration": {
       "author": "Timu ya Pendeza"
+    },
+    "profile": {
+      "business_section": "Biashara",
+      "manage_salon": "Simamia Wasifu wa Saluni",
+      "manage_salon_subtitle": "Picha, saa, mawasiliano",
+      "account_section": "Akaunti",
+      "edit_title": "Badili Wasifu",
+      "edit_profile_subtitle": "Badili taarifa zako binafsi",
+      "notifications_subtitle": "Simamia arifa na vikumbusho",
+      "help_subtitle": "Maswali na msaada",
+      "tap_to_change": "Gusa kubadili picha",
+      "save_changes": "HIFADHI MABADILIKO"
     }
   },
   "categories": {
@@ -385,7 +510,14 @@
     "Massage": "Massage",
     "Barbering": "Kinyozi",
     "Spa": "Spa",
-    "Makeup": "Vipodozi"
+    "Makeup": "Vipodozi",
+    "Facials & skincare": "Uso na Ngozi",
+    "Eyebrows & eyelashes": "Nyusi na Kope",
+    "Hair removal": "Kuondoa Nywele",
+    "Body": "Mwili",
+    "Henna & Mehndi": "Henna na Mehndi",
+    "Braids & Locs": "Misuko na Locs",
+    "Men's Grooming": "Mapambo ya Wanaume"
   },
   "notifications": {
     "title": "Taarifa",
@@ -398,5 +530,53 @@
     "delete_all_confirm": "Hii itafuta taarifa zako zote kabisa. Hatua hii haiwezi kubatilishwa.",
     "deleted": "Taarifa imefutwa",
     "all_marked_read": "Taarifa zote zimewekwa zimesomwa"
+  },
+  "help": {
+    "title": "Msaada na Usaidizi",
+    "header_title": "Tunawezaje kukusaidia?",
+    "header_subtitle": "Tuko hapa kukusaidia na maswali au matatizo yoyote.",
+    "contact_section": "Wasiliana na Msaada",
+    "email_support": "Msaada wa Barua Pepe",
+    "whatsapp_support": "Msaada wa WhatsApp",
+    "call_support": "Piga Simu Msaada",
+    "faq_section": "Maswali Yanayoulizwa Mara kwa Mara",
+    "faq1_question": "Ninawezaje kuongeza huduma kwenye saluni yangu?",
+    "faq1_answer": "Nenda kwa kichupo cha Huduma kwenye urambazaji wa chini. Gusa kitufe cha '+' kuongeza huduma mpya na jina, bei, muda, na maelezo.",
+    "faq2_question": "Ninawezaje kusimamia miadi yangu?",
+    "faq2_answer": "Miadi yako inaonekana kwenye kichupo cha Ratiba. Unaweza kuona miadi ijayo, kuiweka imekamilika, au kupanga upya kama inavyohitajika.",
+    "faq3_question": "Wateja wanawekaje miadi na saluni yangu?",
+    "faq3_answer": "Wateja wanaweza kupata saluni yako kupitia programu ya Pendeza, kuona huduma zako na upatikanaji, na kuweka miadi moja kwa moja. Utapata arifa za miadi mipya.",
+    "faq4_question": "Ninawezaje kubadilisha wasifu wa saluni yangu?",
+    "faq4_answer": "Nenda kwa Wasifu > Simamia Wasifu wa Saluni. Unaweza kubadilisha jina la saluni, picha, saa za kazi, mawasiliano, na vifaa.",
+    "faq5_question": "Malipo yanafanyaje kazi?",
+    "faq5_answer": "Wateja wanalipa kupitia programu wakati wa kuweka miadi. Fedha zinahamishwa kwenye akaunti yako baada ya miadi kukamilika. Ona mapato yako kwenye Dashibodi.",
+    "about_section": "Kuhusu",
+    "app_version": "Toleo {}",
+    "developer": "Mtengenezaji",
+    "website": "Tovuti"
+  },
+  "notifications_settings": {
+    "title": "Mipangilio ya Arifa",
+    "header_title": "Endelea Kupata Taarifa",
+    "header_subtitle": "Chagua arifa unazotaka kupokea.",
+    "business_section": "Arifa za Biashara",
+    "booking_alerts": "Arifa za Miadi Mipya",
+    "booking_alerts_desc": "Pata arifa wateja wanapoweka miadi",
+    "appointment_reminders": "Vikumbusho vya Miadi",
+    "appointment_reminders_desc": "Vikumbusho kabla ya miadi ijayo",
+    "client_messages": "Ujumbe wa Wateja",
+    "client_messages_desc": "Arifa za maswali ya wateja",
+    "payment_alerts": "Arifa za Malipo",
+    "payment_alerts_desc": "Sasisho za malipo na miamala",
+    "review_notifications": "Maoni Mapya",
+    "review_notifications_desc": "Pata arifa wateja wanapoachia maoni",
+    "marketing_section": "Uuzaji na Sasisho",
+    "promotion_updates": "Matangazo na Vidokezo",
+    "promotion_updates_desc": "Sasisho za jukwaa na vidokezo vya biashara",
+    "sound_section": "Sauti na Mtetemo",
+    "sound": "Sauti ya Arifa",
+    "sound_desc": "Cheza sauti kwa arifa",
+    "vibration": "Mtetemo",
+    "vibration_desc": "Tetema kwa arifa"
   }
 }

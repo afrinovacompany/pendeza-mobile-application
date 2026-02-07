@@ -113,7 +113,6 @@ class SalonGalleryPreview extends StatelessWidget {
   void _navigateToGallery(BuildContext context) {
     context.push(
       AppRoutes.salonGallery.replaceFirst(':salonId', salon.id),
-      extra: salon,
     );
   }
 }

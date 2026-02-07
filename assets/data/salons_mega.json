@@ -1,0 +1,816 @@
+[
+  {
+    "id": "salon_001",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "LAVIDA BARBERSHOP KIJITONYAMA",
+    "address": "66CR+RC6, Kajenge Rd, Dar es Salaam",
+    "serviceCategories": [
+      "nails",
+      "spa",
+      "makeup"
+    ],
+    "phoneNumber": "0766 211 520",
+    "description": "Premium nail and spa services in the heart of Masaki. Specializing in gel nails, pedicures, and relaxing spa treatments.",
+    "coverImage": "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSw2ga7iyQD_S7tLaXbWjTz7RASEHctxGS622bcTtoMAvEPIVqBrUMT9uY6ttWcqhRgFEBUuMhi_LbjA4yZ40YwVePaaGbTTV1jCThGKMxsChQjIZy2cgU-GSRyC6gs1L861M6DJyT_DsKZF=s680-w680-h510-rw",
+    "gallery": [
+      {
+        "id": "img_001_001",
+        "url": "https://lh3.googleusercontent.com/p/AF1QipP4XLVOxLEn9EG3k77Q3sh9B6U-tx0iz0_-CN-n=w260-h175-n-k-no",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/p/AF1QipM_PqNo69brE_5sum9FaxRjkBEyGoNvfuzv2qf0=s680-w680-h510-rw",
+        "category": "exterior",
+        "order": 0,
+        "caption": "Welcoming entrance with modern design"
+      },
+      {
+        "id": "img_001_002",
+        "url": "https://lh3.googleusercontent.com/p/AF1QipM5QmvDD5YopAlS0J_sPIukNb2iCmItDpkK-sKR=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSwCFsVsT0-V8Vl9ylQ3fhCSvhrtHjwcBsFSeG-53kkIke7zAou6n_vz1PFg2ZUEIUDegWCb5m7bNK-8F5lOC0wfuRlV43MlFihIZKJvHFi3rI2q2ggijOjnjgjVpdgnwjLUyY0-PhtLwxqY=s680-w680-h510-rw",
+        "category": "interior",
+        "order": 1,
+        "caption": "Luxurious waiting area with comfortable seating"
+      },
+      {
+        "id": "img_001_003",
+        "url": "https://lh3.googleusercontent.com/p/AF1QipMrumNEdTVPQb8R3Bqjhqaa26ZTza-NFy78f3QV=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/p/AF1QipNZGBIGPFBY-d3ootvF5xp0mi25mbZc_XkodgY0=s680-w680-h510-rw",
+        "category": "workSample",
+        "order": 2,
+        "caption": "Professional gel manicure services"
+      },
+      {
+        "id": "img_001_004",
+        "url": "https://lh3.googleusercontent.com/p/AF1QipNsizJYVsAtxmUmEhBa9MeayAUtyxdJJbrsaY-m=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSy2PIEWzhrFZ3E_y94theqLznbIonZBZTHne3p07ysdP1vxtavr2DS0YIIb0IJsDjo72D5U-LCtos-bRf926ubN7ZrICiqP_5EJzgZ2UJ_wNApitlBf7IN8faDTiSEQBxiRtZVH=s680-w680-h510-rw",
+        "category": "interior",
+        "order": 3,
+        "caption": "Tranquil spa treatment rooms"
+      },
+      {
+        "id": "img_001_005",
+        "url": "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSwwX45xKxc638qdNsVZj983J35JTWjk7JPBCX35owgnbPlI6cqsKm4kGhyXIDTF4T0-zNHNNx-BXah5cPG11-hk7F43Ug7Q2Q1tIGi3vZV_v05VKKRb6NrK7gyv4zWpW0Ev8ch5=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSyMy4gJN5_oUhRG50icFtjeGJeVSLkFmT_5sIOElnf8fXCOswMGVIdj_NYNe1ETCOkHYbw7--7RlbUtMOT7OdGjFfMn-U6aNBbj2nSG9NBTK656Y_CYzxOwEkkCWzRXhr2r2vM=s680-w680-h510-rw",
+        "category": "workSample",
+        "order": 4,
+        "caption": "Expert nail art and designs"
+      }
+    ],
+    "videos": [
+      {
+        "id": "vid_001_001",
+        "url": "https://www.youtube.com/watch?v=example1",
+        "thumbnailUrl": "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600",
+        "title": "Virtual Salon Tour - Glamour Touch",
+        "durationSeconds": 90,
+        "type": "tour"
+      }
+    ],
+    "createdAt": "2025-01-15T10:00:00Z"
+  },
+  {
+    "id": "salon_002",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "PH Barbershop & Spa",
+    "address": "Kinyerezi, Dar es Salaam",
+    "serviceCategories": [
+      "barbershop",
+      "hair"
+    ],
+    "phoneNumber": "0742 621 901",
+    "description": "Traditional barbershop with modern style. Expert barbers specializing in classic cuts, beard grooming, and hot towel shaves.",
+    "coverImage": "https://lh3.googleusercontent.com/p/AF1QipN9hSumaMc2BdZlYO5tA39bqXu3sqYzhxWLExiL=s680-w680-h510-rw",
+    "gallery": [
+      {
+        "id": "img_002_001",
+        "url": "https://lh3.googleusercontent.com/p/AF1QipNUBu6v4PdeKYOfy6hpWNMcibNyJeeSnbds_c3R=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/p/AF1QipMNUkVKoom65BRjc95dDWf0Ho3pI3PiXO1_aP_T=s680-w680-h510-rw",
+        "category": "exterior",
+        "order": 0,
+        "caption": "Classic barbershop storefront"
+      },
+      {
+        "id": "img_002_002",
+        "url": "https://lh3.googleusercontent.com/p/AF1QipOt9zkRAhAAhPY25DxDl349jTAHOs4cYwrDCB3z=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/p/AF1QipOc-Dd1A_9C8dWa02fDcY5ARhiNJPnIy-ngPY-X=s680-w680-h510-rw",
+        "category": "interior",
+        "order": 1,
+        "caption": "Vintage barber chairs and mirrors"
+      },
+      {
+        "id": "img_002_003",
+        "url": "https://lh3.googleusercontent.com/p/AF1QipNCUD5gnAAZz1cC8HhufNHvFyLEtOPRwWK9DZQE=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/p/AF1QipOuogbhacRNdEbSAn8z_7I2bvomNDKzLMOLiSNF=s680-w680-h510-rw",
+        "category": "workSample",
+        "order": 2,
+        "caption": "Precision haircut by expert barber"
+      },
+      {
+        "id": "img_002_004",
+        "url": "https://lh3.googleusercontent.com/p/AF1QipOLGV6ZKET20jMj8tslnZw3UgEGYt6j02Ds5LsQ=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/p/AF1QipN7RvXMxEcqveuIJlMJNZ6E5kuyh7nIjTMsrQXl=s680-w680-h510-rw",
+        "category": "workSample",
+        "order": 3,
+        "caption": "Professional beard grooming services"
+      },
+      {
+        "id": "img_002_005",
+        "url": "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSw65Le8FJGBJk64ZqIq52bOWJsrZXXXtk1Hfyo28iKbLZWIZ6GB49FyGFWgyNvAqxlnlnyu_4y4iVkvoXsZ1n_ZXz5yppA4oUf26sjuhQEeIUa6Lj0Fb8_E8gFP1NnnBUP7yqP5=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/p/AF1QipO_oYArlwrTtHTyE2DULRvuc5JEm7l4HatZSNe8=s680-w680-h510-rw",
+        "category": "equipment",
+        "order": 4,
+        "caption": "Premium grooming tools and products"
+      }
+    ],
+    "videos": [
+      {
+        "id": "vid_002_001",
+        "url": "https://www.youtube.com/watch?v=example2",
+        "thumbnailUrl": "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600",
+        "title": "Barbershop Experience Tour",
+        "durationSeconds": 75,
+        "type": "tour"
+      }
+    ],
+    "createdAt": "2025-01-16T10:00:00Z"
+  },
+  {
+    "id": "salon_003",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Comfort Barbershop and Spa",
+    "address": "Kinyerezi Garage Dar es salaam TZ, 11212",
+    "serviceCategories": [
+      "hair",
+      "makeup"
+    ],
+    "phoneNumber": "+255 222 345 678",
+    "description": "Full-service hair salon offering cuts, coloring, styling, and professional makeup for all occasions.",
+    "coverImage": "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=1200",
+    "gallery": [
+      {
+        "id": "img_003_001",
+        "url": "https://lh3.googleusercontent.com/p/AF1QipPu0rBlmcJ4G65rKyXwMlBn6u3ywe8IrIU7v6FX=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSzSUjVTC-j-m4uRP1rUcqI0KYVrS52TX6s1XbJ-OylGY2QhDJtljH6BwlwrldbrSfQOqj92y3kDmd0UaVNg2lNAMlturHOmM1_1yFiQY8ZC6ivrqp0DKhIm2RreqGBRqKeaMoRE5Q=w141-h141-n-k-no-nu",
+        "category": "interior",
+        "order": 0,
+        "caption": "Modern salon interior with styling stations"
+      },
+      {
+        "id": "img_003_002",
+        "url": "https://lh3.googleusercontent.com/p/AF1QipMfdS4XZoPKtgqHkbs7p29DUlv0774bFRGO3mFg=w141-h118-n-k-no-nu",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/p/AF1QipPP6EQEfEeyBOs_PEGTgZn8_LREN09H4woIQVdM=s680-w680-h510-rw",
+        "category": "workSample",
+        "order": 1,
+        "caption": "Beautiful hair coloring results"
+      },
+      {
+        "id": "img_003_003",
+        "url": "https://lh3.googleusercontent.com/p/AF1QipO5NtYf9p57p3SxFSDDnqEUAiTU9lzwSaspHpm1=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSw0Rb7i-QI1IK-hf7anDZT860ev1PqEnfKhm7SSFLUUFNantjOo0aEaXKQ5EfliZyBge8A4yJnY_CWVcjn-Hg-W3_BrgmdTwuV4pgddqwCpgTTufCvQ1FWvcAle7EK69lYpxDFi=w141-h141-n-k-no-nu",
+        "category": "workSample",
+        "order": 2,
+        "caption": "Professional makeup application"
+      },
+      {
+        "id": "img_003_004",
+        "url": "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSw9bc2PQo2RGQZMyXRtdNIqaXX4VmMNpflPzDum5iWwaWlq9BWpjvJRlj9OPVIp8WvPA1RW7_7XLK1F56K5cQss3DwQIsp7cDNSGej2aNNt-vNyIK3B9VqX39Nv9G4ihHczejsQig=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/p/AF1QipOQ5JmJgljkIzljDK_hbM1gcXAK5IF_XZdmPS7g=s680-w680-h510-rw",
+        "category": "team",
+        "order": 3,
+        "caption": "Our expert styling team"
+      }
+    ],
+    "videos": [],
+    "createdAt": "2025-01-17T10:00:00Z"
+  },
+  {
+    "id": "salon_004",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "FADERS TOUCH MEN SALON",
+    "address": "Mwisho St, Dar es Salaam",
+    "serviceCategories": [
+      "barbershop",
+      "scrub"
+    ],
+    "phoneNumber": "+255 222 456 789",
+    "description": "Escape to tranquility with our full-service spa. Offering massages, facials, body treatments, and aromatherapy.",
+    "coverImage": "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200",
+    "gallery": [
+      {
+        "id": "img_004_001",
+        "url": "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSwNRLz0SwVTQNJKJpyMk42BXngWG2LFfedTKX4-XCqB8q5Pvkmc6YDqegZDmqkfjLVNC1TdhBV6L9IcTYzDABpZKKEKUew9E9MIlB_7foJ4_cunDBXyePC5HKmQRGPb9Ae-4TzUdQ=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/p/AF1QipNeZGXeNHlS1irGAKyWtte2FFxzULVpR7wBdE-d=s680-w680-h510-rw",
+        "category": "interior",
+        "order": 0,
+        "caption": "Peaceful spa treatment room"
+      },
+      {
+        "id": "img_004_002",
+        "url": "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSzLSw4-7h7dk9a1a9AmeHzLeXO_ZzsQrutOioSuD9X05Z9Ro_B1hi8C-3ebpSAmi7_zTGJlYDNzeavh_0F4aXjjx1tJ2zgCAQMwdoiII8lAEcoxk9_1AnSFo77BFLp4JO57jXqa=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSwVQS90GDrFJKKX1U6LFszHyOykFyNRq1QX8JmSIpvRgny5fr0aMXvbcnbgVFCHp8pETbezT0RpMB-IlfBExFGhqxASM7enB05msFv5cPbLAgkdn_aya0aGzAb6eonFvqhPg7xA-w=s680-w680-h510-rw",
+        "category": "interior",
+        "order": 1,
+        "caption": "Relaxation lounge area"
+      },
+      {
+        "id": "img_004_003",
+        "url": "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSxUgRrEYdf1dn7AM5vhqqm0oOgH2ypjqXJPnv3H5iSnnXkJyvtCAvh9H0DgSrlrRaA-bl-JFDT7xACcMWLlOFAnLv37s_VpST47rpj185G0TyBd9Sy16yf8L_qN6nim-Py2T2sG=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/p/AF1QipOVGOZHhgy0K_wfP2OswMiXx8AIufm-NRSOtmSt=s680-w680-h510-rw",
+        "category": "workSample",
+        "order": 2,
+        "caption": "Professional massage therapy"
+      }
+    ],
+    "videos": [],
+    "createdAt": "2025-01-18T10:00:00Z"
+  },
+  {
+    "id": "salon_005",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "PARIS MASSAGE SPA",
+    "address": "Upanga, Kisutu Street, Dar es Salaam",
+    "serviceCategories": [
+      "hair",
+      "barbershop"
+    ],
+    "phoneNumber": "+255 222 567 890",
+    "description": "Trendy unisex salon specializing in modern cuts, vibrant colors, and creative styling for all hair types.",
+    "coverImage": "https://lh3.googleusercontent.com/p/AF1QipN-kpeXsxUeiViEX1Vgh9Yj31PO1fZTRd3pDokC=s680-w680-h510-rw",
+    "gallery": [
+      {
+        "id": "img_005_001",
+        "url": "https://lh3.googleusercontent.com/p/AF1QipPkadR_YKQVx0I-E1mGrAkvuZuxL_GzIlQk7jTv=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/p/AF1QipM3LNjUvXZVa5J6QuiisDjNZi8ActkNodeL_V6P=s680-w680-h510-rw",
+        "category": "interior",
+        "order": 0,
+        "caption": "Trendy urban salon vibe"
+      },
+      {
+        "id": "img_005_002",
+        "url": "https://lh3.googleusercontent.com/p/AF1QipMI3IZfbdFRqDCkeiBgDCf50QZbwYN5n6hAt4HW=s680-w680-h510-rw",
+        "thumbnailUrl": "https://lh3.googleusercontent.com/p/AF1QipPKdBGjyv4nbCvsXiJF7qoT4ZOMI8S2K7P8mzD8=s680-w680-h510-rw",
+        "category": "workSample",
+        "order": 1,
+        "caption": "Bold hair color transformations"
+      }
+    ],
+    "videos": [],
+    "createdAt": "2025-01-19T10:00:00Z"
+  },
+  {
+    "id": "salon_006",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Anantara Spa",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "The Anantara Spa is a haven of peace in the midst of the vibrant city of Dar es Salaam. With a superb waterfront location, spectacular views of the harbor and the Indian Ocean the Anantara Spa offers two couple suites and four treatment rooms beautifully appointed with touches of local colour and indigenous art.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": null,
+    "imageGallery": [],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.563186Z"
+  },
+  {
+    "id": "salon_007",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Beauty Expert",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "Beauty Expert is an exclusive beauty salon that maintains the highest industry standards, focusing on providing quality and seamless treatment services with great attention to details, to not only delight and exceed client expectations but deliver the best results in the most hygienic environment.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/1c/40/bc/2d/a-quick-glance-of-our.jpg?w=1000&h=600&s=1",
+    "imageGallery": [
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/15/37/b4/86/getlstd-property-photo.jpg?w=700&h=400&s=1",
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/1c/40/bc/7c/this-is-us.jpg?w=700&h=400&s=1"
+    ],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.563353Z"
+  },
+  {
+    "id": "salon_008",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Bluebell Spa",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "Experience professional massage and spa services at Bluebell Spa. Our wellness center in Dar es Salaam offers authentic therapeutic treatments, skilled therapists, and a tranquil environment. Specializing in Swedish massage, deep tissue therapy, aromatherapy, and traditional healing techniques. Book your relaxation session today.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/1c/af/12/b9/bluebell-spa.jpg?w=700&h=400&s=1",
+    "imageGallery": [
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/1c/af/0f/e7/bluebell-spa.jpg?w=1100&h=600&s=1"
+    ],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.563464Z"
+  },
+  {
+    "id": "salon_010",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Dashing Diva Beauty Lounge",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "Perfecting a craft that solely strives to make people feel good about themselves, we at Dashing Diva are dedicated to give you the satisfaction of being pampered with utmost care. A keen eye towards trends, we keep ourselves a step ahead by setting a trend instead of following it. With absolute professionalism in our work, every member of our team is trained to perfection to make sure that our customers get what they deserve, and that is – ‘The best service they could ask for.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/69/ff/00/caption.jpg?w=600&h=400&s=1",
+    "imageGallery": [],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.563576Z"
+  },
+  {
+    "id": "salon_012",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Geisha Massage & Spa",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "A quiet and unassuming place which offers authentic and soul pleasing massage to both male and females. When in Tanzania taste the food from our lovely restaurants, our hospitality and culture from the streets and hotels but do not make a mistake of not trying our massage! It will be a wasted trip! Karibu!",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": null,
+    "imageGallery": [],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.563721Z"
+  },
+  {
+    "id": "salon_013",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Green Life Spa",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "Welcome to Green Life Spa! Indulge and discover the ultimate wellness experience with Green Life Spa. From soothing massages to holistic treatments with our skilled Thai masseuses, we'll pamper your mind, body, and soul. Immerse yourself in our calming ambiance and embrace the harmony of Thai massage. Relax, rejuvenate with us.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": null,
+    "imageGallery": [],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.563921Z"
+  },
+  {
+    "id": "salon_016",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Healing Beauty Spa",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "Healing Beauty Spa (Formerly Tranquil Spa) is a Health and Beauty business offering a complete Day Spa experience focusing on relaxation. This helps you retain and maintain your Health and Beauty. Our Spa invites you to recapture your forgotten sense of well-being by offering a variety of styles like; Intonga Massage Experience, Hotitonga Massage, Tension release massage, Hot Stone Massage, Four-hands massage, Deep healing/Sports Massage, Sleep Improvement Massage, Uplifting facial massage, Sciatica Treatment, Stretch Therapy, Elderly/paralytic/injury massage, Couples’/Best Friends’ Massage, Majestic awakening, Tranquil Massage, Deep Tissue in Aroma oil, Pregnancy/Prenatal Massage, Reflexology, Aromatherapy Massage, Exfoliating Coffee and Vanilla Scrub, Steam Bath, Africology Bespoke Facial, Hydra/Oxygen facial, Waxing and Hair Removal, Deluxe Pedicure Spa and exclusive Packages according to our client’s choice. Welcome to Healing Spa: Stress-Free Switch-Off Resort.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/12/96/74/cd/long-stroke-to-warm-with.jpg?w=600&h=400&s=1",
+    "imageGallery": [
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/15/10/57/6c/our-spaour-view.jpg?w=1400&h=800&s=1",
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/12/96/75/a2/smooth-but-relaxing-with.jpg?w=900&h=-1&s=1"
+    ],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.564116Z"
+  },
+  {
+    "id": "salon_017",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Heavens Beauty & Spa",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "Heavens Beauty & Spa located along United Nations Rd, First floor Swiss Towers, offers a welcoming friendly environment where you can unwind n enjoy your Hair & Beauty treatments. Our primary mission is to provide the highest level of customer service to each client thereby establishing a long lasting relationship of trust & commitment. Our expertise & professionalism allows us to provide clients with the utmost beauty & hair experience within affordable budget for families. Our services includes precision haircuts & style, hair colors & highlights, conditioning & smoothing treatments, Waxing, Facials, Make-up, Manicure/Pedicure, Skin polishing, Sauna and we also offer packages for occasions like weddings, proms and other special events.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/15/76/1d/65/heavens-beauty-spa-located.jpg?w=1400&h=800&s=1",
+    "imageGallery": [
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/15/76/1d/79/pedicure-skin-polishing.jpg?w=1400&h=800&s=1",
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/15/76/1d/6a/our-primary-mission-is.jpg?w=1200&h=-1&s=1"
+    ],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.565823Z"
+  },
+  {
+    "id": "salon_018",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Kulaya Spa",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "Spend some time at Kulaya Spa for a heavenly taste of urban serenity. Our wellness experts love nothing more than making your stay in Dar es Salaam as indulgent and stress-free as possible. Three sun-drenched floors of intimate treatment rooms invite you to leave the city behind and relax in our award-winning luxury spa. Tall arched windows fill the spaces with revitalising daylight. High ornate ceilings bestow majesty. Admire them as you enjoy a treatment on a massage bed heated to your liking.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/29/f4/0a/a4/at-hotel.jpg?w=1400&h=800&s=1",
+    "imageGallery": [
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/29/81/e9/c0/nice-sensual-massage.jpg?w=600&h=400&s=1",
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/28/73/04/f6/entrance.jpg?w=1400&h=800&s=1"
+    ],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.566062Z"
+  },
+  {
+    "id": "salon_019",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Maisha Spa & Healthclub Dar es Salaam Serena Hotel",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "The newly improved Maisha spa offers guests a haven of tranquility in the midst of DSH. Select from a variety of treatments, traditional and modern spa therapies and personalized beauty treatments provided in two relaxing treatment rooms. Discover a sanctuary of relaxation where expert aestheticians renowned for their expertise await to indulge you. Each therapy has been crafted to leave you feeling pampered and rejuvenated. Spa treatments feature deluxe products from Healing Earth, one of Africa’s premiere spa brands.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/51/0d/b5/maisha-spa-treatment.jpg?w=1400&h=800&s=1",
+    "imageGallery": [
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/51/0d/c5/maisha-spa.jpg?w=1400&h=800&s=1",
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/31/51/0d/bf/maisha-spa-treatment.jpg?w=1400&h=800&s=1"
+    ],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.566245Z"
+  },
+  {
+    "id": "salon_022",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Pikasso Beauty Studio & Spa",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "Experience professional massage and spa services at Pikasso Beauty Studio & Spa. Our wellness center in Dar es Salaam offers authentic therapeutic treatments, skilled therapists, and a tranquil environment. Specializing in Swedish massage, deep tissue therapy, aromatherapy, and traditional healing techniques. Book your relaxation session today.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/09/d5/b5/38/pikasso-beauty-studio.jpg?w=1400&h=-1&s=1",
+    "imageGallery": [
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/09/d5/b4/33/pikasso-beauty-studio.jpg?w=500&h=300&s=1",
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/09/d5/b5/37/pikasso-beauty-studio.jpg?w=1400&h=800&s=1"
+    ],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.566354Z"
+  },
+  {
+    "id": "salon_023",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Pure Bliss Spa",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "Pure Bliss Spa - Indulgent Luxury for Mind, Body and Soul Pure Bliss provides a comforting, yet stimulating, atmosphere in which clients will be able to relax both their body and mind, reconnecting their daily lives to their true purpose through a wide range of holistic methods including massage, body works and Nail works.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": null,
+    "imageGallery": [],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.566449Z"
+  },
+  {
+    "id": "salon_024",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Qm Beauty Spa & Salon",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "We run a state-of-the-art beauty clinic Salon and beauty spa.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": null,
+    "imageGallery": [],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.566534Z"
+  },
+  {
+    "id": "salon_025",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Reflections Spa & Beauty",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "Our prime focus is to provide total relaxation to the guests. We focus on establishing and maintaining the balance of energies within the body, promoting harmony between the individual and the environment, which in turn promotes good health. At Reflection Spa & Beauty, our expert therapists help to determine your requirements and can recommend appropriate therapies and products. Yasser our hairdresser is from Morocco and specializes in ladies and gents, hairdressing services. He is available Tuesday to Sunday by appointment for consultation. He is dedicated to providing the best value, by providing high quality salon services with a unique customer focus, in a warm, friendly atmosphere. And if that isn't enough, not only will your stylist cut your hair, your stylist will give you a relaxing shampoo and cooling conditioner, a hot soothing towel. and a blow dry. Men can also experience a shave, eyebrow trim, and head massage as well as a manicure in the luxurious surroundings.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/12/25/07/60/at-the-end-of-a-busy.jpg?w=600&h=400&s=1",
+    "imageGallery": [
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/12/75/38/e3/sit-back-and-enjoy-your.jpg?w=1400&h=800&s=1",
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/12/70/b6/1a/meet-our-hair-stylist.jpg?w=1400&h=800&s=1"
+    ],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.566635Z"
+  },
+  {
+    "id": "salon_029",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "The Rub Spa",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "The Rub Spa is a beauty salon, day spa and Nails Parlour that’s primarily designed to provide customers with a good feeling in their body, mind and soul. Our services including waxing, tweezing and threading, unisex manicures and pedicures, full range of therapeutic massages, body scrubs and facials.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0f/58/b2/f8/facials.jpg?w=1400&h=800&s=1",
+    "imageGallery": [
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0f/58/b3/6c/sharifa.jpg?w=1400&h=800&s=1",
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0f/58/b3/52/nail-polish-application.jpg?w=1400&h=800&s=1"
+    ],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.567418Z"
+  },
+  {
+    "id": "salon_030",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "The Touch - Yusria's Spa",
+    "address": "Kinondoni, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "\"Enter an exclusive hideaway where even the most anxious of stressed spirits will find relief.\" Immerse yourself in the tranquility and harmony of our urban oasis inspired by the seaside spas of the Eastern Hemisphere. Gourmet pampering starts off with gratifying rituals that focus on facial and body treatments combining the best of East and West. The healing hands of our beauty therapists will restore your muscle tone and detoxify your body, giving you harmony of body and tranquility of spirit. Come visit the The Touch Spa.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Kinondoni",
+    "verificationStatus": "approved",
+    "primaryImage": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/13/ab/ae/f6/entrance-to-the-touch.jpg?w=1100&h=600&s=1",
+    "imageGallery": [
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/13/f6/04/f3/our-team-of-trained-therapists.jpg?w=1000&h=600&s=1"
+    ],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.567600Z"
+  },
+  {
+    "id": "salon_033",
+    "ownerId": "5AK9O6lBxmg6WHw1uRLbCsQAVKB3",
+    "salonName": "Violet's Massage",
+    "address": "Masaki, Dar es Salaam",
+    "serviceCategories": [
+      "Massage Therapy",
+      "Spa"
+    ],
+    "phoneNumber": "+255 222 000 000",
+    "description": "Welcome to Violet’s Massage Dar es Salaam’s trusted destination for professional massage and spa treatments. Located on Mt Atlas Road, we specialise in Deep tissue massage, Swedish massage, Sports massage, and relaxing Aromatherapy sessions for both locals and visitors. Whether you’re recovering from travel, easing muscle tension, or simply looking to relax, our skilled therapists provide a personalised, professional experience every time. Conveniently located in Dar es Salaam, We welcome guests from Masaki, Oyster Bay, and surrounding areas, and we are proud to be one of the highest rated massage spas in the city, Book today and experience why so many people say we offer the best massage in Dar es Salaam.",
+    "businessTypeIds": [
+      "spa_massage"
+    ],
+    "businessTypeNames": [
+      "Spa & Massage"
+    ],
+    "region": "Dar es Salaam",
+    "district": "Masaki",
+    "verificationStatus": "approved",
+    "primaryImage": "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2b/e1/86/46/our-new-menu.jpg?w=1400&h=800&s=1",
+    "imageGallery": [
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/1b/06/4d/97/we-are-always-ready-to.jpg?w=1400&h=800&s=1",
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/1a/a8/2f/fc/massage-the-art-of-healing.jpg?w=1400&h=800&s=1"
+    ],
+    "openingTime": "08:00",
+    "closingTime": "20:00",
+    "amenities": [
+      "Massage",
+      "Spa",
+      "Relaxation"
+    ],
+    "createdAt": "2025-11-24T15:14:29.567821Z"
+  }
+]

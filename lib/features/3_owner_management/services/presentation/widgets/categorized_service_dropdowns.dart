@@ -88,7 +88,30 @@ class _CategorizedServiceDropdownsState
           items: _filteredServices.map((service) {
             return DropdownMenuItem(
               value: service,
-              child: Text(service.name),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      service.name,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (service.defaultDuration != null ||
+                      service.defaultPrice != null)
+                    Text(
+                      [
+                        if (service.defaultDuration != null)
+                          '${service.defaultDuration}min',
+                        if (service.defaultPrice != null)
+                          'TZS ${service.defaultPrice!.toStringAsFixed(0)}',
+                      ].join(' • '),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                ],
+              ),
             );
           }).toList(),
           onChanged: (newValue) {

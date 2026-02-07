@@ -20,8 +20,8 @@ android {
         // Hardcoded for the first Google Play Store release
         // versionCode must start at 1 and increase with every update
         // versionName is the visible version string (can be any format you prefer)
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "1.3"
 
         multiDexEnabled = true
     }
