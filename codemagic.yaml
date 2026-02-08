@@ -18,9 +18,9 @@ workflows:
       
       - name: Fetch signing files
         script: |
-          # We use the specific Bundle ID from your screenshot
-          # The --create flag only works if your API Key has "Admin" or "Developer" access
+          # Updated with --platform IOS flag
           app-store-connect fetch-signing-files "$APP_BUNDLE_ID" \
+            --platform IOS \
             --type IOS_APP_STORE \
             --create
           
@@ -34,7 +34,6 @@ workflows:
         script: flutter pub get
 
       - name: Install Pods
-        # Simplified for Mac environment
         script: |
           cd ios
           pod install
@@ -42,8 +41,6 @@ workflows:
 
       - name: Build IPA
         script: |
-          # Use --build-name and --build-number if needed, 
-          # but basic release build is fine.
           flutter build ipa --release \
             --export-options-plist=/Users/builder/export_options.plist
 
@@ -54,7 +51,6 @@ workflows:
 
     publishing:
       app_store_connect:
-        # These variables MUST match the names in your Environment Variable Group
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
