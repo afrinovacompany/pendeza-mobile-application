@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub get:*)",
+      "Bash(flutter analyze:*)",
+      "WebSearch",
+      "WebFetch(domain:unsplash.com)",
+      "Bash(curl:*)"
+    ]
+  }
+}
