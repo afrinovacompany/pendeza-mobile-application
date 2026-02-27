@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
+import 'package:pendeza/shared/utils/placeholder_images.dart';
 import 'package:pendeza/features/2_client_favorites/presentation/widgets/favorite_icon_button.dart';
 
 import '../../app/config/theme/app_constants.dart';
@@ -65,6 +66,56 @@ class _SalonCardState extends State<SalonCard> with SingleTickerProviderStateMix
     }
   }
 
+  /// Builds the salon image with fallback to a placeholder when the primary
+  /// image URL is empty, null, or fails to load from the network.
+  Widget _buildSalonImage(ColorScheme colorScheme) {
+    final primaryUrl = widget.salon.primaryImage ?? '';
+    final fallbackUrl = PlaceholderImages.forSalon(widget.salon.id);
+
+    // If no primary image at all, go straight to fallback
+    if (primaryUrl.isEmpty) {
+      return CachedNetworkImage(
+        imageUrl: fallbackUrl,
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          color: colorScheme.surfaceContainerHighest,
+          child: const Center(child: CupertinoActivityIndicator()),
+        ),
+        errorWidget: (context, url, error) => Container(
+          color: colorScheme.surfaceContainerHighest,
+          child: const Icon(CupertinoIcons.photo, color: Colors.grey),
+        ),
+      );
+    }
+
+    // Try primary image, fall back to placeholder on error
+    return CachedNetworkImage(
+      imageUrl: primaryUrl,
+      width: double.infinity,
+      height: double.infinity,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => const Center(
+        child: CupertinoActivityIndicator(),
+      ),
+      errorWidget: (context, url, error) => CachedNetworkImage(
+        imageUrl: fallbackUrl,
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          color: colorScheme.surfaceContainerHighest,
+          child: const Center(child: CupertinoActivityIndicator()),
+        ),
+        errorWidget: (context, url, error) => Container(
+          color: colorScheme.surfaceContainerHighest,
+          child: const Icon(CupertinoIcons.photo, color: Colors.grey),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -106,19 +157,7 @@ class _SalonCardState extends State<SalonCard> with SingleTickerProviderStateMix
                         borderRadius: BorderRadius.vertical(
                           top: Radius.circular(AppConstants.radiusValL),
                         ),
-                        child: CachedNetworkImage(
-                          imageUrl: widget.salon.primaryImage ?? '',
-                          width: double.infinity,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => const Center(
-                            child: CupertinoActivityIndicator(),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            color: colorScheme.surfaceVariant,
-                            child: const Icon(CupertinoIcons.photo, color: Colors.grey),
-                          ),
-                        ),
+                        child: _buildSalonImage(colorScheme),
                       ),
                     ),
                     // Gradient overlay for better text contrast

@@ -1,4 +1,4 @@
-  import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +9,7 @@ import 'package:pendeza/shared/widgets/custom_card.dart';
 import 'package:pendeza/app/helpers/video_compressor_helper.dart';
 import '../bloc/salon_profile_bloc.dart';
 import '../bloc/salon_profile_event.dart';
+import '../bloc/salon_profile_state.dart';
 
 /// Maximum videos allowed per salon
 const int kMaxVideosPerSalon = 3;
@@ -28,6 +29,10 @@ class SalonVideosSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final canAddMore = videos.length < kMaxVideosPerSalon;
+
+    // 🆕 Check if video is currently uploading
+    final state = context.watch<SalonProfileBloc>().state;
+    final isUploading = state is SalonVideoUploading;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,7 +69,8 @@ class SalonVideosSection extends StatelessWidget {
                 ),
               ],
             ),
-            if (canAddMore)
+            // 🆕 Disable button if uploading
+            if (canAddMore && !isUploading)
               ElevatedButton.icon(
                 onPressed: () => _showAddVideoSheet(context),
                 icon: const Icon(Icons.videocam_rounded, size: 18),
@@ -76,9 +82,47 @@ class SalonVideosSection extends StatelessWidget {
                   ),
                 ),
               ),
+            if (isUploading) // 🆕 Show uploading indicator
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.padM,
+                  vertical: AppConstants.padS,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppConstants.radiusValM),
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        value: (state as SalonVideoUploading).progress > 0
+                            ? (state).progress
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: AppConstants.padXS),
+                    Text(
+                      'Uploading...',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
         const SizedBox(height: AppConstants.padM),
+
+        // 🆕 Show upload progress card if uploading
+        if (isUploading) ...[
+          _buildUploadProgressCard(context, state as SalonVideoUploading),
+          const SizedBox(height: AppConstants.padM),
+        ],
 
         // Info card
         _buildInfoCard(context),
@@ -86,10 +130,151 @@ class SalonVideosSection extends StatelessWidget {
 
         // Videos grid or empty state
         if (videos.isEmpty)
-          _buildEmptyState(context, canAddMore)
+          _buildEmptyState(context, canAddMore && !isUploading)
         else
           _buildVideosGrid(context),
       ],
+    );
+  }
+
+  // 🆕 Upload progress card
+  Widget _buildUploadProgressCard(BuildContext context, SalonVideoUploading state) {
+    final theme = Theme.of(context);
+    final progress = state.progress;
+    final stage = state.stage;
+
+    return CustomCard(
+      child: Padding(
+        padding: const EdgeInsets.all(AppConstants.padM),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  _getStageIcon(stage),
+                  color: _getStageColor(stage),
+                  size: 20,
+                ),
+                const SizedBox(width: AppConstants.padM),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        state.stageText,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: LinearProgressIndicator(
+                              value: progress > 0 ? progress : null,
+                              minHeight: 6,
+                              backgroundColor: theme.dividerColor,
+                              valueColor: AlwaysStoppedAnimation<Color>(_getStageColor(stage)),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                          const SizedBox(width: AppConstants.padM),
+                          Text(
+                            progress > 0 ? '${(progress * 100).toInt()}%' : '...',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: _getStageColor(stage),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (stage == 'compressing' || stage == 'uploading_video')
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    onPressed: () => _cancelVideoUpload(context),
+                    color: Colors.red,
+                    tooltip: 'Cancel upload',
+                  ),
+              ],
+            ),
+            if (stage == 'compressing')
+              Padding(
+                padding: const EdgeInsets.only(top: AppConstants.padS),
+                child: Text(
+                  'Optimizing for best quality and size...',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getStageColor(String stage) {
+    switch (stage) {
+      case 'compressing':
+        return Colors.blue;
+      case 'uploading_video':
+        return Colors.green;
+      case 'uploading_thumbnail':
+        return Colors.purple;
+      case 'saving':
+        return Colors.orange;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  IconData _getStageIcon(String stage) {
+    switch (stage) {
+      case 'compressing':
+        return Icons.compress_rounded;
+      case 'uploading_video':
+        return Icons.cloud_upload_rounded;
+      case 'uploading_thumbnail':
+        return Icons.image_rounded;
+      case 'saving':
+        return Icons.save_rounded;
+      default:
+        return Icons.videocam_rounded;
+    }
+  }
+
+  void _cancelVideoUpload(BuildContext context) {
+    final bloc = context.read<SalonProfileBloc>();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cancel Video Upload?'),
+        content: const Text('Are you sure you want to cancel this upload?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Continue Uploading'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              bloc.add(const CancelVideoUpload());
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Upload cancelled'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Cancel Upload'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -114,11 +299,23 @@ class SalonVideosSection extends StatelessWidget {
           ),
           const SizedBox(width: AppConstants.padS),
           Expanded(
-            child: Text(
-              'Short videos (max 60 sec) showcase your work. Videos need admin approval before going live.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.8),
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Short videos (max 60 sec) showcase your work.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.8),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Videos go live immediately after upload.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -195,6 +392,19 @@ class SalonVideosSection extends StatelessWidget {
   }
 
   void _showAddVideoSheet(BuildContext context) {
+    final state = context.read<SalonProfileBloc>().state;
+
+    // 🆕 Prevent opening if already uploading
+    if (state is SalonVideoUploading) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please wait for current upload to complete'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     final bloc = context.read<SalonProfileBloc>();
 
     showModalBottomSheet(
@@ -268,10 +478,6 @@ class SalonVideosSection extends StatelessWidget {
             ),
             const SizedBox(height: AppConstants.padM),
 
-            // Status badge
-            _buildStatusBadge(video, theme),
-            const SizedBox(height: AppConstants.padM),
-
             if (video.caption != null && video.caption!.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
@@ -330,60 +536,11 @@ class SalonVideosSection extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge(SalonVideoModel video, ThemeData theme) {
-    Color color;
-    IconData icon;
-    String text;
-
-    switch (video.status) {
-      case VideoApprovalStatus.pending:
-        color = Colors.orange;
-        icon = Icons.hourglass_empty_rounded;
-        text = 'Pending Review';
-        break;
-      case VideoApprovalStatus.approved:
-        color = Colors.green;
-        icon = Icons.check_circle_rounded;
-        text = 'Live';
-        break;
-      case VideoApprovalStatus.rejected:
-        color = Colors.red;
-        icon = Icons.cancel_rounded;
-        text = 'Rejected';
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppConstants.padM,
-        vertical: AppConstants.padXS,
-      ),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(AppConstants.radiusValL),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showEditCaptionDialog(
-    BuildContext context,
-    SalonVideoModel video,
-    SalonProfileBloc bloc,
-  ) {
+      BuildContext context,
+      SalonVideoModel video,
+      SalonProfileBloc bloc,
+      ) {
     final controller = TextEditingController(text: video.caption ?? '');
 
     showDialog(
@@ -420,10 +577,10 @@ class SalonVideosSection extends StatelessWidget {
   }
 
   void _confirmDeleteVideo(
-    BuildContext context,
-    SalonVideoModel video,
-    SalonProfileBloc bloc,
-  ) {
+      BuildContext context,
+      SalonVideoModel video,
+      SalonProfileBloc bloc,
+      ) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -549,6 +706,7 @@ class _VideoThumbnailCard extends StatelessWidget {
                 ),
               ),
 
+              // Live indicator dot
               Positioned(
                 top: 8,
                 left: 8,
@@ -556,7 +714,7 @@ class _VideoThumbnailCard extends StatelessWidget {
                   width: 10,
                   height: 10,
                   decoration: BoxDecoration(
-                    color: _getStatusColor(video.status),
+                    color: Colors.green,
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 1.5),
                   ),
@@ -569,19 +727,9 @@ class _VideoThumbnailCard extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor(VideoApprovalStatus status) {
-    switch (status) {
-      case VideoApprovalStatus.pending:
-        return Colors.orange;
-      case VideoApprovalStatus.approved:
-        return Colors.green;
-      case VideoApprovalStatus.rejected:
-        return Colors.red;
-    }
-  }
 }
 
-/// Bottom sheet for adding a new video
+/// Bottom sheet for adding a new video (keep as is)
 class _AddVideoSheet extends StatefulWidget {
   final Function(String videoPath, String? caption) onVideoSelected;
 
@@ -640,7 +788,7 @@ class _AddVideoSheetState extends State<_AddVideoSheet> {
               ),
               const SizedBox(height: AppConstants.padXS),
               Text(
-                'Max 60 seconds • Will be reviewed before going live',
+                'Max 60 seconds • Goes live immediately after upload',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurface.withOpacity(0.6),
                 ),
@@ -700,10 +848,10 @@ class _AddVideoSheetState extends State<_AddVideoSheet> {
                     onPressed: _isProcessing ? null : _handleUpload,
                     icon: _isProcessing
                         ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                         : const Icon(Icons.cloud_upload_rounded),
                     label: Text(_isProcessing ? 'Processing...' : 'Upload Video'),
                     style: ElevatedButton.styleFrom(
@@ -748,13 +896,13 @@ class _AddVideoSheetState extends State<_AddVideoSheet> {
   }
 
   Widget _buildOptionTile(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
+      BuildContext context, {
+        required IconData icon,
+        required String title,
+        required String subtitle,
+        required Color color,
+        required VoidCallback onTap,
+      }) {
     final theme = Theme.of(context);
 
     return InkWell(

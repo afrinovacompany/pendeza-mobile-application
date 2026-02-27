@@ -22,12 +22,12 @@ class SalonProfileLoading extends SalonProfileState {
 /// Salon profile loaded successfully
 class SalonProfileLoaded extends SalonProfileState {
   final SalonModel salon;
-  final List<SalonVideoModel> videos;  // 🆕 Added videos
+  final List<SalonVideoModel> videos;
 
   const SalonProfileLoaded(
-    this.salon, {
-    this.videos = const [],
-  });
+      this.salon, {
+        this.videos = const [],
+      });
 
   @override
   List<Object?> get props => [salon, videos];
@@ -57,16 +57,16 @@ class SalonProfileError extends SalonProfileState {
 /// Uploading image or updating data - KEEPS UI VISIBLE
 class SalonProfileUploading extends SalonProfileState {
   final SalonModel salon;
-  final List<SalonVideoModel> videos;  // 🆕 Preserve videos during upload
+  final List<SalonVideoModel> videos;
   final double progress;
   final String? uploadType; // 'primary', 'gallery', or 'video'
 
   const SalonProfileUploading(
-    this.salon,
-    this.progress, {
-    this.videos = const [],
-    this.uploadType,
-  });
+      this.salon,
+      this.progress, {
+        this.videos = const [],
+        this.uploadType,
+      });
 
   @override
   List<Object?> get props => [salon, videos, progress, uploadType];
@@ -75,21 +75,21 @@ class SalonProfileUploading extends SalonProfileState {
 /// Success state for operations (Triggers Snackbars)
 class SalonProfileOperationSuccess extends SalonProfileState {
   final SalonModel salon;
-  final List<SalonVideoModel> videos;  // 🆕 Preserve videos
+  final List<SalonVideoModel> videos;
   final String message;
 
   const SalonProfileOperationSuccess(
-    this.salon,
-    this.message, {
-    this.videos = const [],
-  });
+      this.salon,
+      this.message, {
+        this.videos = const [],
+      });
 
   @override
   List<Object?> get props => [salon, videos, message];
 }
 
 //============================================================================
-// 🎬 NEW: VIDEO-SPECIFIC STATES
+// 🎬 VIDEO-SPECIFIC STATES
 //============================================================================
 
 /// Loading videos separately
@@ -107,7 +107,7 @@ class SalonVideoUploading extends SalonProfileState {
   final SalonModel salon;
   final List<SalonVideoModel> videos;
   final double progress;
-  final String stage; // 'compressing', 'uploading_video', 'uploading_thumbnail', 'saving'
+  final String stage; // 'compressing', 'uploading_video', 'uploading_thumbnail', 'processing', 'saving'
 
   const SalonVideoUploading({
     required this.salon,
@@ -127,6 +127,8 @@ class SalonVideoUploading extends SalonProfileState {
         return 'Uploading video...';
       case 'uploading_thumbnail':
         return 'Creating thumbnail...';
+      case 'processing':
+        return 'Processing video...';
       case 'saving':
         return 'Saving...';
       default:

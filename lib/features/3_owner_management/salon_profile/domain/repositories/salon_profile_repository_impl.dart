@@ -394,7 +394,6 @@ class SalonProfileRepositoryImpl implements SalonProfileRepository {
       caption: caption,
       durationSeconds: durationSeconds,
       createdAt: DateTime.now(),
-      status: VideoApprovalStatus.pending,
       ownerId: ownerId,
     );
 

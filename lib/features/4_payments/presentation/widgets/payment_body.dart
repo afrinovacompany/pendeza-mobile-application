@@ -64,7 +64,7 @@ class _PaymentBodyState extends State<PaymentBody> {
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  PaymentMethod _selectedMethod = PaymentMethod.payByLink;
+  PaymentMethod _selectedMethod = PaymentMethod.mobileMoney;
   CountryCode _selectedCountryCode = CountryCode(
     name: 'Tanzania',
     code: 'TZ',
@@ -152,11 +152,10 @@ class _PaymentBodyState extends State<PaymentBody> {
         _handleWalletPayment();
         break;
       case PaymentMethod.payByLink:
-        _handlePayByLink();
+        _handlePayByCard();
         break;
-      case PaymentMethod.ussdPush:
-        _handleUssdPush();
-        break;
+      case PaymentMethod.mobileMoney:
+        _handleMobilePayment();
     }
   }
 
@@ -175,40 +174,23 @@ class _PaymentBodyState extends State<PaymentBody> {
     ));
   }
 
-  // ============================================================================
-// 🔥 PAYMENT_BODY.DART - REQUIRED CHANGES
-// ============================================================================
-//
-// You need to update TWO methods in your payment_body.dart file:
-//
-// 1. _handlePayByLink() - Add userId parameter
-// 2. _handleUssdPush() - Add userId parameter
-//
-// ============================================================================
-
-// ============================================================================
-// CHANGE 1: Update _handlePayByLink() method (around line 179-242)
-// ============================================================================
-
-  Future<void> _handlePayByLink() async {
+  Future<void> _handlePayByCard() async {
     if (!_formKey.currentState!.validate()) return;
     widget.onPaymentStarted();
 
     try {
-      final fullNumber = _getFormattedPhoneNumber();
+      final fullNumber     = _getFormattedPhoneNumber();
       final paymentService = sl<PaymentService>();
-
-      // 🔥 FIX: Get userId from AuthBloc
-      final authState = context.read<AuthBloc>().state;
-      final userId = authState is Authenticated ? authState.user.uid : null;
+      final authState      = context.read<AuthBloc>().state;
+      final userId         = authState is Authenticated ? authState.user.uid : null;
 
       final paymentLink = await paymentService.createPaymentLink(
         orderId: widget.args.appointmentId,
-        amount: widget.args.amount,
-        name: widget.args.customerName,
-        email: widget.args.customerEmail,
-        phone: fullNumber,
-        userId: userId, // 🔥 NEW: Pass userId for transaction tracking
+        amount:  widget.args.amount,
+        name:    widget.args.customerName,
+        email:   widget.args.customerEmail,
+        phone:   fullNumber,
+        userId:  userId,
       );
 
       if (!mounted) return;
@@ -226,6 +208,7 @@ class _PaymentBodyState extends State<PaymentBody> {
       if (!mounted) return;
 
       if (result == true) {
+        // Check Firestore — Snippe webhook may have already fired while WebView was open
         CustomSnackBar.show(
           context,
           message: 'Verifying payment...',
@@ -238,18 +221,19 @@ class _PaymentBodyState extends State<PaymentBody> {
         if (isConfirmed) {
           widget.onPaymentSuccess();
         } else {
+          // Webhook hasn't fired yet — PaymentScreen's Firestore listener will catch it
           widget.onPaymentEnded();
           CustomSnackBar.show(
             context,
-            message: 'Payment verification pending. Please wait for confirmation.',
-            type: SnackBarType.warning,
+            message: 'Payment submitted. Waiting for confirmation...',
+            type: SnackBarType.info,
           );
         }
       } else {
         widget.onPaymentEnded();
       }
     } catch (e, stackTrace) {
-      log.e('Pay by Link error', error: e, stackTrace: stackTrace);
+      log.e('Pay by Card error', error: e, stackTrace: stackTrace);
       widget.onPaymentEnded();
       if (mounted) {
         CustomSnackBar.show(
@@ -261,12 +245,7 @@ class _PaymentBodyState extends State<PaymentBody> {
     }
   }
 
-
-// ============================================================================
-// CHANGE 2: Update _handleUssdPush() method (around line 244-272)
-// ============================================================================
-
-  Future<void> _handleUssdPush() async {
+  Future<void> _handleMobilePayment() async {
     if (!_formKey.currentState!.validate()) return;
 
     // 🔥 FIX: Get userId from AuthBloc BEFORE starting payment
@@ -297,7 +276,7 @@ class _PaymentBodyState extends State<PaymentBody> {
 
       showPaymentWaitingDialog(context);
     } catch (e, stackTrace) {
-      log.e('USSD Push error', error: e, stackTrace: stackTrace);
+      log.e('Mobile payment error', error: e, stackTrace: stackTrace);
       widget.onPaymentEnded();
       if (mounted) {
         CustomSnackBar.show(
@@ -347,11 +326,24 @@ class _PaymentBodyState extends State<PaymentBody> {
             const SizedBox(height: AppConstants.padL),
 
             // Section title
-            Text(
-              'Select Payment Method',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Select Payment Method',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppConstants.padM),
 
@@ -377,13 +369,33 @@ class _PaymentBodyState extends State<PaymentBody> {
 
             const SizedBox(height: AppConstants.padXL),
 
+            // Secure payment note
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.lock_rounded, size: 14, color: Colors.grey.shade400),
+                const SizedBox(width: 4),
+                Text(
+                  'Secured by Snippe',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey.shade400,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: AppConstants.padM),
+
             // Continue button
             PrimaryGradientButton(
-              text: 'Continue to Payment',
+              text: 'Pay Now',
               isLoading: widget.isProcessingPayment,
               onPressed: widget.isProcessingPayment ? null : _handleContinue,
-              iconData: Icons.arrow_forward,
+              iconData: Icons.arrow_forward_rounded,
             ),
+
+            const SizedBox(height: AppConstants.padM),
           ],
         ),
       ),
@@ -416,23 +428,19 @@ class _PaymentBodyState extends State<PaymentBody> {
               const SizedBox(height: AppConstants.padM),
             ],
 
-            // Pay by Link
+            // USSD Push
             PaymentMethodOption(
-              method: PaymentMethod.payByLink,
-              isSelected: _selectedMethod == PaymentMethod.payByLink,
-              badge: (walletState is! WalletLoaded || !canUseWallet)
-                  ? 'RECOMMENDED'
-                  : null,
-              badgeColor: Colors.blue,
-              onTap: () => setState(() => _selectedMethod = PaymentMethod.payByLink),
+              method: PaymentMethod.mobileMoney,
+              isSelected: _selectedMethod == PaymentMethod.mobileMoney,
+              onTap: () => setState(() => _selectedMethod = PaymentMethod.mobileMoney),
             ),
             const SizedBox(height: AppConstants.padM),
 
-            // USSD Push
+            // Pay by Card (last priority, no badge)
             PaymentMethodOption(
-              method: PaymentMethod.ussdPush,
-              isSelected: _selectedMethod == PaymentMethod.ussdPush,
-              onTap: () => setState(() => _selectedMethod = PaymentMethod.ussdPush),
+              method: PaymentMethod.payByLink,
+              isSelected: _selectedMethod == PaymentMethod.payByLink,
+              onTap: () => setState(() => _selectedMethod = PaymentMethod.payByLink),
             ),
           ],
         );

@@ -26,17 +26,18 @@ class WalletBalanceCard extends StatelessWidget {
     final canAfford = wallet.balance >= requiredAmount;
     final shortfall = requiredAmount - wallet.balance;
 
+    final Color accentColor = canAfford
+        ? const Color(0xFF10B981)
+        : (hasBalance ? const Color(0xFFF59E0B) : Colors.grey.shade500);
+
     return Container(
       padding: const EdgeInsets.all(AppConstants.padM),
       decoration: BoxDecoration(
-        color: canAfford
-            ? Colors.green.shade50
-            : (hasBalance ? Colors.orange.shade50 : Colors.grey.shade100),
-        borderRadius: BorderRadius.circular(12),
+        color: accentColor.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: canAfford
-              ? Colors.green.shade300
-              : (hasBalance ? Colors.orange.shade300 : Colors.grey.shade300),
+          color: accentColor.withOpacity(0.2),
+          width: 1.5,
         ),
       ),
       child: Column(
@@ -45,33 +46,32 @@ class WalletBalanceCard extends StatelessWidget {
           // Header row
           Row(
             children: [
-              Icon(
-                Icons.account_balance_wallet,
-                color: canAfford
-                    ? Colors.green.shade700
-                    : (hasBalance ? Colors.orange.shade700 : Colors.grey.shade600),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: accentColor,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: AppConstants.padS),
               Text(
-                'Your Wallet',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+                'Wallet Balance',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: AppConstants.padS),
-
-          // Balance row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Balance:', style: theme.textTheme.bodyMedium),
+              const Spacer(),
               Text(
                 wallet.formattedBalance,
-                style: theme.textTheme.titleLarge?.copyWith(
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: canAfford ? Colors.green.shade700 : Colors.grey.shade700,
+                  color: accentColor,
                 ),
               ),
             ],
@@ -81,63 +81,71 @@ class WalletBalanceCard extends StatelessWidget {
           if (!canAfford && hasBalance) ...[
             const SizedBox(height: AppConstants.padS),
             Container(
-              padding: const EdgeInsets.all(AppConstants.padS),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppConstants.padS,
+                vertical: AppConstants.padXS,
+              ),
               decoration: BoxDecoration(
-                color: Colors.orange.shade100,
-                borderRadius: BorderRadius.circular(8),
+                color: accentColor.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
                   Icon(
-                    Icons.warning_amber,
+                    Icons.warning_amber_rounded,
                     size: 16,
-                    color: Colors.orange.shade800,
+                    color: accentColor,
                   ),
-                  const SizedBox(width: AppConstants.padS),
+                  const SizedBox(width: AppConstants.padXS),
                   Expanded(
                     child: Text(
-                      'Need TZS ${shortfall.toStringAsFixed(0)} more',
+                      'TZS ${shortfall.toStringAsFixed(0)} more needed',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.orange.shade900,
+                        color: accentColor,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
+                  TextButton.icon(
+                    onPressed: () {
+                      context.pop();
+                      context.go('/client/wallet');
+                    },
+                    icon: Icon(Icons.add_rounded, size: 16, color: accentColor),
+                    label: Text(
+                      'Top Up',
+                      style: TextStyle(
+                        color: accentColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
                 ],
-              ),
-            ),
-            const SizedBox(height: AppConstants.padS),
-            OutlinedButton.icon(
-              onPressed: () {
-                // Pop back from payment screen first, then navigate to wallet
-                // This ensures proper navigation from root navigator to shell route
-                context.pop(); // Close payment screen
-                context.go('/client/wallet'); // Navigate to wallet
-              },
-              icon: const Icon(Icons.add_card),
-              label: const Text('Top Up Wallet'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.orange.shade700,
-                side: BorderSide(color: Colors.orange.shade700),
               ),
             ),
           ]
 
           // Can afford message
           else if (canAfford) ...[
-            const SizedBox(height: AppConstants.padS),
+            const SizedBox(height: AppConstants.padXS),
             Row(
               children: [
                 Icon(
-                  Icons.check_circle,
+                  Icons.check_circle_rounded,
                   size: 16,
-                  color: Colors.green.shade700,
+                  color: accentColor,
                 ),
-                const SizedBox(width: AppConstants.padS),
+                const SizedBox(width: AppConstants.padXS),
                 Text(
-                  'You can pay with your wallet! ⚡',
+                  'Sufficient balance for this payment',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.green.shade800,
+                    color: accentColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

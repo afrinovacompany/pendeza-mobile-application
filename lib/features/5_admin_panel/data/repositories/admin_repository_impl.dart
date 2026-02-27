@@ -59,4 +59,22 @@ class AdminRepositoryImpl implements AdminRepository {
   Future<void> deletePromotion(String promotionId) async {
     await _db.collection('promotions').doc(promotionId).delete();
   }
+
+  @override
+  Future<void> approveSalon(String salonId) async {
+    await _db.collection('salons').doc(salonId).update({
+      'verificationStatus': 'approved',
+      'reviewedAt': FieldValue.serverTimestamp(),
+      'rejectionReason': FieldValue.delete(),
+    });
+  }
+
+  @override
+  Future<void> rejectSalon(String salonId, String reason) async {
+    await _db.collection('salons').doc(salonId).update({
+      'verificationStatus': 'rejected',
+      'reviewedAt': FieldValue.serverTimestamp(),
+      'rejectionReason': reason,
+    });
+  }
 }

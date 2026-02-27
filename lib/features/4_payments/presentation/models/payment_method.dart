@@ -4,15 +4,17 @@
 // Defines available payment methods in the app.
 // =============================================================================
 
+import 'package:flutter/material.dart';
+
 /// Available payment methods
 enum PaymentMethod {
   /// Pay from wallet balance (instant)
   wallet,
 
-  /// USSD Push - sends payment prompt to phone
-  ussdPush,
+  /// Mobile Payment - sends payment prompt to phone (M-Pesa, Tigo Pesa, etc.)
+  mobileMoney,
 
-  /// Pay by Link - redirects to web payment page
+  /// Pay by Card - redirects to card payment page
   payByLink,
 }
 
@@ -23,10 +25,10 @@ extension PaymentMethodExtension on PaymentMethod {
     switch (this) {
       case PaymentMethod.wallet:
         return 'Pay from Wallet';
-      case PaymentMethod.ussdPush:
-        return 'USSD Push';
+      case PaymentMethod.mobileMoney:
+        return 'Mobile Payment';
       case PaymentMethod.payByLink:
-        return 'Pay by Link';
+        return 'Pay by Card';
     }
   }
 
@@ -35,10 +37,10 @@ extension PaymentMethodExtension on PaymentMethod {
     switch (this) {
       case PaymentMethod.wallet:
         return 'Instant payment from your balance';
-      case PaymentMethod.ussdPush:
-        return 'Receive instant payment prompt on phone';
+      case PaymentMethod.mobileMoney:
+        return 'M-Pesa, Tigo Pesa, Airtel Money';
       case PaymentMethod.payByLink:
-        return 'Complete payment in browser';
+        return 'Pay with debit or credit card';
     }
   }
 
@@ -47,10 +49,22 @@ extension PaymentMethodExtension on PaymentMethod {
     switch (this) {
       case PaymentMethod.wallet:
         return 'Money will be deducted from your wallet instantly.';
-      case PaymentMethod.ussdPush:
-        return 'You will receive a payment request on your phone.';
+      case PaymentMethod.mobileMoney:
+        return 'A payment prompt will be sent to your phone. Enter your mobile money PIN to confirm.';
       case PaymentMethod.payByLink:
-        return "You'll be redirected to a secure payment page.";
+        return "You'll be redirected to a secure card payment page.";
+    }
+  }
+
+  /// Icon for the payment method
+  IconData get icon {
+    switch (this) {
+      case PaymentMethod.wallet:
+        return Icons.account_balance_wallet_rounded;
+      case PaymentMethod.mobileMoney:
+        return Icons.phone_android_rounded;
+      case PaymentMethod.payByLink:
+        return Icons.credit_card_rounded;
     }
   }
 

@@ -21,6 +21,9 @@ class LocalStorageService {
 
   final SharedPreferences _prefs;
 
+  /// Exposed for services that need direct SharedPreferences access.
+  SharedPreferences get prefs => _prefs;
+
   LocalStorageService(this._prefs);
 
   /// Factory method to initialize the service

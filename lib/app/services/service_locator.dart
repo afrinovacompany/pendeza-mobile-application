@@ -30,10 +30,12 @@ import '../../features/2_client_profile/presentation/bloc/profile_bloc.dart';
 import '../../features/3_owner_inspiration/domain/repository/inspiration_repository.dart';
 import '../../features/3_owner_inspiration/domain/repository/inspiration_repository_impl.dart';
 import '../../features/3_owner_inspiration/presentation/bloc/inspiration_bloc.dart';
-import '../../features/3_owner_management/clients/domain/repositories/client_management_repository.dart';
-import '../../features/3_owner_management/clients/domain/repositories/client_management_repository_impl.dart';
-import '../../features/3_owner_management/clients/presentation/bloc/client_details_bloc.dart';
-import '../../features/3_owner_management/clients/presentation/bloc/client_management_bloc.dart';
+
+// --- CLIENT MANAGEMENT IMPORTS (SIMPLIFIED) ---
+import '../../features/3_owner_management/clients/domain/repositories/client_management_repository_new.dart';
+import '../../features/3_owner_management/clients/domain/repositories/client_management_repository_impl_new.dart';
+import '../../features/3_owner_management/clients/presentation/bloc/client_management_bloc_new.dart';
+
 import '../../features/3_owner_management/dashboard/domain/repositories/owner_dashboard_repository.dart';
 import '../../features/3_owner_management/dashboard/domain/repositories/owner_dashboard_repository_impl.dart';
 import '../../features/3_owner_management/dashboard/presentation/bloc/owner_dashboard_bloc.dart';
@@ -78,11 +80,37 @@ import 'guest_session_tracker.dart';
 import 'guest_prompt_service.dart';
 import 'notification_service.dart';
 import 'analytics_service.dart';
+import 'in_app_review_service.dart';
 
 // WALLET IMPORTS
 import 'package:pendeza/app/services/wallet_service.dart';
 import 'package:pendeza/features/wallet/domain/repositories/wallet_repository.dart';
 import 'package:pendeza/features/wallet/presentation/bloc/wallet_bloc.dart';
+
+
+// Repositories & Services
+
+
+
+// --- CLIENT MANAGEMENT IMPORTS (SIMPLIFIED) ---
+
+
+// Salon Profile imports
+
+// --- OWNER PROMOTIONS IMPORTS ---
+
+// --- ADMIN IMPORTS ---
+
+// --- FAVORITES IMPORTS ---
+
+// --- REVIEWS IMPORTS ---
+
+// --- NOTIFICATIONS IMPORTS ---
+
+// --- VIDEO SHORTS IMPORTS ---
+
+
+// WALLET IMPORTS
 
 final sl = GetIt.instance;
 
@@ -136,6 +164,11 @@ Future<void> initializeDependencies() async {
   // WALLET SERVICE
   sl.registerLazySingleton<WalletService>(() => WalletService());
 
+  // IN-APP REVIEW SERVICE
+  sl.registerLazySingleton<InAppReviewService>(
+    () => InAppReviewService(prefs: sl<LocalStorageService>().prefs),
+  );
+
   sl.registerLazySingleton<GuestDataMigrationService>(
         () => GuestDataMigrationService(
       localStorage: sl<LocalStorageService>(),
@@ -187,9 +220,12 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton<OwnerDashboardRepository>(
         () => OwnerDashboardRepositoryImpl(sl<FirestoreService>()),
   );
+
+  // --- CLIENT MANAGEMENT REPOSITORY (SIMPLIFIED) ---
   sl.registerLazySingleton<ClientManagementRepository>(
         () => ClientManagementRepositoryImpl(sl<FirestoreService>()),
   );
+
   sl.registerLazySingleton<SalonProfileRepository>(
         () => SalonProfileRepositoryImpl(
       sl<FirestoreService>(),
@@ -300,12 +336,11 @@ Future<void> initializeDependencies() async {
   );
   sl.registerFactory<ClientManagementBloc>(
         () => ClientManagementBloc(
-        repository: sl(), firestoreService: sl(), authBloc: sl()),
+        repository: sl<ClientManagementRepository>(),
+        firestoreService: sl<FirestoreService>(),
+        authBloc: sl<AuthBloc>()),
   );
-  sl.registerFactory<ClientDetailsBloc>(
-        () => ClientDetailsBloc(
-        repository: sl(), firestoreService: sl(), authBloc: sl()),
-  );
+  // ❌ REMOVED: ClientDetailsBloc (deleted - no longer needed)
   sl.registerFactory<SalonProfileBloc>(
         () => SalonProfileBloc(
         repository: sl(), authBloc: sl(), firestoreService: sl()),

@@ -1,11 +1,9 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_quill/flutter_quill.dart';
-import 'package:pendeza/app/config/platform_config.dart';
 import 'package:pendeza/app/config/theme/app_theme.dart';
 import 'package:pendeza/app/config/app_router.dart';
 import 'package:pendeza/app/bloc/theme_cubit.dart';
@@ -19,6 +17,7 @@ import 'package:provider/provider.dart';
 // Services & Repositories
 import 'package:pendeza/app/services/wallet_service.dart';
 import 'package:pendeza/app/services/payment_service.dart';
+import 'package:pendeza/app/services/firestore_service.dart'; // 🔥 ADD THIS
 import 'package:pendeza/features/wallet/domain/repositories/wallet_repository.dart';
 
 // 🔥 WALLET & PROFILE BLOC IMPORTS
@@ -30,8 +29,11 @@ import 'package:pendeza/features/2_client_notifications/presentation/bloc/notifi
 
 import 'features/2_client_appointments/presentation/bloc/appointments_bloc.dart';
 
+// 🔥 CLIENT MANAGEMENT IMPORTS
+import 'package:pendeza/features/3_owner_management/clients/domain/repositories/client_management_repository_new.dart';
+
 /// ============================================================================
-/// APP.DART - FIXED VERSION
+/// APP.DART - COMPLETE FIXED VERSION
 /// ============================================================================
 ///
 /// IMPORTANT: All BLoCs that need to persist across the app lifecycle should
@@ -55,9 +57,17 @@ class App extends StatelessWidget {
         // ====================================================================
         // STEP 1: Provide Services & Repositories FIRST
         // ====================================================================
+
+        // 🔥 CORE SERVICES - These are used by BLoCs
+        Provider<FirestoreService>.value(value: sl<FirestoreService>()),
         Provider<WalletService>.value(value: sl<WalletService>()),
         Provider<PaymentService>.value(value: sl<PaymentService>()),
+
+        // 🔥 REPOSITORIES
         Provider<WalletRepository>.value(value: sl<WalletRepository>()),
+        Provider<ClientManagementRepository>.value(
+          value: sl<ClientManagementRepository>(),
+        ),
 
         // ====================================================================
         // STEP 2: Provide BLoCs

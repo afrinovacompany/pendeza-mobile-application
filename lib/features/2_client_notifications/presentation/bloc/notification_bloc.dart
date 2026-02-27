@@ -38,6 +38,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         add(const LoadNotifications());
       } else {
         _cancelSubscriptions();
+        // ignore: invalid_use_of_visible_for_testing_member
         emit(const NotificationInitial());
       }
     });
@@ -56,10 +57,23 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     return null;
   }
 
+  /// Get user role from auth state.
+  /// Returns null if role can't be determined — broadcasts will show for all users.
+  /// TODO: Update this to match your Authenticated state structure if needed.
+  /// For example: return authState.userProfile?.role;
+  /// or: return authState.user?.role;
+  String? get _currentUserRole {
+    // ignore: unused_local_variable
+    final authState = _authBloc.state;
+    // If your Authenticated state has userProfile.role, uncomment:
+    // if (authState is Authenticated) return authState.userProfile?.role;
+    return null; // Shows all broadcasts regardless of role
+  }
+
   Future<void> _onLoadNotifications(
-    LoadNotifications event,
-    Emitter<NotificationState> emit,
-  ) async {
+      LoadNotifications event,
+      Emitter<NotificationState> emit,
+      ) async {
     final userId = _currentUserId;
     if (userId == null) {
       emit(const NotificationError('User not authenticated'));
@@ -69,19 +83,24 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     emit(const NotificationLoading());
 
     try {
-      // Cancel existing subscriptions
       await _cancelSubscriptions();
 
-      // Get initial notifications
-      final notifications = await _repository.getNotifications(userId);
-      final unreadCount = await _repository.getUnreadCount(userId);
+      // Get merged notifications (personal + broadcasts)
+      final notifications = await _repository.getNotifications(
+        userId,
+        userRole: _currentUserRole,
+      );
+      final unreadCount = await _repository.getUnreadCount(
+        userId,
+        userRole: _currentUserRole,
+      );
 
       emit(NotificationLoaded(
         notifications: notifications,
         unreadCount: unreadCount,
       ));
 
-      // Setup real-time streams
+      // Setup streams for real-time personal notification updates
       _setupStreams(userId);
     } catch (e, stackTrace) {
       log.e('Error loading notifications', error: e, stackTrace: stackTrace);
@@ -90,15 +109,22 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   }
 
   Future<void> _onRefreshNotifications(
-    RefreshNotifications event,
-    Emitter<NotificationState> emit,
-  ) async {
+      RefreshNotifications event,
+      Emitter<NotificationState> emit,
+      ) async {
     final userId = _currentUserId;
     if (userId == null) return;
 
     try {
-      final notifications = await _repository.getNotifications(userId);
-      final unreadCount = await _repository.getUnreadCount(userId);
+      // Refresh merged notifications
+      final notifications = await _repository.getNotifications(
+        userId,
+        userRole: _currentUserRole,
+      );
+      final unreadCount = await _repository.getUnreadCount(
+        userId,
+        userRole: _currentUserRole,
+      );
 
       emit(NotificationLoaded(
         notifications: notifications,
@@ -110,14 +136,30 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   }
 
   Future<void> _onMarkAsRead(
-    MarkNotificationAsRead event,
-    Emitter<NotificationState> emit,
-  ) async {
+      MarkNotificationAsRead event,
+      Emitter<NotificationState> emit,
+      ) async {
     final currentState = state;
     if (currentState is! NotificationLoaded) return;
+    final userId = _currentUserId;
+    if (userId == null) return;
 
     try {
-      await _repository.markAsRead(event.notificationId);
+      // Find the notification
+      final notification = currentState.notifications.firstWhere(
+            (n) => n.id == event.notificationId,
+        orElse: () => throw Exception('Notification not found'),
+      );
+
+      // Handle broadcast vs personal
+      if (notification.isBroadcast) {
+        await _repository.markBroadcastAsRead(
+          notification.firestoreId,
+          userId,
+        );
+      } else {
+        await _repository.markAsRead(event.notificationId);
+      }
 
       // Update local state
       final updatedNotifications = currentState.notifications.map((n) {
@@ -129,7 +171,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
 
       emit(currentState.copyWith(
         notifications: updatedNotifications,
-        unreadCount: (currentState.unreadCount - 1).clamp(0, double.maxFinite.toInt()),
+        unreadCount:
+        (currentState.unreadCount - 1).clamp(0, double.maxFinite.toInt()),
       ));
     } catch (e, stackTrace) {
       log.e('Error marking notification as read',
@@ -138,9 +181,9 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   }
 
   Future<void> _onMarkAllAsRead(
-    MarkAllNotificationsAsRead event,
-    Emitter<NotificationState> emit,
-  ) async {
+      MarkAllNotificationsAsRead event,
+      Emitter<NotificationState> emit,
+      ) async {
     final userId = _currentUserId;
     if (userId == null) return;
 
@@ -150,7 +193,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     try {
       await _repository.markAllAsRead(userId);
 
-      // Update local state
+      // Update local state — mark all as read
       final updatedNotifications = currentState.notifications
           .map((n) => n.copyWith(isRead: true))
           .toList();
@@ -166,22 +209,24 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   }
 
   Future<void> _onDeleteNotification(
-    DeleteNotification event,
-    Emitter<NotificationState> emit,
-  ) async {
+      DeleteNotification event,
+      Emitter<NotificationState> emit,
+      ) async {
     final currentState = state;
     if (currentState is! NotificationLoaded) return;
 
     try {
-      // Find the notification to check if it was unread
       final notification = currentState.notifications.firstWhere(
-        (n) => n.id == event.notificationId,
+            (n) => n.id == event.notificationId,
         orElse: () => throw Exception('Notification not found'),
       );
 
-      await _repository.deleteNotification(event.notificationId);
+      // Broadcasts can't be deleted — just remove from local list
+      if (!notification.isBroadcast) {
+        await _repository.deleteNotification(event.notificationId);
+      }
 
-      // Update local state
+      // Remove from local state
       final updatedNotifications = currentState.notifications
           .where((n) => n.id != event.notificationId)
           .toList();
@@ -190,7 +235,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         notifications: updatedNotifications,
         unreadCount: notification.isRead
             ? currentState.unreadCount
-            : (currentState.unreadCount - 1).clamp(0, double.maxFinite.toInt()),
+            : (currentState.unreadCount - 1)
+            .clamp(0, double.maxFinite.toInt()),
       ));
     } catch (e, stackTrace) {
       log.e('Error deleting notification', error: e, stackTrace: stackTrace);
@@ -198,19 +244,34 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   }
 
   Future<void> _onDeleteAllNotifications(
-    DeleteAllNotifications event,
-    Emitter<NotificationState> emit,
-  ) async {
+      DeleteAllNotifications event,
+      Emitter<NotificationState> emit,
+      ) async {
     final userId = _currentUserId;
     if (userId == null) return;
 
     try {
+      // Only delete personal notifications
       await _repository.deleteAllNotifications(userId);
 
-      emit(const NotificationLoaded(
-        notifications: [],
-        unreadCount: 0,
-      ));
+      // Keep broadcasts in the list but mark as read
+      final currentState = state;
+      if (currentState is NotificationLoaded) {
+        final remainingBroadcasts = currentState.notifications
+            .where((n) => n.isBroadcast)
+            .map((n) => n.copyWith(isRead: true))
+            .toList();
+
+        emit(NotificationLoaded(
+          notifications: remainingBroadcasts,
+          unreadCount: 0,
+        ));
+      } else {
+        emit(const NotificationLoaded(
+          notifications: [],
+          unreadCount: 0,
+        ));
+      }
     } catch (e, stackTrace) {
       log.e('Error deleting all notifications',
           error: e, stackTrace: stackTrace);
@@ -218,9 +279,9 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   }
 
   void _onUpdateUnreadCount(
-    UpdateUnreadCount event,
-    Emitter<NotificationState> emit,
-  ) {
+      UpdateUnreadCount event,
+      Emitter<NotificationState> emit,
+      ) {
     final currentState = state;
     if (currentState is NotificationLoaded) {
       emit(currentState.copyWith(unreadCount: event.count));
@@ -228,22 +289,34 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   }
 
   void _setupStreams(String userId) {
-    // Stream notifications for real-time updates
+    // Stream personal notifications for real-time updates
+    // When personal notifications change, refresh the full merged list
     _notificationsSubscription = _repository
         .streamNotifications(userId)
-        .listen((notifications) {
+        .listen((personalNotifications) {
       if (state is NotificationLoaded) {
         final currentState = state as NotificationLoaded;
-        emit(currentState.copyWith(notifications: notifications));
+
+        // Keep existing broadcasts, replace personal notifications
+        final broadcasts =
+        currentState.notifications.where((n) => n.isBroadcast).toList();
+
+        final allNotifications = [
+          ...personalNotifications,
+          ...broadcasts,
+        ];
+        allNotifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+        // ignore: invalid_use_of_visible_for_testing_member
+        emit(currentState.copyWith(notifications: allNotifications));
       }
     });
 
-    // Stream unread count
-    _unreadCountSubscription = _repository
-        .streamUnreadCount(userId)
-        .listen((count) {
-      add(UpdateUnreadCount(count));
-    });
+    // Stream personal unread count
+    _unreadCountSubscription =
+        _repository.streamUnreadCount(userId).listen((count) {
+          add(UpdateUnreadCount(count));
+        });
   }
 
   Future<void> _cancelSubscriptions() async {

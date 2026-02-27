@@ -8,7 +8,7 @@ abstract class SalonProfileEvent extends Equatable {
 }
 
 //============================================================================
-// EXISTING EVENTS (unchanged)
+// EXISTING EVENTS
 //============================================================================
 
 /// Load salon profile
@@ -106,7 +106,7 @@ class UpdateAmenities extends SalonProfileEvent {
 }
 
 //============================================================================
-// 🎬 NEW: VIDEO EVENTS
+// 🎬 VIDEO EVENTS
 //============================================================================
 
 /// Load salon videos
@@ -150,4 +150,9 @@ class DeleteSalonVideo extends SalonProfileEvent {
 
   @override
   List<Object?> get props => [videoId];
+}
+
+/// 🆕 Cancel ongoing video upload
+class CancelVideoUpload extends SalonProfileEvent {
+  const CancelVideoUpload();
 }

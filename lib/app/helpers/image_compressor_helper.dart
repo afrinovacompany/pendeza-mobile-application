@@ -5,13 +5,11 @@ import '../utils/logger.dart';
 
 class ImageCompressionHelper {
   /// Compress image before uploading to Firebase Storage
-  /// Returns compressed file path
-  ///
-  /// 🔥 FIXED: Now intelligently decides whether to compress
+  /// 🔥 COMPLETELY REWRITTEN - NOW ACTUALLY COMPRESSES!
   static Future<File?> compressImage(
       File file, {
-        int quality = 85,
-        int maxWidth = 1920,
+        int quality = 75, // 🔥 REDUCED FROM 85 - 75 is sweet spot
+        int maxWidth = 1200, // 🔥 REDUCED FROM 1920
         int maxHeight = 1080,
       }) async {
     try {
@@ -20,160 +18,174 @@ class ImageCompressionHelper {
       log.d('🖼️ Compressing image: ${file.path}');
       log.d('📏 Original size: ${_formatBytes(originalSize)}');
 
-      // 🔥 SKIP COMPRESSION IF FILE IS ALREADY SMALL (< 200KB)
-      if (originalSize < 200 * 1024) {
+      // 🔥 MORE AGGRESSIVE SKIP - only skip if UNDER 150KB
+      if (originalSize < 150 * 1024) {
         log.i('✅ Image already small (${_formatBytes(originalSize)}), skipping compression');
         return file;
       }
 
-      // 🔥 CREATE TEMP FILE
       final dir = await getTemporaryDirectory();
       final targetPath = '${dir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      // 🔥 COMPRESS WITH OPTIMIZED SETTINGS
-      final result = await FlutterImageCompress.compressAndGetFile(
+      // 🔥 CRITICAL FIX: First decode then compress with LOWER quality
+      // This ensures actual compression happens
+
+      // Step 1: Get image dimensions first
+      final originalBytes = await file.readAsBytes();
+
+      // Step 2: Force resize AND lower quality
+      final result = await FlutterImageCompress.compressWithFile(
         file.absolute.path,
-        targetPath,
-        quality: quality,
+        quality: quality, // 75 is optimal for photos
         minWidth: maxWidth,
         minHeight: maxHeight,
         format: CompressFormat.jpeg,
-        keepExif: false, // 🔥 REMOVE METADATA TO SAVE SPACE
+        keepExif: false,
       );
 
-      if (result == null) {
+      if (result == null || result.isEmpty) {
         log.e('❌ Image compression failed, using original');
         return file;
       }
 
-      final compressedFile = File(result.path);
+      // Write compressed bytes to file
+      final compressedFile = File(targetPath);
+      await compressedFile.writeAsBytes(result);
+
       final compressedSize = await compressedFile.length();
 
       log.d('📦 Compressed size: ${_formatBytes(compressedSize)}');
 
-      // 🔥 ONLY USE COMPRESSED VERSION IF IT'S ACTUALLY SMALLER
-      if (compressedSize < originalSize) {
+      // 🔥 NEW: More aggressive threshold - use compressed if at least 20% smaller
+      if (compressedSize < originalSize * 0.8) { // 20% reduction minimum
         final savedBytes = originalSize - compressedSize;
         final savedPercent = ((savedBytes / originalSize) * 100).toStringAsFixed(1);
         log.i('✅ Compression successful: Saved ${_formatBytes(savedBytes)} ($savedPercent%)');
         return compressedFile;
-      } else {
-        log.i('⚠️ Compressed size ($compressedSize bytes) >= original ($originalSize bytes), using original');
+      }
+      // 🔥 NEW: If compression didn't help much, try more aggressive settings
+      else if (compressedSize < originalSize) {
+        log.i('⚠️ Only saved ${((originalSize - compressedSize) / originalSize * 100).toStringAsFixed(1)}%, trying more aggressive...');
 
-        // 🔥 DELETE THE COMPRESSED FILE TO FREE SPACE
-        try {
-          await compressedFile.delete();
-        } catch (e) {
-          log.w('Could not delete temporary compressed file: $e');
+        // Try again with lower quality
+        final result2 = await FlutterImageCompress.compressWithFile(
+          file.absolute.path,
+          quality: 60, // Lower quality
+          minWidth: 1000, // Smaller dimensions
+          minHeight: 800,
+          format: CompressFormat.jpeg,
+          keepExif: false,
+        );
+
+        if (result2 != null && result2.isNotEmpty) {
+          final compressedFile2 = File('${dir.path}/compressed_aggressive_${DateTime.now().millisecondsSinceEpoch}.jpg');
+          await compressedFile2.writeAsBytes(result2);
+          final compressedSize2 = await compressedFile2.length();
+
+          if (compressedSize2 < originalSize * 0.7) { // 30% reduction
+            log.i('✅ Aggressive compression: ${_formatBytes(originalSize)} → ${_formatBytes(compressedSize2)}');
+            // Delete first attempt
+            if (await compressedFile.exists()) await compressedFile.delete();
+            return compressedFile2;
+          }
+
+          // Delete aggressive attempt if not better
+          if (await compressedFile2.exists()) await compressedFile2.delete();
         }
 
-        return file;
+        // If still not great, but at least smaller
+        if (compressedSize < originalSize) {
+          return compressedFile;
+        }
       }
+
+      // If we get here, compression didn't help - use original
+      log.i('⚠️ Compression not beneficial, using original');
+
+      // Clean up
+      try {
+        if (await compressedFile.exists()) {
+          await compressedFile.delete();
+        }
+      } catch (e) {
+        // Ignore
+      }
+
+      return file;
     } catch (e, s) {
       log.e('❌ Error compressing image', error: e, stackTrace: s);
-      return file; // 🔥 RETURN ORIGINAL ON ERROR
+      return file;
     }
   }
 
-  /// Compress for profile pictures (smaller size needed)
-  /// 🔥 OPTIMIZED SETTINGS
-  static Future<File?> compressProfilePicture(File file) async {
-    return compressImage(
-      file,
-      quality: 80, // 🔥 REDUCED FROM 80
-      maxWidth: 500,
-      maxHeight: 500,
-    );
-  }
-
-  /// Compress for salon gallery (higher quality)
-  /// 🔥 OPTIMIZED SETTINGS
+  /// Compress for salon gallery - 🔥 OPTIMIZED SETTINGS
   static Future<File?> compressSalonPhoto(File file) async {
     return compressImage(
       file,
-      quality: 85,
-      maxWidth: 1920,
+      quality: 75, // 🔥 75% is perfect - good quality, much smaller
+      maxWidth: 1200, // 🔥 1200px is plenty for mobile viewing
       maxHeight: 1080,
     );
   }
 
-  /// 🔥 NEW: Compress for promotions (balance of quality and size)
-  static Future<File?> compressPromotionImage(File file) async {
+  /// Compress for profile pictures - 🔥 MORE AGGRESSIVE
+  static Future<File?> compressProfilePicture(File file) async {
     return compressImage(
       file,
-      quality: 85,
-      maxWidth: 1200,
-      maxHeight: 800,
+      quality: 70, // 🔥 70% is fine for tiny profile pics
+      maxWidth: 400, // 🔥 Smaller
+      maxHeight: 400,
     );
   }
 
-  /// 🔥 NEW: Helper to format bytes into human-readable format
+  /// 🔥 NEW: Ultra compression for gallery thumbnails
+  static Future<File?> compressThumbnail(File file) async {
+    return compressImage(
+      file,
+      quality: 60,
+      maxWidth: 300,
+      maxHeight: 300,
+    );
+  }
+
+  /// Helper to format bytes
   static String _formatBytes(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
   }
 
-  /// 🔥 NEW: Aggressive compression for very large images
-  static Future<File?> compressAggressively(File file) async {
+  /// 🔥 NEW: Direct byte compression - MOST RELIABLE
+  static Future<File?> compressDirect(File file, {int quality = 70}) async {
     try {
-      final originalSize = await file.length();
-
-      log.d('🖼️ Aggressive compression for: ${file.path}');
-      log.d('📏 Original size: ${_formatBytes(originalSize)}');
-
       final dir = await getTemporaryDirectory();
-      final targetPath = '${dir.path}/compressed_aggressive_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final targetPath = '${dir.path}/direct_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      // 🔥 MULTIPLE PASS COMPRESSION FOR LARGE FILES
-      File currentFile = file;
-      int currentQuality = 85;
-      int attempts = 0;
-      const maxAttempts = 3;
-      const targetSize = 500 * 1024; // 500KB target
+      final bytes = await file.readAsBytes();
 
-      while (attempts < maxAttempts && await currentFile.length() > targetSize) {
-        final result = await FlutterImageCompress.compressAndGetFile(
-          currentFile.absolute.path,
-          '${targetPath}_$attempts.jpg',
-          quality: currentQuality,
-          minWidth: 1200,
-          minHeight: 800,
-          format: CompressFormat.jpeg,
-          keepExif: false,
-        );
+      // Use direct byte compression
+      final compressedBytes = await FlutterImageCompress.compressWithList(
+        bytes,
+        quality: quality,
+        format: CompressFormat.jpeg,
+      );
 
-        if (result == null) break;
+      final compressedFile = File(targetPath);
+      await compressedFile.writeAsBytes(compressedBytes);
 
-        final newFile = File(result.path);
-        final newSize = await newFile.length();
+      final originalSize = bytes.length;
+      final compressedSize = compressedBytes.length;
 
-        log.d('🔄 Attempt ${attempts + 1}: ${_formatBytes(newSize)} (quality: $currentQuality)');
+      log.d('📦 Direct compression: ${_formatBytes(originalSize)} → ${_formatBytes(compressedSize)}');
 
-        // 🔥 DELETE PREVIOUS ATTEMPT IF NOT THE ORIGINAL
-        if (currentFile != file && await currentFile.exists()) {
-          await currentFile.delete();
-        }
-
-        currentFile = newFile;
-        currentQuality = (currentQuality * 0.85).round(); // Reduce quality by 15%
-        attempts++;
+      if (compressedSize < originalSize) {
+        return compressedFile;
       }
 
-      final finalSize = await currentFile.length();
-
-      if (finalSize < originalSize) {
-        log.i('✅ Aggressive compression: ${_formatBytes(originalSize)} → ${_formatBytes(finalSize)}');
-        return currentFile;
-      } else {
-        // Clean up
-        if (currentFile != file && await currentFile.exists()) {
-          await currentFile.delete();
-        }
-        return file;
-      }
-    } catch (e, s) {
-      log.e('❌ Error in aggressive compression', error: e, stackTrace: s);
+      await compressedFile.delete();
+      return file;
+    } catch (e) {
+      log.e('Direct compression failed: $e');
       return file;
     }
   }

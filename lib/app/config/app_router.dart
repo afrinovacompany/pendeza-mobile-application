@@ -39,8 +39,8 @@ import '../../features/2_client_favorites/presentation/screens/favorites_screen.
 import '../../features/2_client_notifications/presentation/screens/notifications_screen.dart';
 
 import '../../features/3_owner_management/calendar/presentation/screens/calendar_screen.dart';
-import '../../features/3_owner_management/clients/presentation/screens/client_detail_screen.dart';
-import '../../features/3_owner_management/clients/presentation/screens/client_list_screen.dart';
+
+import '../../features/3_owner_management/clients/presentation/screens/client_management_screen.dart';
 import '../../features/3_owner_management/dashboard/presentation/screens/owner_dashboard_screen.dart';
 import '../../features/3_owner_management/services/presentation/screens/service_list_screen.dart';
 import '../../features/3_owner_profile_screen/help_support_screen.dart';
@@ -48,6 +48,7 @@ import '../../features/3_owner_profile_screen/owner_profile_screen.dart';
 import '../../features/3_owner_management/salon_profile/presentation/screens/salon_profile_screen.dart';
 import '../../features/3_reviews/data/models/review_model.dart';
 import '../../features/4_payments/presentation/screens/payment_screen.dart';
+import '../../features/4_payments/presentation/screens/payment_receipt_screen.dart';
 import '../../features/5_admin_panel/presentation/screens/admin_manage_notification_screen.dart';
 import '../../features/5_admin_panel/presentation/screens/admin_manage_salon_screen.dart';
 import '../../features/5_admin_panel/presentation/screens/admin_manage_user_screen.dart';
@@ -113,6 +114,7 @@ class AppRoutes {
 
   // Payment Route
   static const String paymentSelection = '/payment';
+  static const String paymentReceipt = '/payment/receipt';
 
   // Review Route
   static const String writeReview = '/salon/:salonId/review';
@@ -447,6 +449,28 @@ class AppRouter {
         },
       ),
 
+      // Payment Receipt Route
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: AppRoutes.paymentReceipt,
+        pageBuilder: (context, state) {
+          final args = state.extra as Map<String, dynamic>?;
+          if (args == null) {
+            return _buildPage(context, state, const Scaffold(body: Center(child: Text("Error: Missing receipt info"))));
+          }
+          return _buildPage(
+            context,
+            state,
+            PaymentReceiptScreen(
+              appointmentId: args['appointmentId'] as String,
+              amount: args['amount'] as double,
+              customerName: args['customerName'] as String,
+              customerEmail: args['customerEmail'] as String,
+            ),
+          );
+        },
+      ),
+
       // NEW: Edit Profile Route (uses root navigator for full-screen navigation)
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
@@ -647,24 +671,7 @@ class AppRouter {
           GoRoute(
             path: AppRoutes.ownerClients,
             pageBuilder: (context, state) =>
-                _buildPage(context, state, const ClientsListScreen()),
-          ),
-          GoRoute(
-            path: AppRoutes.clientDetails,
-            pageBuilder: (context, state) {
-              final clientId = state.pathParameters['clientId'];
-              if (clientId == null) {
-                return _buildPage(
-                    context,
-                    state,
-                    Scaffold(
-                      appBar: AppBar(title: const Text('Error')),
-                      body: const Center(child: Text('Client ID not found')),
-                    ));
-              }
-              return _buildPage(
-                  context, state, ClientDetailsScreen(clientId: clientId));
-            },
+                _buildPage(context, state, const ClientManagementScreen()),
           ),
           GoRoute(
             path: AppRoutes.ownerProfile,

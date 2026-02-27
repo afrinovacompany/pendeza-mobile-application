@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,7 +7,6 @@ import 'package:pendeza/shared/models/salon_model.dart';
 import 'package:pendeza/shared/widgets/custom_card.dart';
 import '../bloc/salon_profile_bloc.dart';
 import '../bloc/salon_profile_event.dart';
-import 'package:pendeza/app/helpers/image_compressor_helper.dart';
 
 class SalonImagesSection extends StatelessWidget {
   final SalonModel salon;
@@ -61,7 +59,6 @@ class SalonImagesSection extends StatelessWidget {
                 ],
               ],
             ),
-            // ✅ Improved add button
             ElevatedButton.icon(
               onPressed: () => _showAddPhotoOptions(context),
               icon: const Icon(Icons.add_photo_alternate_rounded, size: 18),
@@ -77,11 +74,11 @@ class SalonImagesSection extends StatelessWidget {
         ),
         const SizedBox(height: AppConstants.padM),
 
-        // ✅ Tips card (show if no images)
+        // Tips card (show if no images)
         if (salon.primaryImage == null && !hasGallery)
           _buildTipsCard(context),
 
-        // Primary Image with enhanced design
+        // Primary Image
         if (salon.primaryImage != null) ...[
           _buildPrimaryImageCard(context, salon.primaryImage!),
           const SizedBox(height: AppConstants.padM),
@@ -115,7 +112,7 @@ class SalonImagesSection extends StatelessWidget {
             ),
           ),
 
-        // Gallery Grid with improved layout
+        // Gallery Grid
         if (hasGallery)
           _buildGalleryGrid(context, salon.imageGallery!)
         else if (salon.primaryImage != null)
@@ -124,7 +121,6 @@ class SalonImagesSection extends StatelessWidget {
     );
   }
 
-  // ✅ NEW: Tips card for first-time users
   Widget _buildTipsCard(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -186,7 +182,6 @@ class SalonImagesSection extends StatelessWidget {
     );
   }
 
-  // ✅ ENHANCED: Primary image card
   Widget _buildPrimaryImageCard(BuildContext context, String imageUrl) {
     final theme = Theme.of(context);
 
@@ -197,7 +192,6 @@ class SalonImagesSection extends StatelessWidget {
         children: [
           Stack(
             children: [
-              // Image with hero animation potential
               ClipRRect(
                 borderRadius: BorderRadius.vertical(
                   top: Radius.circular(AppConstants.radiusValM),
@@ -227,7 +221,7 @@ class SalonImagesSection extends StatelessWidget {
                 ),
               ),
 
-              // Gradient overlay at bottom for better badge visibility
+              // Gradient overlay
               Positioned(
                 bottom: 0,
                 left: 0,
@@ -236,11 +230,11 @@ class SalonImagesSection extends StatelessWidget {
                   height: 60,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
                       colors: [
+                        Colors.black.withOpacity(0.6),
                         Colors.transparent,
-                        Colors.black.withOpacity(0.5),
                       ],
                     ),
                   ),
@@ -249,25 +243,21 @@ class SalonImagesSection extends StatelessWidget {
 
               // Primary badge
               Positioned(
-                bottom: AppConstants.padM,
-                left: AppConstants.padM,
+                bottom: 12,
+                left: 12,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppConstants.padM,
-                    vertical: AppConstants.padXS,
+                    horizontal: 10,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(AppConstants.radiusValL),
+                    borderRadius: BorderRadius.circular(AppConstants.radiusValS),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.star_rounded,
-                        color: Colors.white,
-                        size: 16,
-                      ),
+                      const Icon(Icons.star_rounded, color: Colors.white, size: 14),
                       const SizedBox(width: 4),
                       Text(
                         'Primary Photo',
@@ -285,40 +275,25 @@ class SalonImagesSection extends StatelessWidget {
 
           // Action buttons
           Padding(
-            padding: const EdgeInsets.all(AppConstants.padM),
+            padding: const EdgeInsets.all(AppConstants.padS),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showAddPhotoOptions(context, isPrimary: true),
-                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text('Change'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: AppConstants.padS,
-                      ),
-                    ),
-                  ),
+                TextButton.icon(
+                  onPressed: () => _viewFullImage(context, imageUrl),
+                  icon: const Icon(Icons.zoom_in_rounded, size: 16),
+                  label: const Text('View'),
                 ),
-                const SizedBox(width: AppConstants.padM),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _viewFullImage(context, imageUrl),
-                    icon: const Icon(Icons.fullscreen_rounded, size: 18),
-                    label: const Text('View'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: AppConstants.padS,
-                      ),
-                    ),
-                  ),
+                TextButton.icon(
+                  onPressed: () => _showImagePicker(context, isPrimary: true),
+                  icon: const Icon(Icons.edit_rounded, size: 16),
+                  label: const Text('Change'),
                 ),
-                const SizedBox(width: AppConstants.padS),
-                IconButton(
+                TextButton.icon(
                   onPressed: () => _confirmDeletePrimary(context),
-                  icon: const Icon(Icons.delete_outline_rounded),
-                  color: Colors.red,
-                  tooltip: 'Delete primary photo',
+                  icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                  label: const Text('Delete'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
                 ),
               ],
             ),
@@ -328,70 +303,47 @@ class SalonImagesSection extends StatelessWidget {
     );
   }
 
-  Widget _buildImagePlaceholder(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      height: 220,
-      color: theme.dividerColor,
-      child: Center(
-        child: Icon(
-          Icons.image_not_supported_rounded,
-          color: theme.colorScheme.onSurface.withOpacity(0.3),
-          size: 48,
-        ),
-      ),
-    );
-  }
-
   Widget _buildAddPrimaryButton(BuildContext context) {
     final theme = Theme.of(context);
 
-    return CustomCard(
-      child: InkWell(
-        onTap: () => _showAddPhotoOptions(context, isPrimary: true),
-        borderRadius: BorderRadius.circular(AppConstants.radiusValM),
-        child: Container(
-          height: 200,
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: theme.colorScheme.primary.withOpacity(0.3),
-              width: 2,
-              style: BorderStyle.solid,
+    return GestureDetector(
+      onTap: () => _showImagePicker(context, isPrimary: true),
+      child: Container(
+        height: 200,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: theme.colorScheme.primary.withOpacity(0.4),
+            width: 2,
+            strokeAlign: BorderSide.strokeAlignInside,
+          ),
+          borderRadius: BorderRadius.circular(AppConstants.radiusValM),
+          color: theme.colorScheme.primary.withOpacity(0.05),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.add_a_photo_rounded,
+              size: 48,
+              color: theme.colorScheme.primary.withOpacity(0.6),
             ),
-            borderRadius: BorderRadius.circular(AppConstants.radiusValM),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppConstants.padL),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.add_a_photo_rounded,
-                  size: 48,
-                  color: theme.colorScheme.primary,
-                ),
+            const SizedBox(height: AppConstants.padM),
+            Text(
+              'Add Primary Photo',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: AppConstants.padM),
-              Text(
-                'Add Primary Photo',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
-                ),
+            ),
+            const SizedBox(height: AppConstants.padXS),
+            Text(
+              'This is the first photo clients see',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.5),
               ),
-              const SizedBox(height: AppConstants.padXS),
-              Text(
-                'This will be the main image clients see',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -403,15 +355,12 @@ class SalonImagesSection extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: AppConstants.padS,
-        mainAxisSpacing: AppConstants.padS,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
         childAspectRatio: 1,
       ),
-      itemCount: images.length + 1, // +1 for add button
+      itemCount: images.length,
       itemBuilder: (context, index) {
-        if (index == images.length) {
-          return _buildAddGalleryButton(context);
-        }
         return _buildGalleryItem(context, images[index], index);
       },
     );
@@ -422,12 +371,13 @@ class SalonImagesSection extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => _viewFullImage(context, imageUrl),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppConstants.radiusValS),
-            child: CachedNetworkImage(
+      onLongPress: () => _confirmDeleteGallery(context, index),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppConstants.radiusValS),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            CachedNetworkImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
               placeholder: (context, url) => Container(
@@ -438,66 +388,28 @@ class SalonImagesSection extends StatelessWidget {
               ),
               errorWidget: (context, url, error) => Container(
                 color: theme.dividerColor,
-                child: Icon(
-                  Icons.broken_image_rounded,
-                  color: theme.colorScheme.onSurface.withOpacity(0.3),
-                ),
+                child: Icon(Icons.broken_image_rounded,
+                    color: theme.colorScheme.error),
               ),
             ),
-          ),
-          // Delete button overlay
-          Positioned(
-            top: 4,
-            right: 4,
-            child: GestureDetector(
-              onTap: () => _confirmDeleteGallery(context, index),
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.6),
-                  shape: BoxShape.circle,
+            // Delete icon overlay
+            Positioned(
+              top: 4,
+              right: 4,
+              child: GestureDetector(
+                onTap: () => _confirmDeleteGallery(context, index),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    color: Colors.white,
+                    size: 14,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.close,
-                  color: Colors.white,
-                  size: 16,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAddGalleryButton(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: () => _showAddPhotoOptions(context, isPrimary: false),
-      borderRadius: BorderRadius.circular(AppConstants.radiusValS),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: theme.colorScheme.primary.withOpacity(0.3),
-            width: 2,
-          ),
-          borderRadius: BorderRadius.circular(AppConstants.radiusValS),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.add_rounded,
-              color: theme.colorScheme.primary,
-              size: 32,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Add',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.bold,
               ),
             ),
           ],
@@ -512,50 +424,66 @@ class SalonImagesSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppConstants.padL),
       decoration: BoxDecoration(
-        border: Border.all(
-          color: theme.dividerColor,
-        ),
+        border: Border.all(color: theme.dividerColor),
         borderRadius: BorderRadius.circular(AppConstants.radiusValM),
       ),
       child: Column(
         children: [
           Icon(
             Icons.photo_library_outlined,
-            size: 48,
+            size: 36,
             color: theme.colorScheme.onSurface.withOpacity(0.3),
           ),
-          const SizedBox(height: AppConstants.padM),
+          const SizedBox(height: AppConstants.padS),
           Text(
             'Add more photos to your gallery',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withOpacity(0.5),
             ),
           ),
-          const SizedBox(height: AppConstants.padM),
-          ElevatedButton.icon(
-            onPressed: () => _showAddPhotoOptions(context, isPrimary: false),
-            icon: const Icon(Icons.add_photo_alternate_rounded, size: 18),
-            label: const Text('Add Gallery Photos'),
+          const SizedBox(height: AppConstants.padS),
+          TextButton.icon(
+            onPressed: () => _showImagePicker(context, isPrimary: false),
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text('Add Photos'),
           ),
         ],
       ),
     );
   }
 
-  // ✅ FIX: Capture bloc reference BEFORE showing bottom sheet
-  Future<void> _showAddPhotoOptions(BuildContext context, {bool isPrimary = false}) async {
+  Widget _buildImagePlaceholder(BuildContext context) {
     final theme = Theme.of(context);
-    final ImagePicker picker = ImagePicker();
+    return Container(
+      height: 220,
+      color: theme.dividerColor,
+      child: Center(
+        child: Icon(
+          Icons.image_not_supported_rounded,
+          size: 48,
+          color: theme.colorScheme.onSurface.withOpacity(0.3),
+        ),
+      ),
+    );
+  }
 
-    // ✅ FIX: Capture the bloc reference BEFORE opening the bottom sheet
-    final salonProfileBloc = context.read<SalonProfileBloc>();
+  // ===========================================================================
+  // ACTIONS
+  // ===========================================================================
 
-    await showModalBottomSheet(
+  void _showAddPhotoOptions(BuildContext context) {
+    _showImagePicker(context, isPrimary: false);
+  }
+
+  /// ✅ FIX: Capture bloc reference BEFORE showing bottom sheet
+  void _showImagePicker(BuildContext context, {required bool isPrimary}) {
+    final bloc = context.read<SalonProfileBloc>();
+    final picker = ImagePicker();
+
+    showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppConstants.radiusValL),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (sheetContext) => SafeArea(
         child: Column(
@@ -567,7 +495,7 @@ class SalonImagesSection extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: theme.dividerColor,
+                color: Theme.of(sheetContext).dividerColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -578,7 +506,7 @@ class SalonImagesSection extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
               child: Text(
                 isPrimary ? 'Add Primary Photo' : 'Add Photo to Gallery',
-                style: theme.textTheme.titleLarge?.copyWith(
+                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -590,12 +518,12 @@ class SalonImagesSection extends StatelessWidget {
               leading: Container(
                 padding: const EdgeInsets.all(AppConstants.padS),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  color: Theme.of(sheetContext).colorScheme.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(AppConstants.radiusValS),
                 ),
                 child: Icon(
                   Icons.photo_camera_rounded,
-                  color: theme.colorScheme.primary,
+                  color: Theme.of(sheetContext).colorScheme.primary,
                 ),
               ),
               title: const Text('Take Photo'),
@@ -604,11 +532,11 @@ class SalonImagesSection extends StatelessWidget {
                 Navigator.pop(sheetContext);
                 final XFile? photo = await picker.pickImage(
                   source: ImageSource.camera,
-                  imageQuality: 85,
+                  imageQuality: 80, // Let image_picker handle quality
                 );
-                if (photo != null && context.mounted) {
-                  // ✅ FIX: Pass the bloc reference to the processing function
-                  _processAndUploadImage(context, photo, isPrimary, salonProfileBloc);
+                if (photo != null) {
+                  // ✅ FIX: Upload directly — no compression, no dialog, no navigation issues
+                  bloc.add(UploadSalonImage(photo.path, isPrimary: isPrimary));
                 }
               },
             ),
@@ -618,12 +546,12 @@ class SalonImagesSection extends StatelessWidget {
               leading: Container(
                 padding: const EdgeInsets.all(AppConstants.padS),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.secondary.withOpacity(0.1),
+                  color: Theme.of(sheetContext).colorScheme.secondary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(AppConstants.radiusValS),
                 ),
                 child: Icon(
                   Icons.photo_library_rounded,
-                  color: theme.colorScheme.secondary,
+                  color: Theme.of(sheetContext).colorScheme.secondary,
                 ),
               ),
               title: const Text('Choose from Gallery'),
@@ -632,11 +560,11 @@ class SalonImagesSection extends StatelessWidget {
                 Navigator.pop(sheetContext);
                 final XFile? photo = await picker.pickImage(
                   source: ImageSource.gallery,
-                  imageQuality: 85,
+                  imageQuality: 80, // Let image_picker handle quality
                 );
-                if (photo != null && context.mounted) {
-                  // ✅ FIX: Pass the bloc reference to the processing function
-                  _processAndUploadImage(context, photo, isPrimary, salonProfileBloc);
+                if (photo != null) {
+                  // ✅ FIX: Upload directly — no compression, no dialog, no navigation issues
+                  bloc.add(UploadSalonImage(photo.path, isPrimary: isPrimary));
                 }
               },
             ),
@@ -647,70 +575,6 @@ class SalonImagesSection extends StatelessWidget {
     );
   }
 
-  // ✅ FIX: Image processing now receives the bloc directly
-  Future<void> _processAndUploadImage(
-      BuildContext context,
-      XFile photo,
-      bool isPrimary,
-      SalonProfileBloc bloc, // ✅ FIX: Accept bloc as parameter
-      ) async {
-
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (c) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(AppConstants.padL),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: AppConstants.padM),
-                Text('Processing image...'),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    try {
-      final File originalFile = File(photo.path);
-      final File? compressedFile = await ImageCompressionHelper.compressSalonPhoto(originalFile);
-
-      if (context.mounted) {
-        Navigator.pop(context); // Remove loading dialog
-
-        if (compressedFile != null) {
-          // ✅ FIX: Use the captured bloc reference directly
-          bloc.add(
-            UploadSalonImage(compressedFile.path, isPrimary: isPrimary),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to process image'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        Navigator.pop(context); // Remove loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  // ✅ NEW: Full image viewer
   void _viewFullImage(BuildContext context, String imageUrl) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -734,7 +598,6 @@ class SalonImagesSection extends StatelessWidget {
     );
   }
 
-  // ✅ FIX: Capture bloc reference before showing dialog
   void _confirmDeletePrimary(BuildContext context) {
     final bloc = context.read<SalonProfileBloc>();
 
@@ -753,7 +616,6 @@ class SalonImagesSection extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              // ✅ FIX: Use captured bloc reference
               bloc.add(const DeletePrimaryImage());
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -764,7 +626,6 @@ class SalonImagesSection extends StatelessWidget {
     );
   }
 
-  // ✅ FIX: Capture bloc reference before showing dialog
   void _confirmDeleteGallery(BuildContext context, int index) {
     final bloc = context.read<SalonProfileBloc>();
 
@@ -781,7 +642,6 @@ class SalonImagesSection extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              // ✅ FIX: Use captured bloc reference
               bloc.add(DeleteGalleryImage(index));
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),

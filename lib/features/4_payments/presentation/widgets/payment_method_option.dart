@@ -28,121 +28,163 @@ class PaymentMethodOption extends StatelessWidget {
     this.onTap,
   });
 
-  IconData get _icon {
-    switch (method) {
-      case PaymentMethod.wallet:
-        return Icons.account_balance_wallet;
-      case PaymentMethod.ussdPush:
-        return Icons.phone_android;
-      case PaymentMethod.payByLink:
-        return Icons.language;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final effectiveIsSelected = isSelected && !isDisabled;
 
-    return InkWell(
-      onTap: isDisabled ? null : onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Opacity(
-        opacity: isDisabled ? 0.5 : 1.0,
-        child: Container(
-          padding: const EdgeInsets.all(AppConstants.padM),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: effectiveIsSelected
-                  ? theme.colorScheme.primary
-                  : Colors.grey.shade300,
-              width: effectiveIsSelected ? 2 : 1,
-            ),
-            borderRadius: BorderRadius.circular(12),
-            color: effectiveIsSelected
-                ? theme.colorScheme.primary.withOpacity(0.05)
-                : Colors.transparent,
-          ),
-          child: Row(
-            children: [
-              // Icon container
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isDisabled ? null : onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Opacity(
+            opacity: isDisabled ? 0.5 : 1.0,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.all(AppConstants.padM),
+              decoration: BoxDecoration(
+                border: Border.all(
                   color: effectiveIsSelected
                       ? theme.colorScheme.primary
                       : Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(8),
+                  width: effectiveIsSelected ? 2 : 1.5,
                 ),
-                child: Icon(
-                  _icon,
-                  color: effectiveIsSelected ? Colors.white : Colors.grey.shade600,
-                ),
-              ),
-              const SizedBox(width: AppConstants.padM),
-
-              // Title and subtitle
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          method.title,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: effectiveIsSelected
-                                ? theme.colorScheme.primary
-                                : Colors.black87,
-                          ),
+                borderRadius: BorderRadius.circular(16),
+                color: effectiveIsSelected
+                    ? theme.colorScheme.primary.withOpacity(0.06)
+                    : theme.colorScheme.surface,
+                boxShadow: effectiveIsSelected
+                    ? [
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                        if (badge != null) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: badgeColor ?? Colors.blue,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              badge!,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+              ),
+              child: Row(
+                children: [
+                  // Icon container
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: effectiveIsSelected
+                          ? LinearGradient(
+                              colors: [
+                                theme.colorScheme.primary,
+                                theme.colorScheme.primary.withOpacity(0.8),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : null,
+                      color: effectiveIsSelected ? null : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      method.icon,
+                      color: effectiveIsSelected
+                          ? Colors.white
+                          : Colors.grey.shade500,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: AppConstants.padM),
+
+                  // Title and subtitle
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                method.title,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: effectiveIsSelected
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurface,
+                                ),
                               ),
                             ),
+                            if (badge != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: badgeColor ?? Colors.blue,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  badge!,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          customSubtitle ?? method.subtitle,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey.shade600,
+                            height: 1.3,
                           ),
-                        ],
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      customSubtitle ?? method.subtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
 
-              // Radio button
-              Radio<PaymentMethod>(
-                value: method,
-                groupValue: isDisabled ? null : (isSelected ? method : null),
-                onChanged: isDisabled
-                    ? null
-                    : (value) {
-                  if (onTap != null) onTap!();
-                },
-                toggleable: false,
+                  // Animated check / radio
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: effectiveIsSelected
+                            ? theme.colorScheme.primary
+                            : Colors.grey.shade300,
+                        width: effectiveIsSelected ? 2 : 1.5,
+                      ),
+                      color: effectiveIsSelected
+                          ? theme.colorScheme.primary
+                          : Colors.transparent,
+                    ),
+                    child: effectiveIsSelected
+                        ? const Icon(
+                            Icons.check,
+                            size: 16,
+                            color: Colors.white,
+                          )
+                        : null,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

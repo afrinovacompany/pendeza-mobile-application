@@ -1,7 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/shared/models/category_model.dart';
+import 'package:pendeza/shared/utils/placeholder_images.dart';
 
 class CategoryGridWidget extends StatelessWidget {
   final List<CategoryModel> categories;
@@ -62,6 +64,50 @@ class _CategoryCard extends StatefulWidget {
 
 class _CategoryCardState extends State<_CategoryCard> {
   bool _isPressed = false;
+
+  /// Builds the category image: tries local asset first, then falls back
+  /// to a network image from Unsplash if the local asset is missing.
+  Widget _buildCategoryImage(Color textColor) {
+    if (widget.category.iconUrl == null) return const SizedBox.shrink();
+
+    return Image.asset(
+      widget.category.iconUrl!,
+      fit: BoxFit.cover,
+      alignment: Alignment.bottomCenter,
+      errorBuilder: (context, error, stackTrace) {
+        // Local asset missing - try network fallback
+        final networkUrl = PlaceholderImages.forCategory(widget.category.id);
+        if (networkUrl != null) {
+          return CachedNetworkImage(
+            imageUrl: networkUrl,
+            fit: BoxFit.cover,
+            alignment: Alignment.bottomCenter,
+            placeholder: (context, url) => Center(
+              child: Icon(
+                Icons.spa,
+                color: textColor.withValues(alpha: 0.15),
+                size: 28,
+              ),
+            ),
+            errorWidget: (context, url, error) => Center(
+              child: Icon(
+                Icons.spa,
+                color: textColor.withValues(alpha: 0.2),
+                size: 28,
+              ),
+            ),
+          );
+        }
+        return Center(
+          child: Icon(
+            Icons.spa,
+            color: textColor.withValues(alpha: 0.2),
+            size: 28,
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -160,22 +206,7 @@ class _CategoryCardState extends State<_CategoryCard> {
                         topRight: Radius.circular(16),
                         bottomRight: Radius.circular(16),
                       ),
-                      child: widget.category.iconUrl != null
-                          ? Image.asset(
-                        widget.category.iconUrl!,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.bottomCenter,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Center(
-                            child: Icon(
-                              Icons.spa,
-                              color: textColor.withValues(alpha: 0.2),
-                              size: 28,
-                            ),
-                          );
-                        },
-                      )
-                          : const SizedBox.shrink(),
+                      child: _buildCategoryImage(textColor),
                     ),
                   ),
                 ],

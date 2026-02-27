@@ -1,16 +1,22 @@
+import 'dart:convert';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:pendeza/app/utils/logger.dart';
 import 'package:pendeza/app/config/app_router.dart';
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
 
 // This must be a top-level function (outside the class)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // You can initialize Firebase here if needed for background logic
-  // await Firebase.initializeApp();
-  print("Handling a background message: ${message.messageId}");
+  print("📱 Background message: ${message.messageId}");
+  // Handle background message
+  if (message.notification != null) {
+    print("📱 Background notification: ${message.notification!.title}");
+  }
 }
 
 class NotificationService {
@@ -51,8 +57,7 @@ class NotificationService {
 
     // 3. Setup Local Notifications (For Foreground Display)
     const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings(
-        '@mipmap/ic_launcher'); // Ensure this icon exists
+    AndroidInitializationSettings('@mipmap/ic_launcher');
 
     const DarwinInitializationSettings initializationSettingsIOS =
     DarwinInitializationSettings();
@@ -70,13 +75,18 @@ class NotificationService {
     );
 
     // 4. Create Android Notification Channel (High Importance)
-    // This ensures heads-up notifications work on Android 8+
+    // ✅ FIXED: Enable BigPicture style and long text
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'high_importance_channel', // id
-      'High Importance Notifications', // title
-      description:
-      'This channel is used for important notifications.', // description
+      'high_importance_channel',
+      'High Importance Notifications',
+      description: 'This channel is used for important notifications with images.',
       importance: Importance.max,
+      // REMOVED: priority: Priority.high,  ← not a valid parameter here
+      enableVibration: true,
+      playSound: true,
+      enableLights: true,
+      ledColor: Colors.blue,
+      showBadge: true,
     );
 
     await _localNotifications
@@ -86,12 +96,25 @@ class NotificationService {
 
     // 5. Listen for Foreground Messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      log.d('Got a message whilst in the foreground!');
-      log.d('Message data: ${message.data}');
+      log.d('📱 Got a message whilst in the foreground!');
+
+      // Extract image URL from various possible fields
+      String? imageUrl;
+      if (message.data.containsKey('imageUrl')) {
+        imageUrl = message.data['imageUrl'];
+      } else if (message.data.containsKey('fcm_image')) {
+        imageUrl = message.data['fcm_image'];
+      } else if (message.data.containsKey('image')) {
+        imageUrl = message.data['image'];
+      }
+
+      if (imageUrl != null) {
+        log.d('🖼️ Image URL found: $imageUrl');
+      }
 
       if (message.notification != null) {
-        log.d('Message also contained a notification: ${message.notification}');
-        _showLocalNotification(message);
+        log.d('📱 Notification: ${message.notification!.title}');
+        _showLocalNotification(message, imageUrl);
       }
     });
 
@@ -106,54 +129,141 @@ class NotificationService {
     FirebaseMessaging.onMessageOpenedApp.listen(_handleBackgroundInteraction);
 
     _isInitialized = true;
-    log.i("NotificationService initialized");
+    log.i("✅ NotificationService initialized");
   }
 
   /// Display a local notification when a message arrives in foreground
-  void _showLocalNotification(RemoteMessage message) {
+  /// ✅ FIXED: Properly handles images with BigPictureStyle
+  Future<void> _showLocalNotification(RemoteMessage message, [String? imageUrl]) async {
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
 
-    if (notification != null && android != null) {
-      _localNotifications.show(
-        notification.hashCode,
-        notification.title,
-        notification.body,
-        NotificationDetails(
+    if (notification != null) {
+      try {
+        // ✅ Download image for BigPictureStyle if URL exists
+        BigPictureStyleInformation? bigPictureStyle;
+
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          try {
+            final http.Response response = await http.get(Uri.parse(imageUrl));
+            if (response.statusCode == 200) {
+              final Uint8List imageBytes = response.bodyBytes;
+
+              bigPictureStyle = BigPictureStyleInformation(
+                ByteArrayAndroidBitmap(imageBytes),
+                largeIcon: ByteArrayAndroidBitmap(imageBytes),
+                contentTitle: notification.title,
+                summaryText: notification.body,
+                hideExpandedLargeIcon: false,
+              );
+              log.d('🖼️ Downloaded image for BigPictureStyle: ${imageBytes.length} bytes');
+            }
+          } catch (e) {
+            log.e('❌ Failed to download notification image: $e');
+          }
+        }
+
+        // ✅ Create notification details with proper style
+        NotificationDetails notificationDetails = NotificationDetails(
           android: AndroidNotificationDetails(
             'high_importance_channel',
             'High Importance Notifications',
-            channelDescription:
-            'This channel is used for important notifications.',
-            icon: '@mipmap/ic_launcher',
+            channelDescription: 'This channel is used for important notifications with images.',
             importance: Importance.max,
             priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+            largeIcon: imageUrl != null
+                ? const DrawableResourceAndroidBitmap('@mipmap/ic_launcher')
+                : null,
+            styleInformation: bigPictureStyle ??
+                BigTextStyleInformation(notification.body ?? ''),  // ✅ use styleInformation
+            silent: false,  // ✅ bool, not String
+            ticker: notification.title,
+            visibility: NotificationVisibility.public,
+            enableLights: true,
+            enableVibration: true,
+            playSound: true,
+            color: Colors.blue,
+            ledColor: Colors.blue,
+            ledOnMs: 1000,
+            ledOffMs: 500,
+          ),          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+            attachments: imageUrl != null
+                ? [DarwinNotificationAttachment(imageUrl)]
+                : null,
           ),
-        ),
-        // Pass the route or data as payload
-        payload: message.data['route'],
-      );
+        );
+
+        await _localNotifications.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          notificationDetails,
+          payload: message.data['route'] ?? jsonEncode(message.data),
+        );
+
+        log.d('✅ Local notification shown with ${imageUrl != null ? 'image' : 'text only'}');
+      } catch (e) {
+        log.e('❌ Error showing local notification: $e');
+
+        // ✅ Fallback to simple notification
+        await _localNotifications.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'high_importance_channel',
+              'High Importance Notifications',
+              importance: Importance.max,
+              priority: Priority.high,
+            ),
+          ),
+          payload: message.data['route'],
+        );
+      }
     }
   }
 
   /// Handle tap on notification (Background/Terminated)
   void _handleBackgroundInteraction(RemoteMessage message) {
-    log.i("Notification interaction detected");
+    log.i("📱 Notification interaction detected");
+
+    // Check for route in multiple places
+    String? route;
     if (message.data.containsKey('route')) {
-      _navigate(message.data['route']);
+      route = message.data['route'];
+    } else if (message.data.containsKey('actionRoute')) {
+      route = message.data['actionRoute'];
+    }
+
+    if (route != null) {
+      _navigate(route);
     }
   }
 
   /// Handle tap on local notification (Foreground)
   void _handleNotificationTap(String? payload) {
     if (payload != null) {
-      _navigate(payload);
+      try {
+        // Try to parse JSON payload
+        final Map<String, dynamic> data = jsonDecode(payload);
+        if (data.containsKey('route')) {
+          _navigate(data['route']);
+        }
+      } catch (e) {
+        // Assume payload is direct route string
+        _navigate(payload);
+      }
     }
   }
 
   /// Navigation Logic using GoRouter
   void _navigate(String route) {
-    log.i("Navigating to route from notification: $route");
+    log.i("📍 Navigating to: $route");
     // Use a slight delay to ensure the router is ready if app just launched
     Future.delayed(const Duration(milliseconds: 500), () {
       final router = AppRouter.router;
@@ -164,51 +274,51 @@ class NotificationService {
   /// Helper to subscribe to topics (e.g., "all_users", "promotions")
   Future<void> subscribeToTopic(String topic) async {
     await _fcm.subscribeToTopic(topic);
-    log.i("Subscribed to topic: $topic");
+    log.i("📌 Subscribed to topic: $topic");
   }
 
   /// Helper to unsubscribe
   Future<void> unsubscribeFromTopic(String topic) async {
     await _fcm.unsubscribeFromTopic(topic);
+    log.i("📌 Unsubscribed from topic: $topic");
+  }
+
+  /// Get FCM token
+  Future<String?> getToken() async {
+    try {
+      return await _fcm.getToken();
+    } catch (e) {
+      log.e('❌ Error getting FCM token: $e');
+      return null;
+    }
   }
 
   /// Send push notification to users by role
-  ///
-  /// This uses your EXISTING Cloud Function: send_admin_notification
-  /// No need to deploy anything new - it's already deployed!
-  ///
-  /// [title] - The notification title
-  /// [body] - The notification message body
-  /// [role] - Target role: null/'all' for all users, 'client' for clients, 'owner' for owners
-  /// [data] - Optional additional data to include with notification
   Future<void> sendNotificationToRole({
     required String title,
     required String body,
-    String? role, // null = all users, 'client', 'owner'
+    String? role,
     Map<String, dynamic>? data,
   }) async {
     try {
-      log.i('Sending notification via Cloud Function to role: ${role ?? "all"}');
+      log.i('📤 Sending notification via Cloud Function to role: ${role ?? "all"}');
 
-      // Map role to targetAudience format expected by Cloud Function
       String targetAudience;
       if (role == null || role == 'all') {
         targetAudience = 'all';
       } else if (role == 'client') {
-        targetAudience = 'clients'; // Note: plural form for Cloud Function
+        targetAudience = 'clients';
       } else if (role == 'owner') {
-        targetAudience = 'owners'; // Note: plural form for Cloud Function
+        targetAudience = 'owners';
       } else {
         targetAudience = role;
       }
 
-      // Call the existing Cloud Function: send_admin_notification
-      // IMPORTANT: Specify the region where your functions are deployed
       final callable = FirebaseFunctions.instanceFor(region: 'us-central1')
           .httpsCallable(
         'send_admin_notification',
         options: HttpsCallableOptions(
-          timeout: const Duration(seconds: 60), // Longer timeout for large sends
+          timeout: const Duration(seconds: 60),
         ),
       );
 
@@ -216,14 +326,13 @@ class NotificationService {
         'title': title,
         'body': body,
         'targetAudience': targetAudience,
-        'imageUrl': null, // Optional: add if you support images
-        'route': data?['route'], // Optional: navigation route
-        'customData': data, // Optional: additional data
+        'imageUrl': data?['imageUrl'],  // ✅ Pass image URL
+        'route': data?['route'],
+        'customData': data,
         'priority': 'high',
-        'saveToInbox': true, // Save to notification_inbox collection
+        'saveToInbox': true,
       });
 
-      // 🔥 FIX: Properly convert the response to Map<String, dynamic>
       final response = _convertToMap(result.data);
 
       if (response['success'] == true) {
@@ -245,44 +354,7 @@ class NotificationService {
     }
   }
 
-  /// Alternative: Send notification to topic
-  ///
-  /// Users must subscribe to topics first using subscribeToTopic()
-  Future<void> sendNotificationToTopic({
-    required String topic,
-    required String title,
-    required String body,
-    Map<String, dynamic>? data,
-  }) async {
-    try {
-      log.i('Sending notification to topic: $topic');
-
-      final callable = FirebaseFunctions.instanceFor(region: 'us-central1')
-          .httpsCallable(
-        'send_admin_notification',
-      );
-
-      final result = await callable.call({
-        'title': title,
-        'body': body,
-        'targetAudience': 'topic:$topic',
-        'customData': data,
-        'priority': 'high',
-        'saveToInbox': true,
-      });
-
-      // 🔥 FIX: Properly convert the response
-      final response = _convertToMap(result.data);
-      log.i('Notification sent to topic successfully: $response');
-    } catch (e, stackTrace) {
-      log.e('Error sending notification to topic: $e',
-          error: e, stackTrace: stackTrace);
-      rethrow;
-    }
-  }
-
-  /// 🔥 Helper method to safely convert dynamic map to Map<String, dynamic>
-  /// This fixes the type cast error: '_Map<Object?, Object?>' is not a subtype of type 'Map<String, dynamic>'
+  /// Helper method to safely convert dynamic map to Map<String, dynamic>
   Map<String, dynamic> _convertToMap(dynamic data) {
     if (data == null) return {};
     if (data is Map<String, dynamic>) return data;

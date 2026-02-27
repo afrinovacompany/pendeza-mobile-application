@@ -1,8 +1,8 @@
 // =============================================================================
 // WalletBloc - REACTIVE FIRESTORE-BASED VERSION
 // =============================================================================
-// 🔥 REFACTORED APPROACH:
-// 1. NO MORE POLLING - Saves battery and data
+// APPROACH:
+// 1. NO POLLING - Saves battery and data
 // 2. Uses Firestore real-time listeners for deposits
 // 3. Webhook (Cloud Function) updates Firestore when payment completes
 // 4. UI reacts instantly when status changes
@@ -20,33 +20,22 @@ import 'package:pendeza/features/wallet/domain/repositories/wallet_repository.da
 import 'package:pendeza/features/wallet/presentation/bloc/wallet_event.dart';
 import 'package:pendeza/features/wallet/presentation/bloc/wallet_state.dart';
 
-/// 🔥 WalletBloc - Reactive & Webhook-Based
+/// WalletBloc - Reactive & Webhook-Based
 ///
-/// **OLD APPROACH (Removed):**
-/// - Complex polling logic that checked PalmPesa API every 5 seconds
-/// - Wasted battery and data
-/// - Could miss payments if app was closed
-/// - Had timeout issues
-///
-/// **NEW APPROACH (Current):**
-/// - App creates transaction document when user initiates deposit
-/// - App listens to that document for status changes
-/// - Webhook updates document when PalmPesa confirms payment
-/// - WalletService credits wallet automatically (via webhook OR manual refresh)
-/// - UI updates instantly via Firestore listener
-///
-/// **Benefits:**
-/// ✅ No polling = better battery life & less data usage
-/// ✅ Real-time updates
-/// ✅ Works even after app restart
-/// ✅ Simpler, cleaner code
-/// ✅ More reliable
+/// FLOW:
+/// 1. User taps "Top Up" → InitiateDeposit event
+/// 2. PaymentService calls Snippe API → creates transaction doc in Firestore
+///    (status: 'pending', snippeReference: UUID)
+/// 3. WalletBloc starts Firestore listener on transaction doc
+/// 4. User completes payment on phone
+/// 5. Snippe sends webhook → Cloud Function updates transaction doc
+///    (status: 'completed') and credits wallet
+/// 6. Firestore listener fires → UI shows success with new balance
 class WalletBloc extends Bloc<WalletEvent, WalletState> {
   final WalletRepository walletRepository;
   final PaymentService paymentService;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Stream subscriptions
   StreamSubscription<DocumentSnapshot>? _depositListener;
   StreamSubscription<List<TransactionModel>>? _transactionHistoryListener;
   StreamSubscription<DocumentSnapshot>? _walletListener;
@@ -57,7 +46,6 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
     required this.walletRepository,
     required this.paymentService,
   }) : super(const WalletInitial()) {
-    // Register event handlers
     on<LoadWallet>(_onLoadWallet);
     on<InitiateDeposit>(_onInitiateDeposit);
     on<WatchDepositStatus>(_onWatchDepositStatus);
@@ -96,13 +84,14 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
     }
   }
 
-  /// Initiate a wallet deposit via PalmPesa USSD Push
+  /// Initiate a wallet deposit via Snippe
   ///
   /// Steps:
-  /// 1. Call PalmPesa API to send USSD prompt to user's phone
-  /// 2. PaymentService creates transaction document in Firestore (status: 'pending')
-  /// 3. Start listening to that transaction document
-  /// 4. When webhook updates it to 'completed', credit wallet
+  /// 1. Call Snippe API via PaymentService
+  /// 2. PaymentService creates transaction doc in Firestore (status: 'pending')
+  ///    with snippeReference field containing the Snippe UUID
+  /// 3. Start Firestore listener on that transaction document
+  /// 4. When Cloud Function webhook updates it to 'completed', UI reacts
   Future<void> _onInitiateDeposit(
       InitiateDeposit event,
       Emitter<WalletState> emit,
@@ -113,11 +102,20 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
       log.i('   Amount: TZS ${event.amount.toStringAsFixed(0)}');
       log.i('   Phone: ${event.phoneNumber}');
 
-      emit(const DepositInProgress(
+      // Get current wallet state to preserve during deposit
+      WalletModel? currentWallet;
+      try {
+        currentWallet = await walletRepository.getOrCreateWallet(event.userId);
+      } catch (e) {
+        log.w('Could not fetch wallet before deposit: $e');
+      }
+
+      emit(DepositInProgress(
         message: 'Initiating payment...',
+        wallet: currentWallet,
       ));
 
-      // Call PalmPesa API
+      // Call Snippe API via PaymentService
       final result = await paymentService.initiateWalletTopUp(
         userId: event.userId,
         phoneNumber: event.phoneNumber,
@@ -132,18 +130,19 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
         log.i('✅ WalletBloc: Deposit initiated successfully');
 
         final transactionId = result['transactionId'];
-        final gatewayOrderId = result['gatewayOrderId'];
+        // FIX: Use snippeReference (not gatewayOrderId — that was PalmPesa)
+        final snippeReference = result['snippeReference'];
         final message = result['message'] ?? 'Check your phone to complete payment.';
 
         if (transactionId != null) {
-          // Show user feedback
           emit(DepositInProgress(
             message: message,
             transactionId: transactionId,
-            gatewayOrderId: gatewayOrderId,
+            gatewayOrderId: snippeReference, // stored for display only
+            wallet: currentWallet,
           ));
 
-          // Start listening for status updates
+          // Start listening to the transaction document for status updates
           log.i('👂 Starting to watch transaction: $transactionId');
           add(WatchDepositStatus(
             userId: event.userId,
@@ -170,7 +169,8 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
   /// Watch transaction document for status changes (REACTIVE)
   ///
   /// Sets up Firestore listener on the transaction document.
-  /// When webhook updates status to 'completed', we get notified immediately!
+  /// When Cloud Function webhook updates status to 'completed',
+  /// we get notified immediately via this listener.
   Future<void> _onWatchDepositStatus(
       WatchDepositStatus event,
       Emitter<WalletState> emit,
@@ -202,7 +202,6 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
           final status = data['status']?.toString().toLowerCase() ?? 'pending';
           log.d('📡 Transaction status update: $status');
 
-          // Add internal event to process the status change
           add(_DepositStatusChanged(
             userId: event.userId,
             transactionId: event.transactionId,
@@ -242,7 +241,8 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
         log.i('✅ Deposit COMPLETED!');
         await _depositListener?.cancel();
 
-        // The webhook already credited the wallet, so just reload to show new balance
+        // Cloud Function webhook already credited the wallet.
+        // Just reload to show the new balance.
         try {
           final wallet = await walletRepository.getOrCreateWallet(event.userId);
           final transactions = await walletRepository.getRecentTransactions(event.userId);
@@ -252,7 +252,6 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
             newBalance: wallet.balance,
           ));
 
-          // After showing success message, go back to loaded state
           await Future.delayed(_successMessageDuration);
 
           if (!isClosed) {
@@ -273,7 +272,10 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
       case 'failed':
         log.w('❌ Deposit FAILED');
         await _depositListener?.cancel();
-        final errorMsg = event.data['errorMessage'] ?? 'Payment failed';
+        // FIX: Check both field names for compatibility
+        final errorMsg = event.data['errorMessage'] ??
+            event.data['failureReason'] ??
+            'Payment failed';
         emit(DepositError(errorMsg));
         break;
 
@@ -286,7 +288,6 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
         break;
 
       case 'pending':
-      // Still waiting - no action needed, listener will catch next update
         log.d('⏳ Deposit still pending...');
         emit(DepositInProgress(
           message: 'Waiting for payment confirmation...',
@@ -308,8 +309,6 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
   }
 
   /// Pay from wallet for a booking
-  ///
-  /// Debits the user's wallet to pay for an appointment
   Future<void> _onPayFromWallet(
       PayFromWallet event,
       Emitter<WalletState> emit,
@@ -321,10 +320,8 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
       log.i('   Appointment: ${event.appointmentId}');
       log.i('   Amount: TZS ${event.amount.toStringAsFixed(0)}');
 
-      // Get current wallet to show in processing state
       final currentWallet = await walletRepository.getOrCreateWallet(event.userId);
 
-      // Check if user has sufficient balance
       final canAfford = await walletRepository.canAfford(event.userId, event.amount);
       if (!canAfford) {
         log.w('❌ Insufficient wallet balance');
@@ -336,13 +333,11 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
         return;
       }
 
-      // Emit processing state
       emit(WalletPaymentProcessing(
         wallet: currentWallet,
         paymentAmount: event.amount,
       ));
 
-      // Debit the wallet
       final transactionId = await walletRepository.debitWalletForBooking(
         userId: event.userId,
         salonOwnerId: event.salonOwnerId,
@@ -353,7 +348,6 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
 
       log.i('✅ Wallet payment successful. Transaction ID: $transactionId');
 
-      // Get updated wallet
       final updatedWallet = await walletRepository.getOrCreateWallet(event.userId);
       final transactions = await walletRepository.getRecentTransactions(event.userId);
 
@@ -364,7 +358,6 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
         message: 'Payment successful!',
       ));
 
-      // After showing success message, go back to loaded state
       await Future.delayed(_successMessageDuration);
 
       if (!isClosed) {
@@ -376,7 +369,6 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
     } catch (e, stackTrace) {
       log.e('WalletBloc: Error processing wallet payment', error: e, stackTrace: stackTrace);
 
-      // Try to get wallet for error state
       WalletModel? wallet;
       try {
         wallet = await walletRepository.getOrCreateWallet(event.userId);

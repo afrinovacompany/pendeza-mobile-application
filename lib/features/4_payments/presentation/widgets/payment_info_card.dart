@@ -23,22 +23,35 @@ class PaymentInfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppConstants.padM),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade100),
+        color: theme.colorScheme.primary.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: theme.colorScheme.primary.withOpacity(0.15),
+        ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.info_outline,
-            color: Colors.blue.shade700,
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.info_outline_rounded,
+              color: theme.colorScheme.primary,
+              size: 18,
+            ),
           ),
-          const SizedBox(width: AppConstants.padM),
+          const SizedBox(width: AppConstants.padS),
           Expanded(
             child: Text(
               selectedMethod.infoMessage,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.blue.shade800,
+                color: theme.colorScheme.primary.withOpacity(0.85),
+                height: 1.4,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),

@@ -9,7 +9,7 @@ import 'package:pendeza/features/0_auth/presentation/bloc/auth_state.dart';
 import 'package:pendeza/features/wallet/presentation/bloc/wallet_bloc.dart';
 import 'package:pendeza/features/wallet/presentation/bloc/wallet_state.dart';
 import 'package:pendeza/features/wallet/presentation/bloc/wallet_event.dart';
-import 'package:pendeza/features/wallet/presentation/widgets/deposit_bottom_sheet.dart'; // ✅ ADD THIS IMPORT
+import 'package:pendeza/features/wallet/presentation/widgets/deposit_bottom_sheet.dart';
 import 'package:pendeza/shared/models/transaction_model.dart';
 import 'package:pendeza/shared/widgets/custom_snackbar.dart';
 
@@ -17,8 +17,8 @@ import 'package:pendeza/shared/widgets/custom_snackbar.dart';
 ///
 /// Shows:
 /// - Large balance display
-/// - Quick action buttons (Top Up, Send, History)
-/// - Recent transactions
+/// - Quick action buttons (Top Up, History)
+/// - Recent transactions list
 /// - Pull to refresh
 class WalletScreen extends StatelessWidget {
   const WalletScreen({super.key});
@@ -28,7 +28,6 @@ class WalletScreen extends StatelessWidget {
     final authState = context.read<AuthBloc>().state;
 
     if (authState is! Authenticated) {
-      // Redirect guests to login
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.go('/login');
       });
@@ -46,19 +45,26 @@ class WalletScreen extends StatelessWidget {
       )..add(LoadWallet(userId)),
       child: BlocConsumer<WalletBloc, WalletState>(
         listener: (context, state) {
-          if (state is WalletDepositSuccess) {
+          // FIX: Listen for NEW state types (DepositSuccess / DepositInProgress)
+          // Old WalletDepositSuccess and WalletDepositPending were removed
+          if (state is DepositSuccess) {
             CustomSnackBar.show(
               context,
               message: state.message,
               type: SnackBarType.success,
             );
-          } else if (state is WalletDepositPending) {
-            // ✅ Show info when deposit is pending
+          } else if (state is DepositInProgress) {
             CustomSnackBar.show(
               context,
               message: state.message,
               type: SnackBarType.info,
               duration: const Duration(seconds: 5),
+            );
+          } else if (state is DepositError) {
+            CustomSnackBar.show(
+              context,
+              message: state.message,
+              type: SnackBarType.error,
             );
           } else if (state is WalletError) {
             CustomSnackBar.show(
@@ -117,13 +123,14 @@ class WalletScreen extends StatelessWidget {
       );
     }
 
-    // Extract wallet data from various states
     final wallet = _extractWallet(state);
     final transactions = (state is WalletLoaded)
         ? state.recentTransactions
         : <TransactionModel>[];
 
-    if (wallet == null) {
+    // FIX: During DepositInProgress/DepositSuccess, wallet is null but we still
+    // want to show the UI with last known balance. Only show error on initial load.
+    if (wallet == null && state is! DepositInProgress && state is! DepositSuccess) {
       return const Center(child: Text('Unable to load wallet'));
     }
 
@@ -132,42 +139,36 @@ class WalletScreen extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: AppConstants.padL),
-
-          // Balance Display
-          _buildBalanceCard(context, wallet.balance, state),
-
+          _buildBalanceCard(context, wallet?.balance, state),
           const SizedBox(height: AppConstants.padL),
-
-          // Quick Actions
           _buildQuickActions(context, userId),
-
           const SizedBox(height: AppConstants.padXL),
-
-          // Recent Transactions
           _buildRecentTransactions(context, transactions),
-
           const SizedBox(height: AppConstants.padXL),
         ],
       ),
     );
   }
 
-  /// Extract wallet from various states
+  /// Extract wallet model from any state that carries one
   dynamic _extractWallet(WalletState state) {
     if (state is WalletLoaded) return state.wallet;
-    if (state is WalletDepositSuccess) return state.wallet;
-    if (state is WalletDepositPending) return state.wallet;
-    if (state is WalletDepositInitiating) return state.wallet;
     if (state is WalletPaymentSuccess) return state.wallet;
     if (state is WalletPaymentProcessing) return state.wallet;
     if (state is WalletInsufficientBalance) return state.wallet;
     if (state is WalletError) return state.wallet;
+    if (state is DepositInProgress) return state.wallet; // FIX: Extract wallet from deposit state
+    // DepositSuccess doesn't carry wallet,
+    // balance will refresh automatically when state returns to WalletLoaded
     return null;
   }
 
   /// Large Balance Display Card
-  Widget _buildBalanceCard(BuildContext context, double balance, WalletState state) {
+  Widget _buildBalanceCard(BuildContext context, double? balance, WalletState state) {
     final theme = Theme.of(context);
+
+    // Use balance from state if available, otherwise show last known or 0
+    final displayBalance = balance ?? 0.0;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
@@ -192,7 +193,6 @@ class WalletScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Title
           Text(
             'Available Balance',
             style: theme.textTheme.titleMedium?.copyWith(
@@ -200,13 +200,11 @@ class WalletScreen extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-
           const SizedBox(height: AppConstants.padM),
 
-          // Balance Amount
           TweenAnimationBuilder<double>(
-            key: ValueKey(balance),
-            tween: Tween(begin: 0.0, end: balance),
+            key: ValueKey(displayBalance),
+            tween: Tween(begin: 0.0, end: displayBalance),
             duration: const Duration(milliseconds: 1000),
             curve: Curves.easeOutCubic,
             builder: (context, value, child) {
@@ -223,13 +221,10 @@ class WalletScreen extends StatelessWidget {
 
           const SizedBox(height: AppConstants.padS),
 
-          // Status indicator for pending deposits
-          if (state is WalletDepositPending)
+          // Show pending indicator while waiting for payment confirmation
+          if (state is DepositInProgress)
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 6,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(20),
@@ -247,44 +242,9 @@ class WalletScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Processing deposit...',
+                    'Payment in progress...',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // Status indicator when initiating deposit
-          if (state is WalletDepositInitiating)
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 6,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(
-                    width: 12,
-                    height: 12,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation(Colors.white),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Initiating payment...',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -295,7 +255,7 @@ class WalletScreen extends StatelessWidget {
     );
   }
 
-  /// Quick Action Buttons
+  /// Quick Action Buttons (Top Up, History)
   Widget _buildQuickActions(BuildContext context, String userId) {
     final theme = Theme.of(context);
 
@@ -423,9 +383,7 @@ class WalletScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.dividerColor.withOpacity(0.2),
-        ),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.2)),
       ),
       child: Column(
         children: [
@@ -457,7 +415,6 @@ class WalletScreen extends StatelessWidget {
   Widget _buildTransactionTile(BuildContext context, TransactionModel transaction) {
     final theme = Theme.of(context);
 
-    // Determine icon and color based on type
     IconData icon;
     Color iconColor;
 
@@ -490,9 +447,7 @@ class WalletScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.dividerColor.withOpacity(0.1),
-        ),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
       ),
       child: ListTile(
         leading: Container(
@@ -526,10 +481,7 @@ class WalletScreen extends StatelessWidget {
     );
   }
 
-  // ✅ FIXED: Show the actual deposit bottom sheet
   void _showDepositBottomSheet(BuildContext context, String userId) {
-    // Get the WalletBloc from the current context so the bottom sheet
-    // can dispatch events to the same bloc instance
     final walletBloc = context.read<WalletBloc>();
 
     showModalBottomSheet(
@@ -537,7 +489,6 @@ class WalletScreen extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (bottomSheetContext) {
-        // Provide the same WalletBloc to the bottom sheet
         return BlocProvider.value(
           value: walletBloc,
           child: DepositBottomSheet(userId: userId),

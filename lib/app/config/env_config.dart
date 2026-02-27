@@ -2,40 +2,31 @@
 ///
 /// IMPORTANT: This file contains production credentials.
 /// - DO NOT commit real credentials to version control
-/// - Use environment variables or secure storage in CI/CD
-/// - For local development, update values here but don't commit
+/// - Use --dart-define to inject values at build time
 ///
-/// For App Store submission: These values should be injected at build time
-/// using --dart-define or a secrets management system.
+/// Build command example:
+///   flutter run \
+///     --dart-define=SNIPPE_BASE_URL=https://api.snippe.sh \
+///     --dart-define=SNIPPE_API_KEY=snp_live_xxxxx
 class EnvConfig {
-  // PalmPesa Payment Gateway Configuration
-  static const String palmPesaBaseUrl = String.fromEnvironment(
-    'PALMPESA_BASE_URL',
-    defaultValue: 'https://palmpesa.drmlelwa.co.tz/api',
+  // ── Snippe Payment Gateway ───────────────────────────────────────────────
+  // IMPORTANT: Base URL is api.snippe.sh (not .com)
+  static const String snippeBaseUrl = String.fromEnvironment(
+    'SNIPPE_BASE_URL',
+    defaultValue: 'https://api.snippe.sh',
   );
 
-  static const String palmPesaApiToken = String.fromEnvironment(
-    'PALMPESA_API_TOKEN',
-    defaultValue: 'xW89Ys1pb3h0x2n3YgUjeRFdMocYC0fqWYN7qKyFhEgil6qEuuBWZ3gnxoZ2',
+  static const String snippeApiKey = String.fromEnvironment(
+    'SNIPPE_API_KEY',
+    defaultValue: 'snp_f05827640ec57ab5cddf5e4eb5c8b0d4eff949d6ab972e63ec2cebee3b38cd7e',
   );
 
-  static const int palmPesaUserId = int.fromEnvironment(
-    'PALMPESA_USER_ID',
-    defaultValue: 21,
-  );
-
-  static const String palmPesaVendorId = String.fromEnvironment(
-    'PALMPESA_VENDOR_ID',
-    defaultValue: 'TILL61103867',
-  );
-
-  // Webhook Configuration
+  // ── Webhook & Redirect URLs ───────────────────────────────────────────────
   static const String paymentWebhookUrl = String.fromEnvironment(
     'PAYMENT_WEBHOOK_URL',
     defaultValue: 'https://on-payment-webhook-n6kcpecbaa-uc.a.run.app',
   );
 
-  // Payment Redirect URLs
   static const String paymentSuccessUrl = String.fromEnvironment(
     'PAYMENT_SUCCESS_URL',
     defaultValue: 'https://pendeza.app/payment-success',
@@ -46,6 +37,6 @@ class EnvConfig {
     defaultValue: 'https://pendeza.app/payment-cancel',
   );
 
-  // Fallback email for payments
+  // Fallback email when user has no email set
   static const String fallbackEmail = 'agentbfs@gmail.com';
 }

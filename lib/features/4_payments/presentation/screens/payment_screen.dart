@@ -39,8 +39,8 @@ export '../models/payment_method.dart';
 ///
 /// This screen handles all payment methods:
 /// - Wallet payment (instant)
-/// - Pay by Link (web-based)
 /// - USSD Push (phone prompt)
+/// - Pay by Card (web-based)
 class PaymentMethodSelectionScreen extends StatefulWidget {
   final PaymentArguments args;
 
@@ -98,12 +98,13 @@ class _PaymentMethodSelectionScreenState
           (route) => route.settings.name != 'PaymentDialog',
     );
 
-    CustomSnackBar.show(
-      context,
-      message: 'Payment successful! Your booking is confirmed.',
-      type: SnackBarType.success,
-    );
-    context.go('/client/bookings');
+    // Navigate to receipt screen
+    context.go('/payment/receipt', extra: {
+      'appointmentId': widget.args.appointmentId,
+      'amount': widget.args.amount,
+      'customerName': widget.args.customerName,
+      'customerEmail': widget.args.customerEmail,
+    });
   }
 
   void _handlePaymentFailure(String message) {

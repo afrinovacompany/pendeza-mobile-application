@@ -296,7 +296,10 @@ class FirestoreService {
 
   Future<List<SalonModel>> getSalons() async {
     try {
-      final snapshot = await _db.collection('salons').get();
+      final snapshot = await _db
+          .collection('salons')
+          .where('verificationStatus', isEqualTo: 'approved')
+          .get();
       return snapshot.docs
           .map((doc) => SalonModel.fromFirestore(doc))
           .toList();
@@ -863,7 +866,7 @@ class FirestoreService {
     return snapshot.docs.map((doc) => doc.id).toList();
   }
 
-  // Get salons by IDs
+  // Get salons by IDs (only returns approved salons)
   Future<List<SalonModel>> getSalonsByIds(List<String> salonIds) async {
     if (salonIds.isEmpty) return [];
 
@@ -871,7 +874,10 @@ class FirestoreService {
     for (final id in salonIds) {
       final doc = await _db.collection('salons').doc(id).get();
       if (doc.exists) {
-        salons.add(SalonModel.fromFirestore(doc));
+        final salon = SalonModel.fromFirestore(doc);
+        if (salon.isApproved) {
+          salons.add(salon);
+        }
       }
     }
     return salons;

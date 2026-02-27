@@ -13,10 +13,9 @@ enum NotificationType {
 
 /// Model for user notifications
 ///
-/// Enhanced with:
-/// - Image URL support
-/// - Action label for CTA button
-/// - Action route for navigation
+/// Supports both:
+/// - Personal notifications (from 'notifications' collection)
+/// - Broadcast notifications (from 'notification_inbox' collection)
 class NotificationModel extends Equatable {
   final String id;
   final String userId;
@@ -27,11 +26,14 @@ class NotificationModel extends Equatable {
   final bool isRead;
   final DateTime? readAt;
 
-  // 🆕 Enhanced fields
-  final String? imageUrl;      // Image to display in notification
-  final String? actionRoute;   // Navigation route when tapped
-  final String? actionLabel;   // CTA button text (e.g., "Book Now", "View Details")
-  final Map<String, dynamic>? data;  // Additional custom data
+  // Enhanced fields
+  final String? imageUrl;
+  final String? actionRoute;
+  final String? actionLabel;
+  final Map<String, dynamic>? data;
+
+  // Broadcast support
+  final bool isBroadcast; // true = from notification_inbox, false = personal
 
   const NotificationModel({
     required this.id,
@@ -46,15 +48,16 @@ class NotificationModel extends Equatable {
     this.actionRoute,
     this.actionLabel,
     this.data,
+    this.isBroadcast = false,
   });
 
-  /// Create from Firestore document
+  /// Create from Firestore document (personal notifications)
   factory NotificationModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return NotificationModel.fromMap(data, doc.id);
   }
 
-  /// Create from map
+  /// Create from map (personal notifications)
   factory NotificationModel.fromMap(Map<String, dynamic> map, String id) {
     return NotificationModel(
       id: id,
@@ -69,7 +72,54 @@ class NotificationModel extends Equatable {
       actionRoute: map['actionRoute'] as String?,
       actionLabel: map['actionLabel'] as String?,
       data: map['data'] as Map<String, dynamic>?,
+      isBroadcast: false,
     );
+  }
+
+  /// Create from notification_inbox document (broadcast notifications)
+  /// These have different field names: sentAt instead of createdAt,
+  /// route instead of actionRoute, no userId, etc.
+  factory NotificationModel.fromBroadcast(
+      DocumentSnapshot doc, {
+        required String currentUserId,
+        required bool isRead,
+      }) {
+    final data = doc.data() as Map<String, dynamic>;
+
+    // Extract route from customData or top-level
+    String? route = data['route'] as String?;
+    if (route == null || route.isEmpty) {
+      final customData = data['customData'] as Map<String, dynamic>?;
+      route = customData?['route'] as String?;
+    }
+
+    // Extract actionLabel from customData
+    String? actionLabel;
+    final customData = data['customData'] as Map<String, dynamic>?;
+    actionLabel = customData?['actionLabel'] as String?;
+
+    return NotificationModel(
+      id: 'broadcast_${doc.id}', // Prefix to avoid ID collision with personal
+      userId: currentUserId,
+      title: data['title'] as String? ?? 'Announcement',
+      body: data['body'] as String? ?? '',
+      type: _parseType(data['type']),
+      createdAt: _parseDateTime(data['sentAt']),
+      isRead: isRead,
+      imageUrl: data['imageUrl'] as String?,
+      actionRoute: route,
+      actionLabel: actionLabel,
+      data: customData,
+      isBroadcast: true,
+    );
+  }
+
+  /// The real Firestore document ID (without broadcast_ prefix)
+  String get firestoreId {
+    if (isBroadcast && id.startsWith('broadcast_')) {
+      return id.substring('broadcast_'.length);
+    }
+    return id;
   }
 
   /// Convert to map for Firestore
@@ -98,6 +148,7 @@ class NotificationModel extends Equatable {
       case 'appointment':
         return NotificationType.appointment;
       case 'promotion':
+      case 'promotional':
         return NotificationType.promotion;
       case 'system':
         return NotificationType.system;
@@ -160,6 +211,7 @@ class NotificationModel extends Equatable {
     String? actionRoute,
     String? actionLabel,
     Map<String, dynamic>? data,
+    bool? isBroadcast,
   }) {
     return NotificationModel(
       id: id ?? this.id,
@@ -174,6 +226,7 @@ class NotificationModel extends Equatable {
       actionRoute: actionRoute ?? this.actionRoute,
       actionLabel: actionLabel ?? this.actionLabel,
       data: data ?? this.data,
+      isBroadcast: isBroadcast ?? this.isBroadcast,
     );
   }
 
@@ -191,5 +244,6 @@ class NotificationModel extends Equatable {
     actionRoute,
     actionLabel,
     data,
+    isBroadcast,
   ];
 }

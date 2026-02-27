@@ -20,4 +20,10 @@ abstract class AdminRepository {
 
   /// Deletes a promotion.
   Future<void> deletePromotion(String promotionId); // NEW
+
+  /// Approve a salon (set verificationStatus to 'approved')
+  Future<void> approveSalon(String salonId);
+
+  /// Reject a salon with a reason
+  Future<void> rejectSalon(String salonId, String reason);
 }

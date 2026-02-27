@@ -114,15 +114,17 @@ class DepositInProgress extends WalletState {
   final String message;
   final String? transactionId;
   final String? gatewayOrderId;
+  final WalletModel? wallet; // Keep last known wallet to prevent blank screen
 
   const DepositInProgress({
     required this.message,
     this.transactionId,
     this.gatewayOrderId,
+    this.wallet,
   });
 
   @override
-  List<Object?> get props => [message, transactionId, gatewayOrderId];
+  List<Object?> get props => [message, transactionId, gatewayOrderId, wallet];
 }
 
 /// Deposit succeeded!

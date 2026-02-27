@@ -1,3 +1,4 @@
+
 import 'package:equatable/equatable.dart';
 import 'package:pendeza/shared/models/appointment_model.dart';
 import 'package:pendeza/shared/models/salon_model.dart';

@@ -1,6 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_bloc.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_state.dart';
+import 'package:pendeza/app/services/in_app_review_service.dart';
+import 'package:pendeza/app/services/service_locator.dart';
 import 'package:pendeza/app/utils/logger.dart';
 import 'package:pendeza/shared/models/appointment_model.dart';
 
@@ -11,12 +13,14 @@ import 'appoitments_state.dart';
 class AppointmentsBloc extends Bloc<AppointmentsEvent, AppointmentsState> {
   final AppointmentsRepository _appointmentsRepository;
   final AuthBloc _authBloc;
+  final InAppReviewService _inAppReviewService;
 
   AppointmentsBloc({
     required AppointmentsRepository appointmentsRepository,
     required AuthBloc authBloc,
   })  : _appointmentsRepository = appointmentsRepository,
         _authBloc = authBloc,
+        _inAppReviewService = sl<InAppReviewService>(),
         super(AppointmentsInitial()) {
     on<FetchAppointmentsRequested>(_onFetchAppointmentsRequested);
   }
@@ -115,6 +119,14 @@ class AppointmentsBloc extends Bloc<AppointmentsEvent, AppointmentsState> {
         upcomingAppointments: upcoming,
         pastAppointments: past,
       ));
+
+      // Trigger in-app review check based on completed appointment count
+      final completedCount = past
+          .where((a) => a.appointment.status == AppointmentStatus.completed)
+          .length;
+      if (completedCount > 0) {
+        _inAppReviewService.onCompletedAppointmentsLoaded(completedCount);
+      }
     } catch (e, s) {
       log.e('AppointmentsBloc: Error loading appointments',
           error: e, stackTrace: s);

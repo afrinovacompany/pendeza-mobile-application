@@ -17,8 +17,7 @@ import '../widgets/salon_amenities_section.dart';
 import '../widgets/salon_videos_section.dart';
 import 'package:pendeza/shared/models/salon_video_model.dart';
 
-/// ✅ FIX: Changed to StatefulWidget to properly manage BLoC lifecycle
-/// This prevents the BLoC from being recreated on every rebuild
+/// ✅ Improved: StatefulWidget to properly manage BLoC lifecycle and prevent rebuilds
 class SalonProfileScreen extends StatefulWidget {
   const SalonProfileScreen({super.key});
 
@@ -27,7 +26,6 @@ class SalonProfileScreen extends StatefulWidget {
 }
 
 class _SalonProfileScreenState extends State<SalonProfileScreen> {
-  /// ✅ FIX: Create bloc instance once and keep it alive
   late final SalonProfileBloc _salonProfileBloc;
   bool _isInitialized = false;
 
@@ -40,7 +38,6 @@ class _SalonProfileScreenState extends State<SalonProfileScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // ✅ FIX: Only load profile once when screen is first shown
     if (!_isInitialized) {
       _salonProfileBloc.add(const LoadSalonProfile());
       _isInitialized = true;
@@ -49,15 +46,12 @@ class _SalonProfileScreenState extends State<SalonProfileScreen> {
 
   @override
   void dispose() {
-    // ✅ FIX: Close the bloc when screen is disposed
     _salonProfileBloc.close();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // ✅ FIX: Use BlocProvider.value to provide existing instance
-    // instead of creating a new one
     return BlocProvider.value(
       value: _salonProfileBloc,
       child: const _SalonProfileView(),
@@ -77,7 +71,6 @@ class _SalonProfileView extends StatelessWidget {
         title: const Text('Salon Profile'),
         elevation: 0,
         actions: [
-          // Preview button
           IconButton(
             icon: const Icon(Icons.visibility_rounded),
             tooltip: 'Preview how clients see your profile',
@@ -93,16 +86,10 @@ class _SalonProfileView extends StatelessWidget {
         ],
       ),
       body: BlocConsumer<SalonProfileBloc, SalonProfileState>(
-        // ✅ FIX: Add buildWhen to prevent unnecessary rebuilds
         buildWhen: (previous, current) {
           // Don't rebuild for operation success (handled by listener)
-          // This prevents the flicker
-          if (current is SalonProfileOperationSuccess) {
-            return false;
-          }
-          return true;
+          return current is! SalonProfileOperationSuccess;
         },
-        // ✅ Listen for success and show feedback
         listener: (context, state) {
           if (state is SalonProfileOperationSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -137,15 +124,32 @@ class _SalonProfileView extends StatelessWidget {
               ),
             );
           }
+
+          // ✅ NEW: Handle video-specific errors
+          if (state is SalonVideoError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.videocam_off_rounded, color: Colors.white),
+                    const SizedBox(width: AppConstants.padS),
+                    Expanded(child: Text(state.message)),
+                  ],
+                ),
+                backgroundColor: Colors.orange,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
         },
         builder: (context, state) {
-          // ✅ FIX: Only show full loading on initial load
-          if (state is SalonProfileInitial) {
-            return _buildLoadingState();
+          // ✅ NEW: Handle video uploading state separately
+          if (state is SalonVideoUploading) {
+            return _buildContentWithVideoProgress(context, state);
           }
 
-          // ✅ FIX: Show loading with existing data if available
-          if (state is SalonProfileLoading) {
+          if (state is SalonProfileInitial || state is SalonProfileLoading) {
             return _buildLoadingState();
           }
 
@@ -169,7 +173,6 @@ class _SalonProfileView extends StatelessWidget {
           return RefreshIndicator(
             onRefresh: () async {
               context.read<SalonProfileBloc>().add(const RefreshSalonProfile());
-              // ✅ FIX: Better way to wait for refresh
               await Future.delayed(const Duration(milliseconds: 500));
             },
             child: Stack(
@@ -177,45 +180,38 @@ class _SalonProfileView extends StatelessWidget {
                 ListView(
                   padding: const EdgeInsets.all(AppConstants.padL),
                   children: [
-                    // ✅ IMPROVED: Hero header with completion
                     _buildHeroHeader(context, salon),
                     const SizedBox(height: AppConstants.padL),
 
-                    // ✅ Quick action cards
                     _buildQuickActions(context, salon),
                     const SizedBox(height: AppConstants.padXL),
 
-                    // Section label
                     _buildSectionLabel(context, 'Basic Information', Icons.info_rounded),
                     const SizedBox(height: AppConstants.padM),
                     SalonBasicInfoSection(salon: salon),
                     const SizedBox(height: AppConstants.padXL),
 
-                    // Images section with improved label
                     _buildSectionLabel(context, 'Photos', Icons.photo_library_rounded),
                     const SizedBox(height: AppConstants.padM),
                     SalonImagesSection(salon: salon),
                     const SizedBox(height: AppConstants.padXL),
 
-                    // 🎬 Video Shorts section
+                    // ✅ NEW: Video Shorts section
                     _buildSectionLabel(context, 'Video Shorts', Icons.videocam_rounded),
                     const SizedBox(height: AppConstants.padM),
                     SalonVideosSection(videos: _getVideosFromState(state)),
                     const SizedBox(height: AppConstants.padXL),
 
-                    // Business hours
                     _buildSectionLabel(context, 'Operating Hours', Icons.access_time_rounded),
                     const SizedBox(height: AppConstants.padM),
                     SalonBusinessHoursSection(salon: salon),
                     const SizedBox(height: AppConstants.padXL),
 
-                    // Contact
                     _buildSectionLabel(context, 'Contact & Social', Icons.connect_without_contact_rounded),
                     const SizedBox(height: AppConstants.padM),
                     SalonContactSection(salon: salon),
                     const SizedBox(height: AppConstants.padXL),
 
-                    // Amenities
                     _buildSectionLabel(context, 'Amenities', Icons.star_rounded),
                     const SizedBox(height: AppConstants.padM),
                     SalonAmenitiesSection(salon: salon),
@@ -223,7 +219,7 @@ class _SalonProfileView extends StatelessWidget {
                   ],
                 ),
 
-                // ✅ IMPROVED: Upload progress overlay
+                // ✅ Upload progress for images
                 if (isUploading)
                   Positioned(
                     top: 0,
@@ -236,6 +232,65 @@ class _SalonProfileView extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  // ✅ NEW: Build content while video is uploading with dedicated progress bar
+  Widget _buildContentWithVideoProgress(BuildContext context, SalonVideoUploading state) {
+    final salon = state.salon;
+    final videos = state.videos;
+
+    return Stack(
+      children: [
+        ListView(
+          padding: const EdgeInsets.all(AppConstants.padL),
+          children: [
+            _buildHeroHeader(context, salon),
+            const SizedBox(height: AppConstants.padL),
+
+            _buildQuickActions(context, salon),
+            const SizedBox(height: AppConstants.padXL),
+
+            _buildSectionLabel(context, 'Basic Information', Icons.info_rounded),
+            const SizedBox(height: AppConstants.padM),
+            SalonBasicInfoSection(salon: salon),
+            const SizedBox(height: AppConstants.padXL),
+
+            _buildSectionLabel(context, 'Photos', Icons.photo_library_rounded),
+            const SizedBox(height: AppConstants.padM),
+            SalonImagesSection(salon: salon),
+            const SizedBox(height: AppConstants.padXL),
+
+            _buildSectionLabel(context, 'Video Shorts', Icons.videocam_rounded),
+            const SizedBox(height: AppConstants.padM),
+            SalonVideosSection(videos: videos),
+            const SizedBox(height: AppConstants.padXL),
+
+            _buildSectionLabel(context, 'Operating Hours', Icons.access_time_rounded),
+            const SizedBox(height: AppConstants.padM),
+            SalonBusinessHoursSection(salon: salon),
+            const SizedBox(height: AppConstants.padXL),
+
+            _buildSectionLabel(context, 'Contact & Social', Icons.connect_without_contact_rounded),
+            const SizedBox(height: AppConstants.padM),
+            SalonContactSection(salon: salon),
+            const SizedBox(height: AppConstants.padXL),
+
+            _buildSectionLabel(context, 'Amenities', Icons.star_rounded),
+            const SizedBox(height: AppConstants.padM),
+            SalonAmenitiesSection(salon: salon),
+            const SizedBox(height: AppConstants.padXXL * 2),
+          ],
+        ),
+
+        // ✅ NEW: Video upload progress bar (always on top)
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: _buildVideoUploadProgressBar(context, state),
+        ),
+      ],
     );
   }
 
@@ -259,7 +314,235 @@ class _SalonProfileView extends StatelessWidget {
     return [];
   }
 
-  // ✅ NEW: Hero header with gradient and completion
+  // ✅ NEW: Video-specific progress bar with stages and cancel button
+  Widget _buildVideoUploadProgressBar(BuildContext context, SalonVideoUploading state) {
+    final theme = Theme.of(context);
+    final progress = state.progress;
+    final stage = state.stage;
+    final stageText = state.stageText;
+
+    // Map stages to icons and colors
+    IconData stageIcon = Icons.videocam_rounded;
+    Color stageColor = theme.colorScheme.primary;
+
+    switch (stage) {
+      case 'compressing':
+        stageIcon = Icons.compress_rounded;
+        stageColor = Colors.blue;
+        break;
+      case 'uploading_video':
+        stageIcon = Icons.cloud_upload_rounded;
+        stageColor = Colors.green;
+        break;
+      case 'uploading_thumbnail':
+        stageIcon = Icons.image_rounded;
+        stageColor = Colors.purple;
+        break;
+      case 'processing':
+        stageIcon = Icons.settings_rounded;
+        stageColor = Colors.orange;
+        break;
+      case 'saving':
+        stageIcon = Icons.save_rounded;
+        stageColor = Colors.teal;
+        break;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+        border: Border(bottom: BorderSide(color: theme.dividerColor)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppConstants.padL,
+              AppConstants.padM,
+              AppConstants.padL,
+              AppConstants.padS,
+            ),
+            child: Row(
+              children: [
+                // Stage icon
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: stageColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(stageIcon, size: 22, color: stageColor),
+                ),
+                const SizedBox(width: AppConstants.padM),
+
+                // Progress info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        stageText,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: LinearProgressIndicator(
+                              value: progress > 0 ? progress : null,
+                              minHeight: 6,
+                              backgroundColor: theme.dividerColor,
+                              valueColor: AlwaysStoppedAnimation<Color>(stageColor),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                          const SizedBox(width: AppConstants.padM),
+                          Text(
+                            progress > 0 ? '${(progress * 100).toInt()}%' : '...',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Cancel button (only for certain stages)
+                if (stage == 'compressing' || stage == 'uploading_video')
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    onPressed: () => _showCancelVideoUploadDialog(context),
+                    color: Colors.red,
+                    tooltip: 'Cancel upload',
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ NEW: Cancel video upload confirmation dialog
+  void _showCancelVideoUploadDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cancel Video Upload?'),
+        content: const Text(
+          'The video will not be saved if you cancel now. '
+              'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Continue Uploading'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              // TODO: Implement cancel upload logic in BLoC
+              // context.read<SalonProfileBloc>().add(const CancelVideoUpload());
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Upload cancelled'),
+                  backgroundColor: Colors.orange,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Cancel Upload'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Image upload progress bar (for photo uploads)
+  Widget _buildUploadProgressBar(BuildContext context, double progress, String? type) {
+    final theme = Theme.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppConstants.padL,
+              AppConstants.padM,
+              AppConstants.padL,
+              AppConstants.padS,
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    value: progress > 0 ? progress : null,
+                  ),
+                ),
+                const SizedBox(width: AppConstants.padM),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Uploading ${type ?? 'photo'}...',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (progress > 0)
+                        Text(
+                          '${(progress * 100).toInt()}%',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          LinearProgressIndicator(
+            value: progress > 0 ? progress : null,
+            minHeight: 3,
+            backgroundColor: theme.dividerColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Hero header with gradient and completion
   Widget _buildHeroHeader(BuildContext context, SalonModel salon) {
     final theme = Theme.of(context);
     final completionPercentage = _calculateCompletion(salon);
@@ -423,7 +706,7 @@ class _SalonProfileView extends StatelessWidget {
     );
   }
 
-  // ✅ Quick actions row
+  // Quick actions row
   Widget _buildQuickActions(BuildContext context, SalonModel salon) {
     final theme = Theme.of(context);
 
@@ -436,7 +719,6 @@ class _SalonProfileView extends StatelessWidget {
             label: 'Add Photos',
             color: theme.colorScheme.primary,
             onTap: () {
-              // Will be handled by the images section
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Scroll down to the Photos section'),
@@ -517,7 +799,7 @@ https://pendeza.co.tz/salon/${salon.id}
     );
   }
 
-  // ✅ NEW: Section labels
+  // Section labels with icon
   Widget _buildSectionLabel(BuildContext context, String title, IconData icon) {
     final theme = Theme.of(context);
 
@@ -547,83 +829,14 @@ https://pendeza.co.tz/salon/${salon.id}
     );
   }
 
-  // ✅ IMPROVED: Upload progress bar with animation
-  Widget _buildUploadProgressBar(BuildContext context, double progress, String? type) {
-    final theme = Theme.of(context);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppConstants.padL,
-              AppConstants.padM,
-              AppConstants.padL,
-              AppConstants.padS,
-            ),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    value: progress > 0 ? progress : null,
-                  ),
-                ),
-                const SizedBox(width: AppConstants.padM),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Uploading ${type ?? 'photo'}...',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (progress > 0)
-                        Text(
-                          '${(progress * 100).toInt()}%',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          LinearProgressIndicator(
-            value: progress > 0 ? progress : null,
-            minHeight: 3,
-            backgroundColor: theme.dividerColor,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildLoadingState() {
     return ListView(
       padding: const EdgeInsets.all(AppConstants.padL),
       children: List.generate(
         5,
-            (index) => Padding(
-          padding: const EdgeInsets.only(bottom: AppConstants.padL),
-          child: const ShimmerPlaceholder(height: 200, width: double.infinity),
+            (index) => const Padding(
+          padding: EdgeInsets.only(bottom: AppConstants.padL),
+          child: ShimmerPlaceholder(height: 200, width: double.infinity),
         ),
       ),
     );

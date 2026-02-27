@@ -1,32 +1,24 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
 
-/// Video approval status for admin moderation
-enum VideoApprovalStatus {
-  pending,   // Waiting for admin review
-  approved,  // Visible to clients
-  rejected,  // Not visible, owner notified
-}
-
 /// Model for salon video shorts
-/// 
+///
 /// Features:
 /// - 60 second max duration
 /// - Auto-generated thumbnail
-/// - Admin approval workflow
-/// - Auto-delete after rejection/expiry
+/// - Immediately visible after upload (no approval needed)
 class SalonVideoModel extends Equatable {
   //============================================================================
   // CORE FIELDS
   //============================================================================
   final String id;
   final String salonId;
-  
+
   /// Denormalized salon data for fast queries (no extra reads)
   final String salonName;
   final String? salonImage;
   final String? salonAddress;
-  
+
   //============================================================================
   // VIDEO DATA
   //============================================================================
@@ -34,22 +26,14 @@ class SalonVideoModel extends Equatable {
   final String thumbnailUrl;      // Auto-generated from first frame
   final String? caption;          // Optional short description
   final int durationSeconds;      // Max 60 seconds
-  
+
   //============================================================================
   // TIMESTAMPS
   //============================================================================
   final DateTime createdAt;
-  final DateTime? approvedAt;
-  final DateTime? expiresAt;      // For auto-delete (e.g., 30 days after approval)
-  
+
   //============================================================================
-  // MODERATION
-  //============================================================================
-  final VideoApprovalStatus status;
-  final String? rejectionReason;  // If rejected by admin
-  
-  //============================================================================
-  // OWNER INFO (for admin panel)
+  // OWNER INFO
   //============================================================================
   final String ownerId;
 
@@ -64,10 +48,6 @@ class SalonVideoModel extends Equatable {
     this.caption,
     required this.durationSeconds,
     required this.createdAt,
-    this.approvedAt,
-    this.expiresAt,
-    this.status = VideoApprovalStatus.pending,
-    this.rejectionReason,
     required this.ownerId,
   });
 
@@ -88,14 +68,6 @@ class SalonVideoModel extends Equatable {
       caption: data['caption'] as String?,
       durationSeconds: data['durationSeconds'] as int? ?? 0,
       createdAt: _parseDateTime(data['createdAt']),
-      approvedAt: data['approvedAt'] != null 
-          ? _parseDateTime(data['approvedAt']) 
-          : null,
-      expiresAt: data['expiresAt'] != null 
-          ? _parseDateTime(data['expiresAt']) 
-          : null,
-      status: _parseStatus(data['status']),
-      rejectionReason: data['rejectionReason'] as String?,
       ownerId: data['ownerId'] as String,
     );
   }
@@ -113,14 +85,6 @@ class SalonVideoModel extends Equatable {
       caption: data['caption'] as String?,
       durationSeconds: data['durationSeconds'] as int? ?? 0,
       createdAt: _parseDateTime(data['createdAt']),
-      approvedAt: data['approvedAt'] != null 
-          ? _parseDateTime(data['approvedAt']) 
-          : null,
-      expiresAt: data['expiresAt'] != null 
-          ? _parseDateTime(data['expiresAt']) 
-          : null,
-      status: _parseStatus(data['status']),
-      rejectionReason: data['rejectionReason'] as String?,
       ownerId: data['ownerId'] as String,
     );
   }
@@ -130,19 +94,6 @@ class SalonVideoModel extends Equatable {
     if (value is String) return DateTime.parse(value);
     if (value is DateTime) return value;
     return DateTime.now();
-  }
-
-  static VideoApprovalStatus _parseStatus(dynamic value) {
-    if (value == null) return VideoApprovalStatus.pending;
-    final statusStr = value.toString().toLowerCase();
-    switch (statusStr) {
-      case 'approved':
-        return VideoApprovalStatus.approved;
-      case 'rejected':
-        return VideoApprovalStatus.rejected;
-      default:
-        return VideoApprovalStatus.pending;
-    }
   }
 
   //============================================================================
@@ -160,10 +111,6 @@ class SalonVideoModel extends Equatable {
       if (caption != null) 'caption': caption,
       'durationSeconds': durationSeconds,
       'createdAt': Timestamp.fromDate(createdAt),
-      if (approvedAt != null) 'approvedAt': Timestamp.fromDate(approvedAt!),
-      if (expiresAt != null) 'expiresAt': Timestamp.fromDate(expiresAt!),
-      'status': status.name,
-      if (rejectionReason != null) 'rejectionReason': rejectionReason,
       'ownerId': ownerId,
     };
   }
@@ -172,41 +119,11 @@ class SalonVideoModel extends Equatable {
   // HELPER GETTERS
   //============================================================================
 
-  /// Check if video is visible to clients
-  bool get isApproved => status == VideoApprovalStatus.approved;
-
-  /// Check if video is pending review
-  bool get isPending => status == VideoApprovalStatus.pending;
-
-  /// Check if video was rejected
-  bool get isRejected => status == VideoApprovalStatus.rejected;
-
-  /// Check if video has expired
-  bool get isExpired {
-    if (expiresAt == null) return false;
-    return DateTime.now().isAfter(expiresAt!);
-  }
-
-  /// Check if video should be shown to clients
-  bool get isVisibleToClients => isApproved && !isExpired;
-
   /// Get formatted duration (e.g., "0:45")
   String get formattedDuration {
     final minutes = durationSeconds ~/ 60;
     final seconds = durationSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  /// Get status display text
-  String get statusText {
-    switch (status) {
-      case VideoApprovalStatus.pending:
-        return 'Pending Review';
-      case VideoApprovalStatus.approved:
-        return 'Live';
-      case VideoApprovalStatus.rejected:
-        return 'Rejected';
-    }
   }
 
   //============================================================================
@@ -224,10 +141,6 @@ class SalonVideoModel extends Equatable {
     String? caption,
     int? durationSeconds,
     DateTime? createdAt,
-    DateTime? approvedAt,
-    DateTime? expiresAt,
-    VideoApprovalStatus? status,
-    String? rejectionReason,
     String? ownerId,
   }) {
     return SalonVideoModel(
@@ -241,10 +154,6 @@ class SalonVideoModel extends Equatable {
       caption: caption ?? this.caption,
       durationSeconds: durationSeconds ?? this.durationSeconds,
       createdAt: createdAt ?? this.createdAt,
-      approvedAt: approvedAt ?? this.approvedAt,
-      expiresAt: expiresAt ?? this.expiresAt,
-      status: status ?? this.status,
-      rejectionReason: rejectionReason ?? this.rejectionReason,
       ownerId: ownerId ?? this.ownerId,
     );
   }
@@ -265,10 +174,6 @@ class SalonVideoModel extends Equatable {
     caption,
     durationSeconds,
     createdAt,
-    approvedAt,
-    expiresAt,
-    status,
-    rejectionReason,
     ownerId,
   ];
 }

@@ -105,9 +105,10 @@ class AppointmentModel extends Equatable {
   /// Check if this appointment is in a terminal state
   bool get isTerminal => AppointmentStatus.terminal.contains(status);
 
-  /// Check if this appointment is upcoming (future date + active status)
-  bool get isUpcoming => startTime.isAfter(DateTime.now()) && isActive;
-
+  /// Check if this appointment is upcoming (future date + confirmed only - NO pending payments!)
+  bool get isUpcoming =>
+      startTime.isAfter(DateTime.now()) &&
+          status == AppointmentStatus.confirmed;  // ✅ ONLY confirmed appointments
   /// Check if this appointment is in the past
   bool get isPast => startTime.isBefore(DateTime.now());
 

@@ -42,6 +42,8 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
     on<LoadNotificationHistory>(_onLoadNotificationHistory);
     on<SendNotification>(_onSendNotification);
     on<LoadAllTransactions>(_onLoadAllTransactions);
+    on<ApproveSalon>(_onApproveSalon);
+    on<RejectSalon>(_onRejectSalon);
   }
 
   Future<void> _onLoadAdminData(LoadAdminData event, Emitter<AdminState> emit) async {
@@ -300,6 +302,30 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
     } catch (e, s) {
       log.e('Failed to load transactions', error: e, stackTrace: s);
       emit(AdminError('Failed to load transactions: $e'));
+      if (currentState is AdminLoaded) emit(currentState);
+    }
+  }
+
+  Future<void> _onApproveSalon(ApproveSalon event, Emitter<AdminState> emit) async {
+    final currentState = state;
+    try {
+      await _adminRepository.approveSalon(event.salonId);
+      add(LoadAdminData());
+    } catch (e, s) {
+      log.e('Failed to approve salon', error: e, stackTrace: s);
+      emit(AdminError('Failed to approve salon: $e'));
+      if (currentState is AdminLoaded) emit(currentState);
+    }
+  }
+
+  Future<void> _onRejectSalon(RejectSalon event, Emitter<AdminState> emit) async {
+    final currentState = state;
+    try {
+      await _adminRepository.rejectSalon(event.salonId, event.reason);
+      add(LoadAdminData());
+    } catch (e, s) {
+      log.e('Failed to reject salon', error: e, stackTrace: s);
+      emit(AdminError('Failed to reject salon: $e'));
       if (currentState is AdminLoaded) emit(currentState);
     }
   }

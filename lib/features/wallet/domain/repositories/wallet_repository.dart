@@ -28,7 +28,7 @@ abstract class WalletRepository {
   Future<void> creditWallet({
     required String userId,
     required double amount,
-    required String gatewayOrderId,
+    required String snippeReference,
     String? description,
   });
 
@@ -102,14 +102,14 @@ class WalletRepositoryImpl implements WalletRepository {
   Future<void> creditWallet({
     required String userId,
     required double amount,
-    required String gatewayOrderId,
+    required String snippeReference,
     String? description,
   }) async {
     try {
       await _walletService.creditWallet(
         userId: userId,
         amount: amount,
-        gatewayOrderId: gatewayOrderId,
+        snippeReference: snippeReference,
         description: description,
       );
     } catch (e, s) {

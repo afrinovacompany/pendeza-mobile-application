@@ -29,9 +29,9 @@ class OwnerDashboardRepositoryImpl implements OwnerDashboardRepository {
       final snapshot = await _db
           .collection('appointments')
           .where('salonId', isEqualTo: salonId)
-          .where('startTime',
-          isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('startTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+          .where('status', isEqualTo: 'Confirmed')  // ✅ FILTER HERE!
           .get();
 
       return snapshot.docs

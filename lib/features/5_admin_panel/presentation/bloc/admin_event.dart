@@ -74,6 +74,24 @@ class SendNotification extends AdminEvent {
   const SendNotification(this.notificationData);
 }
 
+// --- SALON APPROVAL EVENTS ---
+class ApproveSalon extends AdminEvent {
+  final String salonId;
+  const ApproveSalon(this.salonId);
+
+  @override
+  List<Object> get props => [salonId];
+}
+
+class RejectSalon extends AdminEvent {
+  final String salonId;
+  final String reason;
+  const RejectSalon({required this.salonId, required this.reason});
+
+  @override
+  List<Object> get props => [salonId, reason];
+}
+
 // --- TRANSACTION EVENTS ---
 class LoadAllTransactions extends AdminEvent {
   final String? filterType; // deposit, payment, payout, etc.

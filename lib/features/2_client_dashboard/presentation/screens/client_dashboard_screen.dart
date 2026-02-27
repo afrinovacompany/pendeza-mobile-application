@@ -321,8 +321,9 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
         _buildSectionHeader(
           context,
           theme,
-          // Key: "client.dashboard.categories"
           title: 'client.dashboard.browse_categories'.tr(),
+          actionLabel: 'client.dashboard.see_all'.tr(),
+          onActionTap: () => context.go(AppRoutes.clientCategories),
         ),
         const SizedBox(height: AppConstants.padM),
         Padding(

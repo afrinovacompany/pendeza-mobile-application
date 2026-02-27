@@ -112,24 +112,25 @@ class _ClientProfileSetupScreenState extends State<ClientProfileSetupScreen> {
   // ============================================================================
 
   Future<void> _pickImage(ImageSource source) async {
-    bool hasPermission = false;
+    // Camera always needs permission check
     if (source == ImageSource.camera) {
-      hasPermission = await PermissionService.requestCameraPermission();
-    } else {
-      hasPermission = await PermissionService.requestPhotosPermission();
+      final hasPermission = await PermissionService.requestCameraPermission();
+      if (!hasPermission && mounted) {
+        PermissionService.showPermissionDialog(
+          context,
+          title: 'common.permission_camera'.tr(),
+          content: 'common.permission_message'.tr(),
+          onConfirm: () => openAppSettings(),
+        );
+        return;
+      }
     }
 
-    if (!hasPermission && mounted) {
-      PermissionService.showPermissionDialog(
-        context,
-        // Key: "common.permission_camera" / "common.permission_photos"
-        title: source == ImageSource.camera ? 'common.permission_camera'.tr() : 'common.permission_photos'.tr(),
-        // Key: "common.permission_message"
-        content: 'common.permission_message'.tr(),
-        onConfirm: () => openAppSettings(),
-      );
-      return;
-    }
+    // Gallery (ImageSource.gallery) doesn't need permission on Android 13+
+    // The system picker handles it automatically. Only check permission on older Android
+    // or if your app explicitly needs storage access for other reasons.
+    //
+    // For most cases, just skip the permission check for gallery and let the picker handle it.
 
     try {
       final XFile? image = await _picker.pickImage(
@@ -144,7 +145,7 @@ class _ClientProfileSetupScreenState extends State<ClientProfileSetupScreen> {
       log.e('Error picking image', error: e, stackTrace: s);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error picking image. Please try again.')), // Not in JSON, keeping hardcode or can add 'common.error'
+          const SnackBar(content: Text('Error picking image. Please try again.')),
         );
       }
     }

@@ -5,19 +5,19 @@ import 'package:pendeza/shared/models/transaction_model.dart';
 
 /// Service for managing wallet operations.
 ///
-/// This service handles:
-/// - Wallet creation
+/// Handles:
+/// - Wallet creation and retrieval
 /// - Balance queries
-/// - Deposits (crediting wallet)
-/// - Payments (debiting wallet)
+/// - Deposits (crediting wallet — called by Cloud Function webhook)
+/// - Payments (debiting wallet for bookings)
 /// - Refunds
-/// - Transaction recording
+/// - Transaction history
 ///
-/// **BUSINESS RULES:**
+/// BUSINESS RULES:
 /// - No negative balances allowed
 /// - All amounts must be positive
 /// - Wallet must be 'active' to perform operations
-/// - All operations are atomic (use Firestore transactions)
+/// - All operations use Firestore transactions for atomicity
 class WalletService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
@@ -25,9 +25,8 @@ class WalletService {
   // WALLET CREATION & RETRIEVAL
   //============================================================================
 
-  /// Get or create a wallet for a user
-  ///
-  /// If wallet doesn't exist, creates a new one with 0 balance
+  /// Get or create a wallet for a user.
+  /// If wallet doesn't exist, creates a new one with 0 balance.
   Future<WalletModel> getOrCreateWallet(String userId) async {
     try {
       log.i('WalletService: Getting/creating wallet for user: $userId');
@@ -39,7 +38,6 @@ class WalletService {
         return WalletModel.fromFirestore(walletDoc);
       }
 
-      // Create new wallet
       log.i('WalletService: Creating new wallet for user: $userId');
       final newWallet = WalletModel.createNew(userId: userId);
       await _db.collection('wallets').doc(userId).set(newWallet.toFirestore());
@@ -52,9 +50,7 @@ class WalletService {
     }
   }
 
-  /// Get wallet balance for a user
-  ///
-  /// Returns 0 if wallet doesn't exist
+  /// Get wallet balance for a user. Returns 0 if wallet doesn't exist.
   Future<double> getBalance(String userId) async {
     try {
       final wallet = await getOrCreateWallet(userId);
@@ -65,7 +61,7 @@ class WalletService {
     }
   }
 
-  /// Check if user can afford a specific amount
+  /// Check if user can afford a specific amount.
   Future<bool> canAfford(String userId, double amount) async {
     try {
       if (amount <= 0) return false;
@@ -81,20 +77,21 @@ class WalletService {
   // CREDIT OPERATIONS (Add money to wallet)
   //============================================================================
 
-  /// Credit wallet after successful deposit
+  /// Credit wallet after successful Snippe payment.
   ///
-  /// Called by webhook when PalmPesa payment is confirmed
+  /// NOTE: In production this is called by the Cloud Function webhook,
+  /// not directly from the Flutter app. The [snippeReference] is the
+  /// UUID returned by Snippe (stored in the transaction doc as 'snippeReference').
   ///
   /// Steps:
-  /// 1. Validate transaction doesn't already exist
-  /// 2. Add amount to wallet balance
+  /// 1. Check for duplicate — prevent double-crediting the same payment
+  /// 2. Add amount to wallet balance atomically
   /// 3. Update totalDeposited
   /// 4. Create transaction record
-  /// 5. Update transaction status to completed
   Future<void> creditWallet({
     required String userId,
     required double amount,
-    required String gatewayOrderId,
+    required String snippeReference, // FIX: was gatewayOrderId (PalmPesa field)
     String? description,
   }) async {
     if (amount <= 0) {
@@ -104,22 +101,20 @@ class WalletService {
     try {
       log.i('WalletService: Crediting wallet for user: $userId, amount: $amount');
 
-      // Check if transaction already exists (prevent duplicate credits)
+      // FIX: Check for duplicate using snippeReference field (not gatewayOrderId)
       final existingTxn = await _db
           .collection('transactions')
-          .where('gatewayOrderId', isEqualTo: gatewayOrderId)
+          .where('snippeReference', isEqualTo: snippeReference)
           .where('status', isEqualTo: TransactionStatus.completed.name)
           .limit(1)
           .get();
 
       if (existingTxn.docs.isNotEmpty) {
-        log.w('WalletService: Transaction already processed: $gatewayOrderId');
-        return; // Already credited, skip
+        log.w('WalletService: Transaction already processed: $snippeReference');
+        return; // Already credited — idempotency guard
       }
 
-      // Use Firestore transaction for atomicity
       await _db.runTransaction((transaction) async {
-        // 1. Get current wallet
         final walletRef = _db.collection('wallets').doc(userId);
         final walletDoc = await transaction.get(walletRef);
 
@@ -130,21 +125,20 @@ class WalletService {
           wallet = WalletModel.createNew(userId: userId);
         }
 
-        // 2. Update wallet balance
         final updatedWallet = wallet.copyWith(
           balance: wallet.balance + amount,
           totalDeposited: wallet.totalDeposited + amount,
           lastUpdated: DateTime.now(),
         );
 
-        // 3. Save wallet
         transaction.set(walletRef, updatedWallet.toFirestore());
 
-        // 4. Create transaction record
+        // Create transaction record with snippeReference
+        // FIX: Store as snippeReference not gatewayOrderId
         final txn = TransactionModel.deposit(
           userId: userId,
           amount: amount,
-          gatewayOrderId: gatewayOrderId,
+          gatewayOrderId: snippeReference, // model field name kept for compatibility
           description: description,
         ).copyWith(
           status: TransactionStatus.completed,
@@ -166,14 +160,15 @@ class WalletService {
   // DEBIT OPERATIONS (Remove money from wallet)
   //============================================================================
 
-  /// Debit wallet for booking payment
+  /// Debit wallet for booking payment.
   ///
   /// Steps:
-  /// 1. Check if wallet has sufficient balance
-  /// 2. Deduct amount from balance
+  /// 1. Check balance (early exit if insufficient)
+  /// 2. Deduct amount atomically
   /// 3. Update totalSpent
   /// 4. Create payment transaction record
-  /// 5. Return transaction ID
+  /// 5. Update appointment status to 'Confirmed'
+  /// 6. Return transaction ID
   Future<String> debitWalletForBooking({
     required String userId,
     required String salonOwnerId,
@@ -188,7 +183,6 @@ class WalletService {
     try {
       log.i('WalletService: Debiting wallet for booking. User: $userId, Amount: $amount');
 
-      // Check balance first (outside transaction for early exit)
       final canPay = await canAfford(userId, amount);
       if (!canPay) {
         log.w('WalletService: Insufficient balance for user: $userId');
@@ -197,9 +191,7 @@ class WalletService {
 
       String? transactionId;
 
-      // Use Firestore transaction for atomicity
       await _db.runTransaction((transaction) async {
-        // 1. Get current wallet
         final walletRef = _db.collection('wallets').doc(userId);
         final walletDoc = await transaction.get(walletRef);
 
@@ -209,17 +201,15 @@ class WalletService {
 
         final wallet = WalletModel.fromFirestore(walletDoc);
 
-        // 2. Validate wallet status
         if (!wallet.isActive) {
           throw Exception('Wallet is not active');
         }
 
-        // 3. Double-check balance (race condition protection)
+        // Double-check balance inside transaction (race condition protection)
         if (wallet.balance < amount) {
           throw Exception('Insufficient balance');
         }
 
-        // 4. Update wallet
         final updatedWallet = wallet.copyWith(
           balance: wallet.balance - amount,
           totalSpent: wallet.totalSpent + amount,
@@ -228,7 +218,6 @@ class WalletService {
 
         transaction.set(walletRef, updatedWallet.toFirestore());
 
-        // 5. Create payment transaction
         final txn = TransactionModel.payment(
           userId: userId,
           salonOwnerId: salonOwnerId,
@@ -241,7 +230,7 @@ class WalletService {
         transaction.set(txnRef, txn.toFirestore());
         transactionId = txnRef.id;
 
-        // 🔥 FIX: Update appointment status to 'Confirmed'
+        // Update appointment status to 'Confirmed'
         final appointmentRef = _db.collection('appointments').doc(appointmentId);
         transaction.update(appointmentRef, {
           'status': 'Confirmed',
@@ -251,7 +240,8 @@ class WalletService {
           'updatedAt': FieldValue.serverTimestamp(),
         });
 
-        log.i('WalletService: Wallet debited and appointment confirmed. New balance: ${updatedWallet.balance}');
+        log.i('WalletService: Wallet debited and appointment confirmed. '
+            'New balance: ${updatedWallet.balance}');
       });
 
       return transactionId!;
@@ -265,12 +255,7 @@ class WalletService {
   // REFUND OPERATIONS
   //============================================================================
 
-  /// Refund money to wallet after booking cancellation
-  ///
-  /// Steps:
-  /// 1. Add refund amount to wallet balance
-  /// 2. Create refund transaction record
-  /// 3. Link to original appointment
+  /// Refund money to wallet after booking cancellation.
   Future<void> refundToWallet({
     required String userId,
     required String appointmentId,
@@ -285,7 +270,6 @@ class WalletService {
       log.i('WalletService: Processing refund. User: $userId, Amount: $amount');
 
       await _db.runTransaction((transaction) async {
-        // 1. Get wallet
         final walletRef = _db.collection('wallets').doc(userId);
         final walletDoc = await transaction.get(walletRef);
 
@@ -296,7 +280,6 @@ class WalletService {
           wallet = WalletModel.createNew(userId: userId);
         }
 
-        // 2. Update balance (refunds increase balance)
         final updatedWallet = wallet.copyWith(
           balance: wallet.balance + amount,
           lastUpdated: DateTime.now(),
@@ -304,7 +287,6 @@ class WalletService {
 
         transaction.set(walletRef, updatedWallet.toFirestore());
 
-        // 3. Create refund transaction
         final txn = TransactionModel.refund(
           userId: userId,
           appointmentId: appointmentId,
@@ -315,7 +297,7 @@ class WalletService {
         final txnRef = _db.collection('transactions').doc();
         transaction.set(txnRef, txn.toFirestore());
 
-        log.i('WalletService: Refund processed successfully. New balance: ${updatedWallet.balance}');
+        log.i('WalletService: Refund processed. New balance: ${updatedWallet.balance}');
       });
     } catch (e, s) {
       log.e('WalletService: Error processing refund', error: e, stackTrace: s);
@@ -327,16 +309,14 @@ class WalletService {
   // TRANSACTION HISTORY
   //============================================================================
 
-  /// Get all transactions for a user
-  ///
-  /// Ordered by creation date (newest first)
+  /// Get all transactions for a user (stream, newest first, limit 50).
   Stream<List<TransactionModel>> getUserTransactions(String userId) {
     try {
       return _db
           .collection('transactions')
           .where('userId', isEqualTo: userId)
           .orderBy('createdAt', descending: true)
-          .limit(50) // Limit to last 50 transactions
+          .limit(50)
           .snapshots()
           .map((snapshot) => snapshot.docs
           .map((doc) => TransactionModel.fromFirestore(doc))
@@ -347,7 +327,7 @@ class WalletService {
     }
   }
 
-  /// Get recent transactions (last 10)
+  /// Get recent transactions (last 10).
   Future<List<TransactionModel>> getRecentTransactions(String userId) async {
     try {
       final snapshot = await _db
@@ -367,10 +347,10 @@ class WalletService {
   }
 
   //============================================================================
-  // WALLET STATUS MANAGEMENT (Admin operations)
+  // WALLET STATUS MANAGEMENT
   //============================================================================
 
-  /// Freeze a wallet (prevents all operations)
+  /// Freeze a wallet (prevents all operations).
   Future<void> freezeWallet(String userId, {String? reason}) async {
     try {
       log.w('WalletService: Freezing wallet for user: $userId. Reason: $reason');
@@ -384,7 +364,7 @@ class WalletService {
     }
   }
 
-  /// Activate a wallet (restore normal operations)
+  /// Activate a wallet (restore normal operations).
   Future<void> activateWallet(String userId) async {
     try {
       log.i('WalletService: Activating wallet for user: $userId');
