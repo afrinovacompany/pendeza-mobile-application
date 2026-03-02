@@ -1,0 +1,55 @@
+workflows:
+  ios-workflow:
+    name: iOS App Store Build
+    max_build_duration: 120
+    instance_type: mac_mini_m2  # Changed to M2
+    environment:
+      groups:
+        - app_store_creds  # Changed to match your variable group
+      vars:
+        XCODE_VERSION: latest
+        FCI_KEYCHAIN: codemagic_keychain
+        flutter: stable
+        APP_BUNDLE_ID: "com.bps.pendeza"
+
+    scripts:
+      - name: Set up keychain
+        script: keychain initialize
+      
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "$APP_BUNDLE_ID" \
+            --platform IOS \
+            --type IOS_APP_STORE \
+            --create
+          
+          keychain add-certificates
+      
+      - name: Set up Xcode signing
+        script: xcode-project use-profiles
+
+      - name: Get Flutter packages
+        script: flutter pub get
+
+      - name: Install Pods
+        script: |
+          cd ios
+          pod install
+          cd ..
+
+      - name: Build IPA
+        script: |
+          flutter build ipa --release \
+            --export-options-plist=/Users/builder/export_options.plist
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - "*.dSYM.zip"  
+
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
