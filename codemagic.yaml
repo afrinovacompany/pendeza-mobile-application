@@ -3,38 +3,29 @@ workflows:
     name: Pendeza Booking App - iOS App Store
     max_build_duration: 60
     instance_type: mac_mini_m2
-
     integrations:
       app_store_connect: Pendeza Api Key
-
     environment:
       flutter: stable
       xcode: latest
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.bps.pendeza
-        provisioning_profile: pendeza_app_store   # ← this is the important line
-
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
-
       - name: Install CocoaPods
         script: |
           cd ios && pod install --repo-update
-
       - name: Set up code signing
         script: xcode-project use-profiles
-
       - name: Build IPA for App Store
         script: |
           flutter build ipa --release \
             --build-name=1.0 \
             --build-number=1
-
     artifacts:
       - build/ios/ipa/*.ipa
-
     publishing:
       email:
         recipients:
