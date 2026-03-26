@@ -5,12 +5,9 @@ workflows:
     instance_type: mac_mini_m2
 
     integrations:
-      app_store_connect: Pendeza Api Key   # ← must be exact name
+      app_store_connect: Pendeza Api Key
 
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.bps.pendeza
       flutter: stable
       xcode: latest
 
@@ -24,13 +21,15 @@ workflows:
 
       - name: Fetch or create App Store provisioning profile
         script: |
-          app-store-connect fetch-signing-files \
-            --type app-store \
-            --bundle-identifier com.bps.pendeza \
-            --create   # ← this automatically creates the missing profile
+          app-store-connect fetch-signing-files com.bps.pendeza \
+            --type IOS_APP_STORE \
+            --create
 
       - name: Set up code signing
-        script: xcode-project use-profiles
+        script: |
+          keychain initialize
+          keychain add-certificates
+          xcode-project use-profiles
 
       - name: Build IPA for App Store
         script: |
