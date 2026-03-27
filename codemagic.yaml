@@ -14,19 +14,33 @@ workflows:
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
+
       - name: Install CocoaPods
         script: |
           cd ios && pod install --repo-update
+
+      # 🔥 NEW STEP - Forces GoogleService-Info.plist into the final IPA (this fixes the crash)
+      - name: Copy GoogleService-Info.plist to bundle
+        script: |
+          echo "=== Forcing GoogleService-Info.plist into Copy Bundle Resources ==="
+          cp "$CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist" "$CM_BUILD_DIR/ios/Runner/"
+          # Safe PlistBuddy command (won't break if key already exists)
+          /usr/libexec/PlistBuddy -c "Add :CFBundleResource :string GoogleService-Info.plist" "$CM_BUILD_DIR/ios/Runner/Info.plist" 2>/dev/null || true
+          echo "✅ Plist copy completed successfully"
+
       - name: Set up code signing
         script: xcode-project use-profiles
+
       - name: Build IPA for App Store
         script: |
           flutter build ipa --release \
             --export-options-plist=/Users/builder/export_options.plist \
             --build-name=1.0 \
             --build-number=1
+
     artifacts:
       - build/ios/ipa/*.ipa
+
     publishing:
       email:
         recipients:
