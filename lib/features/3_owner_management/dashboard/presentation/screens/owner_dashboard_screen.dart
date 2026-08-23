@@ -11,6 +11,7 @@ import '../bloc/owner_dashboard_bloc.dart';
 import '../bloc/owner_dashboard_event.dart';
 import '../bloc/owner_dashboard_state.dart';
 import '../widgets/dashboard_header.dart';
+import '../widgets/go_live_card.dart';
 import '../widgets/kpi_card.dart';
 import '../widgets/upcoming_appointments_list.dart';
 
@@ -68,7 +69,7 @@ class _DashboardView extends StatelessWidget {
                     Icon(
                       Icons.error_outline,
                       size: 64,
-                      color: Colors.red.withValues(alpha: 0.5),
+                      color: theme.colorScheme.error.withValues(alpha: 0.5),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -117,6 +118,11 @@ class _DashboardView extends StatelessWidget {
                       ),
                       const SizedBox(height: AppConstants.padL),
 
+                      GoLiveCard(checklist: state.checklist),
+                      if (!state.checklist.isListed ||
+                          !state.checklist.isComplete)
+                        const SizedBox(height: AppConstants.padL),
+
                       // Quick Action: Manage Salon Profile
                       _buildManageSalonCard(context, theme),
                       const SizedBox(height: AppConstants.padXL),
@@ -164,8 +170,8 @@ class _DashboardView extends StatelessWidget {
                               title: 'owner.dashboard.revenue'.tr(),
                               value: AppFormatters.formatCurrency(stats.todayRevenue),
                               icon: Icons.trending_up_rounded,
-                              color: Colors.green,
-                              onTap: () {},
+                              color: theme.colorScheme.primary,
+                              onTap: () => context.go(AppRoutes.ownerSchedule),
                             ),
                           ),
                           _buildAnimatedKpi(
@@ -176,8 +182,8 @@ class _DashboardView extends StatelessWidget {
                               value: 'owner.dashboard.appointments_today'
                                   .tr(args: ['${stats.todayAppointmentsCount}']),
                               icon: Icons.calendar_today_rounded,
-                              color: Colors.blue,
-                              onTap: () {},
+                              color: theme.colorScheme.secondary,
+                              onTap: () => context.go(AppRoutes.ownerSchedule),
                             ),
                           ),
                           _buildAnimatedKpi(
@@ -188,8 +194,8 @@ class _DashboardView extends StatelessWidget {
                               value: 'owner.dashboard.clients_week'
                                   .tr(args: ['${stats.newClientsThisWeek}']),
                               icon: Icons.person_add_alt_1_rounded,
-                              color: Colors.orange,
-                              onTap: () {},
+                              color: theme.colorScheme.tertiary,
+                              onTap: () => context.go(AppRoutes.ownerClients),
                             ),
                           ),
                           _buildAnimatedKpi(
@@ -199,7 +205,7 @@ class _DashboardView extends StatelessWidget {
                               title: 'owner.dashboard.promotions'.tr(),
                               value: 'owner.dashboard.promotions_desc'.tr(),
                               icon: Icons.local_offer_rounded,
-                              color: Colors.purple,
+                              color: theme.colorScheme.primary,
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -220,6 +226,8 @@ class _DashboardView extends StatelessWidget {
                         appointments: stats.upcomingAll.isNotEmpty
                             ? stats.upcomingAll
                             : stats.upcomingToday,
+                        onAppointmentTap: () =>
+                            context.go(AppRoutes.ownerSchedule),
                       ),
 
                       const SizedBox(height: 100),
@@ -286,12 +294,12 @@ class _DashboardView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: theme.colorScheme.onPrimary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.store_rounded,
-                color: Colors.white,
+                color: theme.colorScheme.onPrimary,
                 size: 28,
               ),
             ),
@@ -303,7 +311,7 @@ class _DashboardView extends StatelessWidget {
                   Text(
                     'owner.dashboard.manage_salon'.tr(),
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
+                      color: theme.colorScheme.onPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -311,15 +319,15 @@ class _DashboardView extends StatelessWidget {
                   Text(
                     'owner.dashboard.manage_salon_desc'.tr(),
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: theme.colorScheme.onPrimary.withValues(alpha: 0.9),
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.arrow_forward_ios_rounded,
-              color: Colors.white,
+              color: theme.colorScheme.onPrimary,
               size: 20,
             ),
           ],

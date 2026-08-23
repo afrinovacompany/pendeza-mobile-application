@@ -4,7 +4,6 @@ import 'package:pendeza/app/services/firestore_service.dart';
 import 'package:pendeza/app/helpers/video_compressor_helper.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_bloc.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_state.dart';
-import 'package:pendeza/shared/models/salon_video_model.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -22,7 +21,6 @@ class SalonProfileBloc extends Bloc<SalonProfileEvent, SalonProfileState> {
   static const int maxVideosPerSalon = 3;
 
   bool _isVideoUploadCancelled = false;
-  String? _currentUploadVideoId;
 
   SalonProfileBloc({
     required SalonProfileRepository repository,
@@ -64,16 +62,6 @@ class SalonProfileBloc extends Bloc<SalonProfileEvent, SalonProfileState> {
 
     _cachedSalonId = salon.id;
     return salon.id;
-  }
-
-  List<SalonVideoModel> _getCurrentVideos() {
-    final currentState = state;
-    if (currentState is SalonProfileLoaded) return currentState.videos;
-    if (currentState is SalonProfileUploading) return currentState.videos;
-    if (currentState is SalonProfileOperationSuccess) return currentState.videos;
-    if (currentState is SalonVideoUploading) return currentState.videos;
-    if (currentState is SalonVideoError) return currentState.videos;
-    return [];
   }
 
   //============================================================================
@@ -460,7 +448,6 @@ class SalonProfileBloc extends Bloc<SalonProfileEvent, SalonProfileState> {
       Emitter<SalonProfileState> emit,
       ) async {
     _isVideoUploadCancelled = false;
-    _currentUploadVideoId = null;
 
     final currentState = state;
     if (currentState is! SalonProfileLoaded) return;
@@ -606,7 +593,6 @@ class SalonProfileBloc extends Bloc<SalonProfileEvent, SalonProfileState> {
         caption: event.caption,
       );
 
-      _currentUploadVideoId = newVideo.id;
       await VideoCompressionHelper.deleteAllCache();
 
       final updatedVideos = [newVideo, ...currentVideos];
@@ -624,7 +610,6 @@ class SalonProfileBloc extends Bloc<SalonProfileEvent, SalonProfileState> {
       emit(SalonProfileLoaded(salon, videos: currentVideos));
     } finally {
       _isVideoUploadCancelled = false;
-      _currentUploadVideoId = null;
     }
   }
 

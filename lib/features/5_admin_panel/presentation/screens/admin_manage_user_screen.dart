@@ -1,5 +1,8 @@
 import 'package:data_table_2/data_table_2.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'
+    hide DataColumn, DataRow, DataCell, DataTable, DataTableSource;
+import 'package:material_ui/material_ui.dart'
+    show DataCell, DataRow, DataTableSource;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pendeza/app/config/theme/app_colors.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
@@ -7,6 +10,7 @@ import 'package:pendeza/app/config/theme/app_text_styles.dart';
 import 'package:pendeza/features/0_auth/data/models/user_model.dart';
 import 'package:pendeza/features/5_admin_panel/presentation/bloc/admin_bloc.dart';
 import 'package:pendeza/features/5_admin_panel/presentation/bloc/admin_state.dart';
+import 'package:pendeza/features/5_admin_panel/presentation/bloc/admin_event.dart';
 import 'package:pendeza/features/5_admin_panel/presentation/dialog/admin_role_dialog.dart';
 import 'package:pendeza/shared/widgets/profile_avatar.dart';
 
@@ -35,7 +39,21 @@ class AdminManageUsersScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (state is AdminError) {
-            return Center(child: Text(state.message));
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  const SizedBox(height: AppConstants.padM),
+                  Text(state.message),
+                  const SizedBox(height: AppConstants.padM),
+                  ElevatedButton(
+                    onPressed: () => context.read<AdminBloc>().add(LoadAdminData()),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
           }
           if (state is AdminLoaded) {
             return Card(
@@ -82,7 +100,7 @@ class AdminManageUsersScreen extends StatelessWidget {
                 dataRowHeight: 60,
                 headingRowHeight: 56,
                 headingRowColor: WidgetStateProperty.all(
-                  theme.colorScheme.surface.withOpacity(0.5),
+                  theme.colorScheme.surface.withValues(alpha: 0.5),
                 ),
                 // ** FIX: Removed the problematic dataRowColor line **
               ),
@@ -182,7 +200,7 @@ class UserDataTableSource extends DataTableSource {
           fontWeight: FontWeight.bold,
         ),
       ),
-      backgroundColor: color.withOpacity(0.1),
+      backgroundColor: color.withValues(alpha: 0.1),
       side: BorderSide.none,
       padding: const EdgeInsets.symmetric(horizontal: 8),
     );

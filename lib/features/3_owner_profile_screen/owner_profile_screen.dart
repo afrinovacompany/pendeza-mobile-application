@@ -11,7 +11,7 @@ import 'package:pendeza/features/3_owner_profile_screen/help_support_screen.dart
 import 'package:pendeza/features/3_owner_profile_screen/notifications_settings_screen.dart';
 
 import '../../app/config/theme/app_constants.dart';
-import '../../app/bloc/theme_cubit.dart';
+import '../3_owner_management/presentation/owner_chrome.dart';
 import '../../shared/widgets/profile_avatar.dart';
 import '../../shared/widgets/secondary_button.dart';
 import '../0_auth/presentation/bloc/auth_bloc.dart';
@@ -24,7 +24,6 @@ class OwnerProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final themeCubit = context.read<ThemeCubit>();
 
     // Watch AuthBloc state for user info
     final authState = context.watch<AuthBloc>().state;
@@ -40,9 +39,9 @@ class OwnerProfileScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        // Key: "client.profile.title" (Reusing "My Profile" or similar)
-        title: Text('client.profile.title'.tr()),
+      appBar: ownerTabAppBar(
+        context,
+        title: 'client.profile.title'.tr(),
       ),
       body: ListView(
         padding: const EdgeInsets.all(AppConstants.padL),
@@ -63,7 +62,7 @@ class OwnerProfileScreen extends StatelessWidget {
               Text(
                 email,
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -72,9 +71,9 @@ class OwnerProfileScreen extends StatelessWidget {
 
           // --- BUSINESS SECTION ---
           Text(
-            'Business', // Could add key "owner.profile.business_section"
+            'owner.profile.business_section'.tr(),
             style: theme.textTheme.titleSmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               fontWeight: FontWeight.bold,
               letterSpacing: 1.2,
             ),
@@ -85,8 +84,8 @@ class OwnerProfileScreen extends StatelessWidget {
           _buildProfileMenuItem(
             context,
             icon: CupertinoIcons.building_2_fill,
-            title: 'Manage Salon Profile', // Could add key
-            subtitle: 'Photos, hours, contact info', // Could add key
+            title: 'owner.profile.manage_salon'.tr(),
+            subtitle: 'owner.profile.manage_salon_subtitle'.tr(),
             onTap: isLoading ? null : () {
               // Navigate to the salon profile management screen
               context.push('/owner/salon-profile');
@@ -96,9 +95,9 @@ class OwnerProfileScreen extends StatelessWidget {
 
           // --- ACCOUNT SECTION ---
           Text(
-            'Account', // Could add key
+            'owner.profile.account_section'.tr(),
             style: theme.textTheme.titleSmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               fontWeight: FontWeight.bold,
               letterSpacing: 1.2,
             ),
@@ -249,11 +248,11 @@ class OwnerProfileScreen extends StatelessWidget {
       subtitle: Text(
         subtitle,
         style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurface.withOpacity(0.6),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
         ),
       ),
       trailing: const Icon(CupertinoIcons.chevron_forward, size: 18),
-      contentPadding: const EdgeInsets.symmetric(vertical: AppConstants.padXS),
+      contentPadding: const EdgeInsets.symmetric(vertical: AppConstants.padS),
     );
   }
 }

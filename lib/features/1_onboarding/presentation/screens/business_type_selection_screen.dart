@@ -114,7 +114,7 @@ class _BusinessTypeSelectionScreenState extends State<BusinessTypeSelectionScree
                 Text(
                   'business_type.subtitle'.tr(),
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -150,7 +150,7 @@ class _BusinessTypeSelectionScreenState extends State<BusinessTypeSelectionScree
               color: theme.scaffoldBackgroundColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -4),
                 )
@@ -205,7 +205,7 @@ class _BusinessTypeCard extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: isSelected ? primaryColor.withOpacity(0.1) : theme.cardColor,
+          color: isSelected ? primaryColor.withValues(alpha: 0.1) : theme.cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? primaryColor : theme.dividerColor,
@@ -214,7 +214,7 @@ class _BusinessTypeCard extends StatelessWidget {
           boxShadow: isSelected
               ? [
             BoxShadow(
-              color: primaryColor.withOpacity(0.2),
+              color: primaryColor.withValues(alpha: 0.2),
               blurRadius: 8,
               offset: const Offset(0, 4),
             )
@@ -232,7 +232,7 @@ class _BusinessTypeCard extends StatelessWidget {
               ),
               child: Icon(
                 getIcon(type['icon']),
-                color: isSelected ? Colors.white : theme.colorScheme.onSurface.withOpacity(0.7),
+                color: isSelected ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 size: 28,
               ),
             ),

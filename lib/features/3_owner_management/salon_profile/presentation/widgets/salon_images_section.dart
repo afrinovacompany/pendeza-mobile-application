@@ -45,7 +45,7 @@ class SalonImagesSection extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withOpacity(0.1),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppConstants.radiusValL),
                     ),
                     child: Text(
@@ -99,13 +99,13 @@ class SalonImagesSection extends StatelessWidget {
                 Icon(
                   Icons.photo_library_rounded,
                   size: 16,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 const SizedBox(width: AppConstants.padXS),
                 Text(
                   'Gallery',
                   style: theme.textTheme.labelLarge?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -130,15 +130,15 @@ class SalonImagesSection extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            theme.colorScheme.primaryContainer.withOpacity(0.3),
-            theme.colorScheme.secondaryContainer.withOpacity(0.2),
+            theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+            theme.colorScheme.secondaryContainer.withValues(alpha: 0.2),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(AppConstants.radiusValM),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.2),
+          color: theme.colorScheme.primary.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -208,7 +208,7 @@ class SalonImagesSection extends StatelessWidget {
                       gradient: LinearGradient(
                         colors: [
                           theme.dividerColor,
-                          theme.dividerColor.withOpacity(0.5),
+                          theme.dividerColor.withValues(alpha: 0.5),
                         ],
                       ),
                     ),
@@ -233,7 +233,7 @@ class SalonImagesSection extends StatelessWidget {
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                       colors: [
-                        Colors.black.withOpacity(0.6),
+                        Colors.black.withValues(alpha: 0.6),
                         Colors.transparent,
                       ],
                     ),
@@ -313,12 +313,12 @@ class SalonImagesSection extends StatelessWidget {
         width: double.infinity,
         decoration: BoxDecoration(
           border: Border.all(
-            color: theme.colorScheme.primary.withOpacity(0.4),
+            color: theme.colorScheme.primary.withValues(alpha: 0.4),
             width: 2,
             strokeAlign: BorderSide.strokeAlignInside,
           ),
           borderRadius: BorderRadius.circular(AppConstants.radiusValM),
-          color: theme.colorScheme.primary.withOpacity(0.05),
+          color: theme.colorScheme.primary.withValues(alpha: 0.05),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -326,7 +326,7 @@ class SalonImagesSection extends StatelessWidget {
             Icon(
               Icons.add_a_photo_rounded,
               size: 48,
-              color: theme.colorScheme.primary.withOpacity(0.6),
+              color: theme.colorScheme.primary.withValues(alpha: 0.6),
             ),
             const SizedBox(height: AppConstants.padM),
             Text(
@@ -340,7 +340,7 @@ class SalonImagesSection extends StatelessWidget {
             Text(
               'This is the first photo clients see',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],
@@ -401,7 +401,7 @@ class SalonImagesSection extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -432,13 +432,13 @@ class SalonImagesSection extends StatelessWidget {
           Icon(
             Icons.photo_library_outlined,
             size: 36,
-            color: theme.colorScheme.onSurface.withOpacity(0.3),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
           ),
           const SizedBox(height: AppConstants.padS),
           Text(
             'Add more photos to your gallery',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: AppConstants.padS),
@@ -461,7 +461,7 @@ class SalonImagesSection extends StatelessWidget {
         child: Icon(
           Icons.image_not_supported_rounded,
           size: 48,
-          color: theme.colorScheme.onSurface.withOpacity(0.3),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
         ),
       ),
     );
@@ -518,7 +518,7 @@ class SalonImagesSection extends StatelessWidget {
               leading: Container(
                 padding: const EdgeInsets.all(AppConstants.padS),
                 decoration: BoxDecoration(
-                  color: Theme.of(sheetContext).colorScheme.primary.withOpacity(0.1),
+                  color: Theme.of(sheetContext).colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppConstants.radiusValS),
                 ),
                 child: Icon(
@@ -546,7 +546,7 @@ class SalonImagesSection extends StatelessWidget {
               leading: Container(
                 padding: const EdgeInsets.all(AppConstants.padS),
                 decoration: BoxDecoration(
-                  color: Theme.of(sheetContext).colorScheme.secondary.withOpacity(0.1),
+                  color: Theme.of(sheetContext).colorScheme.secondary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppConstants.radiusValS),
                 ),
                 child: Icon(

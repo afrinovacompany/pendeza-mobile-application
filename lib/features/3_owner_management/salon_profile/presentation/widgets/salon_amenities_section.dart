@@ -64,13 +64,13 @@ class SalonAmenitiesSection extends StatelessWidget {
                     Icon(
                       Icons.add_circle_outline,
                       size: 48,
-                      color: theme.colorScheme.primary.withOpacity(0.5),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
                     ),
                     const SizedBox(height: AppConstants.padM),
                     Text(
                       'Add amenities to attract more clients',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -102,11 +102,11 @@ class SalonAmenitiesSection extends StatelessWidget {
         vertical: AppConstants.padS,
       ),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.1),
+        color: theme.colorScheme.primary.withValues(alpha: 0.1),
         // FIX: Use radiusValL (double) instead of radiusL (BorderRadius)
         borderRadius: BorderRadius.circular(AppConstants.radiusValL),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.3),
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -221,7 +221,7 @@ class _EditAmenitiesDialogState extends State<_EditAmenitiesDialog> {
               Text(
                 'Select all that apply to your salon',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
               const SizedBox(height: AppConstants.padL),
@@ -262,7 +262,7 @@ class _EditAmenitiesDialogState extends State<_EditAmenitiesDialog> {
               Container(
                 padding: const EdgeInsets.all(AppConstants.padM),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                   // FIX: Use radiusValM (double) instead of radiusM (BorderRadius)
                   borderRadius: BorderRadius.circular(AppConstants.radiusValM),
                 ),

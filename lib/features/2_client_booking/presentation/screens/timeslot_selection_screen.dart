@@ -183,7 +183,7 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen>
                                   vertical: AppConstants.padXS,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withOpacity(0.1),
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(100),
                                 ),
                                 child: Row(
@@ -221,14 +221,14 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen>
                               Icon(
                                 CupertinoIcons.calendar_badge_minus,
                                 size: 48,
-                                color: theme.colorScheme.onSurface.withOpacity(0.3),
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                               ),
                               const SizedBox(height: AppConstants.padM),
                               Text(
                                 'client.booking.no_slots'.tr(),
                                 style: theme.textTheme.bodyLarge?.copyWith(
                                   fontStyle: FontStyle.italic,
-                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                               ),
                             ],
@@ -330,7 +330,7 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen>
                     Text(
                       'client.booking.total_payable'.tr(),
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -449,13 +449,13 @@ class _EnhancedTimeSlotChipState extends State<_EnhancedTimeSlotChip>
             border: Border.all(
               color: widget.isSelected
                   ? colorScheme.primary
-                  : theme.dividerColor.withOpacity(0.3),
+                  : theme.dividerColor.withValues(alpha: 0.3),
               width: widget.isSelected ? 2.0 : 1.0,
             ),
             boxShadow: widget.isSelected
                 ? [
               BoxShadow(
-                color: colorScheme.primary.withOpacity(0.25),
+                color: colorScheme.primary.withValues(alpha: 0.25),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               )

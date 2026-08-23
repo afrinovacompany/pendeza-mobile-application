@@ -1,4 +1,5 @@
 import 'package:country_code_picker/country_code_picker.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -27,8 +28,8 @@ class PhoneNumberInputField extends StatelessWidget {
     required this.controller,
     required this.onCountryChanged,
     this.enabled = true,
-    this.labelText = 'Phone Number',
-    this.hintText = '712345678',
+    this.labelText,
+    this.hintText,
     this.initialCountryCode, // FIX: Added this parameter
   });
 
@@ -48,22 +49,22 @@ class PhoneNumberInputField extends StatelessWidget {
       ],
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Phone number is required';
+          return 'common.phone_required'.tr();
         }
 
         if (value.length != 9) {
-          return 'Phone number must be 9 digits';
+          return 'common.phone_error_length'.tr();
         }
 
         if (!value.startsWith('6') && !value.startsWith('7')) {
-          return 'Phone number must start with 6 or 7';
+          return 'common.phone_error_prefix'.tr();
         }
 
         return null;
       },
       decoration: InputDecoration(
-        labelText: labelText,
-        hintText: hintText,
+        labelText: labelText ?? 'onboarding.client.phone_label'.tr(),
+        hintText: hintText ?? '712345678',
         prefixIcon: CountryCodePicker(
           onChanged: enabled ? onCountryChanged : null,
           // FIX: Use the provided initialCountryCode or default to 'TZ'
@@ -73,7 +74,7 @@ class PhoneNumberInputField extends StatelessWidget {
           textStyle: theme.textTheme.bodyMedium?.copyWith(
             color: enabled
                 ? theme.colorScheme.onSurface
-                : theme.colorScheme.onSurface.withOpacity(0.38),
+                : theme.colorScheme.onSurface.withValues(alpha: 0.38),
           ),
           dialogTextStyle: theme.textTheme.bodyMedium,
           searchStyle: theme.textTheme.bodyMedium,

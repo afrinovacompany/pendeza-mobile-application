@@ -17,7 +17,7 @@ class ProfileSectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppConstants.radiusValL),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -37,7 +37,7 @@ class ProfileSectionCard extends StatelessWidget {
                   child: Divider(
                     height: 1,
                     thickness: 0.5,
-                    color: theme.dividerColor.withOpacity(0.1),
+                    color: theme.dividerColor.withValues(alpha: 0.1),
                   ),
                 ),
             ],

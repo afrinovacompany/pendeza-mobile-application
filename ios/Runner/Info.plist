@@ -24,6 +24,8 @@
 		<string>????</string>
 		<key>CFBundleVersion</key>
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>UIApplicationSceneManifest</key>
@@ -69,6 +71,9 @@
 		<!-- Camera Permission -->
 		<key>NSCameraUsageDescription</key>
 		<string>Pendeza needs access to your camera to take photos for your profile picture and to share images of your salon or beauty services.</string>
+		<!-- Microphone Permission (required when recording salon videos from the camera) -->
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Pendeza needs access to your microphone to record audio when you capture salon or service videos with the camera.</string>
 		<!-- Photo Library Permissions -->
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>Pendeza needs access to your photo library to select images for your profile, share photos of services, and upload salon gallery images.</string>
@@ -90,6 +95,9 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<!-- Google Sign-In iOS OAuth client (must match GoogleService-Info.plist CLIENT_ID) -->
+		<key>GIDClientID</key>
+		<string>199781494931-a359dme934uuueomfhdnftosrmq5t6a0.apps.googleusercontent.com</string>
 		<!-- URL Schemes for Deep Links and Google Sign-In -->
 		<key>CFBundleURLTypes</key>
 		<array>

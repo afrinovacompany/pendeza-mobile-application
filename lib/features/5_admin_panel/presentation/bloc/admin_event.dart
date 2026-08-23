@@ -61,6 +61,13 @@ class AddPlatformPromotion extends AdminEvent {
   const AddPlatformPromotion({required this.promotion, this.imagePath});
 }
 
+class UpdatePlatformPromotion extends AdminEvent {
+  final PromotionModel promotion;
+  final String? imagePath;
+
+  const UpdatePlatformPromotion({required this.promotion, this.imagePath});
+}
+
 class DeletePlatformPromotion extends AdminEvent {
   final String promotionId;
   const DeletePlatformPromotion(this.promotionId);
@@ -106,4 +113,13 @@ class LoadAllTransactions extends AdminEvent {
 
   @override
   List<Object> get props => [filterType ?? '', filterStatus ?? '', limit];
+}
+
+class LoadAllAppointments extends AdminEvent {
+  final int limit;
+
+  const LoadAllAppointments({this.limit = 200});
+
+  @override
+  List<Object> get props => [limit];
 }

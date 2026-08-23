@@ -98,7 +98,6 @@ class AdaptiveTextField extends StatelessWidget {
     final effectiveStyle = style ?? TextStyle(
       color: textColor,
       fontSize: 16,
-      fontFamily: 'Poppins',
     );
 
     // Build prefix widget
@@ -163,10 +162,10 @@ class AdaptiveTextField extends StatelessWidget {
           suffix: suffixIcon == null ? suffix : null,
           filled: true,
           fillColor: effectiveFillColor,
-          labelStyle: TextStyle(color: labelColor, fontFamily: 'Poppins'),
-          hintStyle: TextStyle(color: hintColor, fontFamily: 'Poppins'),
-          helperStyle: TextStyle(color: labelColor, fontSize: 12, fontFamily: 'Poppins'),
-          errorStyle: const TextStyle(color: AppColors.error, fontSize: 12, fontFamily: 'Poppins'),
+          labelStyle: TextStyle(color: labelColor),
+          hintStyle: TextStyle(color: hintColor),
+          helperStyle: TextStyle(color: labelColor, fontSize: 12),
+          errorStyle: const TextStyle(color: AppColors.error, fontSize: 12),
           contentPadding: effectivePadding,
           border: OutlineInputBorder(
             borderRadius: effectiveRadius,
@@ -198,7 +197,7 @@ class AdaptiveTextField extends StatelessWidget {
         placeholder: hintText ?? labelText,
         prefix: effectivePrefix,
         padding: effectivePadding,
-        placeholderStyle: TextStyle(color: hintColor, fontFamily: 'Poppins'),
+        placeholderStyle: TextStyle(color: hintColor),
         decoration: BoxDecoration(
           color: effectiveFillColor,
           borderRadius: effectiveRadius,
@@ -303,11 +302,9 @@ class _AdaptiveSearchFieldState extends State<AdaptiveSearchField> {
         ),
         style: TextStyle(
           color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-          fontFamily: 'Poppins',
         ),
         placeholderStyle: TextStyle(
           color: isDark ? AppColors.darkTextTertiary : AppColors.textLight,
-          fontFamily: 'Poppins',
         ),
       );
     }
@@ -321,13 +318,11 @@ class _AdaptiveSearchFieldState extends State<AdaptiveSearchField> {
       onSubmitted: widget.onSubmitted,
       style: TextStyle(
         color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
-        fontFamily: 'Poppins',
       ),
       decoration: InputDecoration(
         hintText: widget.hintText,
         hintStyle: TextStyle(
           color: isDark ? AppColors.darkTextTertiary : AppColors.textLight,
-          fontFamily: 'Poppins',
         ),
         filled: true,
         fillColor: bgColor,

@@ -203,7 +203,7 @@ class _OwnerBusinessDetailsScreenState extends State<OwnerBusinessDetailsScreen>
                           child: Text(region['name']),
                         );
                       }).toList(),
-                      onChanged: isLoading ? null : _onRegionChanged,
+                      onChanged: isLoading || _isLoadingRegions ? null : _onRegionChanged,
                       // Key: "onboarding.owner.region_error"
                       validator: (val) => val == null ? 'onboarding.owner.region_error'.tr() : null,
                     ),

@@ -40,7 +40,7 @@ class ProfileStatItem extends StatelessWidget {
             Text(
               label.toUpperCase(),
               style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 letterSpacing: 1.1,
                 fontWeight: FontWeight.w600,
               ),

@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pendeza/app/utils/logger.dart';
 import 'package:pendeza/features/5_admin_panel/data/repositories/admin_repository.dart';
 import 'package:pendeza/features/0_auth/data/models/user_model.dart';
+import 'package:pendeza/shared/models/appointment_model.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
 import 'package:pendeza/shared/models/promotion_model.dart';
 import 'package:pendeza/shared/models/transaction_model.dart';
@@ -36,12 +37,14 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
     on<DeleteArticle>(_onDeleteArticle);
     on<DeleteLookbookItem>(_onDeleteLookbookItem);
     on<AddPlatformPromotion>(_onAddPlatformPromotion);
+    on<UpdatePlatformPromotion>(_onUpdatePlatformPromotion);
     on<DeletePlatformPromotion>(_onDeletePlatformPromotion);
 
     // NEW HANDLERS
     on<LoadNotificationHistory>(_onLoadNotificationHistory);
     on<SendNotification>(_onSendNotification);
     on<LoadAllTransactions>(_onLoadAllTransactions);
+    on<LoadAllAppointments>(_onLoadAllAppointments);
     on<ApproveSalon>(_onApproveSalon);
     on<RejectSalon>(_onRejectSalon);
   }
@@ -57,24 +60,26 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
       final results = await Future.wait([
         _adminRepository.getAllUsers(),
         _adminRepository.getAllSalons(),
-        _inspirationRepository.getArticles(),
-        _inspirationRepository.getLookbook(),
         _adminRepository.getPlatformPromotions(),
+        _adminRepository.getAllAppointments(),
       ]);
 
       final users = results[0] as List<UserModel>;
       final salons = results[1] as List<SalonModel>;
-      final articles = results[2] as List<InspirationArticleModel>;
-      final lookbook = results[3] as List<LookbookImageModel>;
-      final promotions = results[4] as List<PromotionModel>;
+      final promotions = results[2] as List<PromotionModel>;
+      final appointments = results[3] as List<AppointmentModel>;
 
       emit(AdminLoaded(
         users: users,
         salons: salons,
-        articles: articles,
-        lookbook: lookbook,
+        articles: const [], // Inspiration is disabled
+        lookbook: const [], // Inspiration is disabled
         promotions: promotions,
         notifications: currentState?.notifications ?? [],
+        transactions: currentState?.transactions ?? [],
+        appointments: appointments,
+        serviceNames: currentState?.serviceNames ?? const {},
+        totalAppointments: appointments.length,
       ));
     } catch (e, s) {
       log.e('Failed to load admin data', error: e, stackTrace: s);
@@ -197,6 +202,29 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
     }
   }
 
+  Future<void> _onUpdatePlatformPromotion(UpdatePlatformPromotion event, Emitter<AdminState> emit) async {
+    final currentState = state;
+    try {
+      String imageUrl = event.promotion.imageUrl;
+
+      if (event.imagePath != null) {
+        final file = File(event.imagePath!);
+        final fileName = 'promo_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final ref = FirebaseStorage.instance.ref('promotions').child(fileName);
+        await ref.putFile(file);
+        imageUrl = await ref.getDownloadURL();
+      }
+
+      final updatedPromo = event.promotion.copyWith(imageUrl: imageUrl);
+      await _adminRepository.updatePromotion(updatedPromo);
+      add(LoadAdminData());
+    } catch (e, s) {
+      log.e('Failed to update promotion', error: e, stackTrace: s);
+      if (currentState is AdminLoaded) emit(currentState);
+      emit(AdminError(e.toString()));
+    }
+  }
+
   Future<void> _onDeletePlatformPromotion(DeletePlatformPromotion event, Emitter<AdminState> emit) async {
     final currentState = state;
     try {
@@ -262,6 +290,56 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
     }
   }
 
+  Future<void> _onLoadAllAppointments(
+    LoadAllAppointments event,
+    Emitter<AdminState> emit,
+  ) async {
+    final currentState = state is AdminLoaded ? state as AdminLoaded : null;
+    emit(AdminLoading());
+
+    try {
+      final appointments =
+          await _adminRepository.getAllAppointments(limit: event.limit);
+
+      var users = currentState?.users ?? const <UserModel>[];
+      var salons = currentState?.salons ?? const <SalonModel>[];
+      if (users.isEmpty) {
+        users = await _adminRepository.getAllUsers();
+      }
+      if (salons.isEmpty) {
+        salons = await _adminRepository.getAllSalons();
+      }
+
+      final serviceIds = appointments.expand((a) => a.serviceIds).toSet();
+      final serviceNames =
+          await _adminRepository.getServiceNamesByIds(serviceIds);
+
+      log.i('Loaded ${appointments.length} appointments for admin');
+
+      if (currentState != null) {
+        emit(currentState.copyWith(
+          users: users,
+          salons: salons,
+          appointments: appointments,
+          serviceNames: serviceNames,
+          totalAppointments: appointments.length,
+        ));
+      } else {
+        emit(AdminLoaded(
+          users: users,
+          salons: salons,
+          appointments: appointments,
+          serviceNames: serviceNames,
+          totalAppointments: appointments.length,
+        ));
+      }
+    } catch (e, s) {
+      log.e('Failed to load appointments', error: e, stackTrace: s);
+      emit(AdminError('Failed to load bookings: $e'));
+      if (currentState != null) emit(currentState);
+    }
+  }
+
   // NEW: Load all transactions for admin view
   Future<void> _onLoadAllTransactions(LoadAllTransactions event, Emitter<AdminState> emit) async {
     final currentState = state;
@@ -310,6 +388,27 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
     final currentState = state;
     try {
       await _adminRepository.approveSalon(event.salonId);
+      
+      // Fetch salon to get ownerId
+      final salonDoc = await FirebaseFirestore.instance.collection('salons').doc(event.salonId).get();
+      if (salonDoc.exists) {
+        final salonData = salonDoc.data()!;
+        final ownerId = salonData['ownerId'] as String?;
+        final salonName = salonData['salonName'] as String? ?? 'Your salon';
+        
+        if (ownerId != null) {
+          await FirebaseFirestore.instance.collection('notifications').add({
+            'userId': ownerId,
+            'title': 'Salon Approved! 🎉',
+            'body': '$salonName has been approved and is now visible to clients.',
+            'type': 'system',
+            'createdAt': FieldValue.serverTimestamp(),
+            'isRead': false,
+            'actionRoute': '/owner/home',
+          });
+        }
+      }
+
       add(LoadAdminData());
     } catch (e, s) {
       log.e('Failed to approve salon', error: e, stackTrace: s);
@@ -322,6 +421,27 @@ class AdminBloc extends Bloc<AdminEvent, AdminState> {
     final currentState = state;
     try {
       await _adminRepository.rejectSalon(event.salonId, event.reason);
+      
+      // Fetch salon to get ownerId
+      final salonDoc = await FirebaseFirestore.instance.collection('salons').doc(event.salonId).get();
+      if (salonDoc.exists) {
+        final salonData = salonDoc.data()!;
+        final ownerId = salonData['ownerId'] as String?;
+        final salonName = salonData['salonName'] as String? ?? 'Your salon';
+        
+        if (ownerId != null) {
+          await FirebaseFirestore.instance.collection('notifications').add({
+            'userId': ownerId,
+            'title': 'Salon Action Required',
+            'body': '$salonName was not approved. Reason: ${event.reason}',
+            'type': 'system',
+            'createdAt': FieldValue.serverTimestamp(),
+            'isRead': false,
+            'actionRoute': '/owner/salon-profile',
+          });
+        }
+      }
+
       add(LoadAdminData());
     } catch (e, s) {
       log.e('Failed to reject salon', error: e, stackTrace: s);

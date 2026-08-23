@@ -189,7 +189,7 @@ class _AdminManageNotificationsScreenState
         Container(
           padding: const EdgeInsets.all(AppConstants.padS),
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             borderRadius: AppConstants.radiusS,
           ),
           child: const Icon(
@@ -211,7 +211,7 @@ class _AdminManageNotificationsScreenState
             Text(
               'Reach your users instantly',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -421,7 +421,7 @@ class _AdminManageNotificationsScreenState
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.info.withOpacity(0.1),
+                color: AppColors.info.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -439,7 +439,7 @@ class _AdminManageNotificationsScreenState
         Text(
           'Add an image to make your notification more engaging',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
         const SizedBox(height: AppConstants.padM),
@@ -474,7 +474,7 @@ class _AdminManageNotificationsScreenState
             Icon(
               CupertinoIcons.photo_on_rectangle,
               size: 32,
-              color: theme.colorScheme.primary.withOpacity(0.6),
+              color: theme.colorScheme.primary.withValues(alpha: 0.6),
             ),
             const SizedBox(height: 8),
             Text(
@@ -486,7 +486,7 @@ class _AdminManageNotificationsScreenState
             Text(
               'JPG, PNG (max 2MB)',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],
@@ -519,7 +519,7 @@ class _AdminManageNotificationsScreenState
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 borderRadius: AppConstants.radiusM,
               ),
               child: const Center(
@@ -568,7 +568,7 @@ class _AdminManageNotificationsScreenState
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
+                color: AppColors.success.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -586,7 +586,7 @@ class _AdminManageNotificationsScreenState
         Text(
           'Add a button that takes users to a specific screen',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
         const SizedBox(height: AppConstants.padM),
@@ -606,7 +606,7 @@ class _AdminManageNotificationsScreenState
 
         // Route Dropdown
         DropdownButtonFormField<String>(
-          value: _actionRouteController.text.isEmpty
+          initialValue: _actionRouteController.text.isEmpty
               ? ''
               : (_predefinedRoutes
               .any((r) => r['route'] == _actionRouteController.text)
@@ -717,13 +717,13 @@ class _AdminManageNotificationsScreenState
                 Icon(
                   CupertinoIcons.bell_slash,
                   size: 64,
-                  color: theme.colorScheme.onSurface.withOpacity(0.3),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'No notifications sent yet',
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -801,7 +801,7 @@ class _AdminManageNotificationsScreenState
             Container(
               padding: const EdgeInsets.all(AppConstants.padS),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: AppConstants.radiusS,
               ),
               child: Icon(icon, color: color, size: 24),
@@ -819,7 +819,7 @@ class _AdminManageNotificationsScreenState
                 Text(
                   label,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -878,7 +878,7 @@ class _AdminManageNotificationsScreenState
                 Container(
                   padding: const EdgeInsets.all(AppConstants.padXS),
                   decoration: BoxDecoration(
-                    color: audienceColor.withOpacity(0.1),
+                    color: audienceColor.withValues(alpha: 0.1),
                     borderRadius: AppConstants.radiusS,
                   ),
                   child: Icon(audienceIcon, size: 16, color: audienceColor),
@@ -901,8 +901,8 @@ class _AdminManageNotificationsScreenState
                   ),
                   decoration: BoxDecoration(
                     color: delivered
-                        ? AppColors.success.withOpacity(0.1)
-                        : AppColors.warning.withOpacity(0.1),
+                        ? AppColors.success.withValues(alpha: 0.1)
+                        : AppColors.warning.withValues(alpha: 0.1),
                     borderRadius: AppConstants.radiusS,
                   ),
                   child: Row(
@@ -935,7 +935,7 @@ class _AdminManageNotificationsScreenState
             Text(
               body,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
@@ -991,13 +991,13 @@ class _AdminManageNotificationsScreenState
                 Icon(
                   CupertinoIcons.clock,
                   size: 14,
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
                 const SizedBox(width: 4),
                 Text(
                   sentAt != null ? _formatDateTime(sentAt) : 'Unknown time',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
               ],

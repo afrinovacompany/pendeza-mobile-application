@@ -1,21 +1,22 @@
 // login_screen.dart
 // IMPROVED VERSION - Better error handling, loading states, and UX
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../../app/config/app_router.dart';
-import '../../../../app/config/theme/app_constants.dart';
 import '../../../../app/widgets/adaptive/adaptive_app_bar.dart';
-import '../../../../app/widgets/adaptive/adaptive_button.dart';
 import '../../../../app/widgets/adaptive/adaptive_dialog.dart';
+import '../../../../shared/widgets/primary_gradient_button.dart';
+import '../auth_navigation.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../widgets/auth_chrome.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -85,6 +86,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     context.read<AuthBloc>().add(GoogleSignInRequested());
   }
 
+  void _signInWithApple() {
+    context.read<AuthBloc>().add(AppleSignInRequested());
+  }
+
+  bool get _showAppleSignIn =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+
   void _openWebView(BuildContext context, String title, String url) {
     Navigator.push(
       context,
@@ -97,34 +105,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-
-    SystemChrome.setSystemUIOverlayStyle(
-      isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
-    );
 
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        // Handle successful authentication
-        if (state is Authenticated) {
-          final role = state.user.role;
-          if (role == 'owner') {
-            context.go(AppRoutes.ownerHome);
-          } else {
-            context.go(AppRoutes.clientHome);
-          }
-        }
-        // Handle onboarding states
-        else if (state is RoleSelectionRequired) {
+        // Onboarding is routed by GoRouter. Authenticated destination
+        // (home vs pending booking return) is also handled there.
+        if (state is RoleSelectionRequired) {
           context.go(AppRoutes.roleSelection);
         } else if (state is ClientProfileSetupRequired) {
           context.go(AppRoutes.clientSetup);
         } else if (state is OwnerProfileSetupRequired) {
           context.go(AppRoutes.ownerSetup);
-        }
-        // IMPROVED: Handle errors with new error system
-        else if (state is AuthError) {
+        } else if (state is AuthError) {
           _showErrorSnackBar(context, state);
+        } else if (state is Authenticated) {
+          goAfterAuthenticated(context, state);
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(
@@ -136,243 +131,156 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               ? authState.message ?? 'auth.login.signing_in'.tr()
               : 'auth.login.signing_in'.tr();
 
-          return Scaffold(
-            body: SafeArea(
-              child: Stack(
-                children: [
-                  // Main Content
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: Center(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.all(AppConstants.padXL),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Logo & Title
-                              TweenAnimationBuilder<double>(
-                                tween: Tween(begin: 0.0, end: 1.0),
-                                duration: const Duration(milliseconds: 600),
-                                curve: Curves.elasticOut,
-                                builder: (context, value, child) {
-                                  return Transform.scale(
-                                    scale: value,
-                                    child: child,
-                                  );
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(24),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        theme.colorScheme.primary.withOpacity(0.15),
-                                        theme.colorScheme.secondary.withOpacity(0.08),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: theme.colorScheme.primary.withOpacity(0.2),
-                                        blurRadius: 20,
-                                        offset: const Offset(0, 8),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Icon(
-                                    Icons.cut_sharp,
-                                    size: 80,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(height: 32),
-
-                              Text(
-                                'auth.login.title'.tr(),
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.displayMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              Text(
-                                'Choose your preferred sign-in method',
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
-                                ),
-                              ),
-
-                              const SizedBox(height: 48),
-
-                              // Google Sign In Button (Priority)
-                              _buildPrimaryAuthButton(
-                                context: context,
-                                label: 'Continue with Google',
+          return AuthScaffold(
+            isLoading: isLoading,
+            loadingMessage: loadingMessage,
+            body: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: AuthPageBody(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      AuthHeader(
+                        title: 'auth.login.title'.tr(),
+                        subtitle: 'auth.login.subtitle'.tr(),
+                        leading: TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          duration: const Duration(milliseconds: 600),
+                          curve: Curves.elasticOut,
+                          builder: (context, value, child) {
+                            return Transform.scale(
+                              scale: value,
+                              child: child,
+                            );
+                          },
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
-                                    Colors.white,
-                                    Colors.grey.shade50,
+                                    theme.colorScheme.primary.withValues(alpha: 0.15),
+                                    theme.colorScheme.secondary.withValues(alpha: 0.08),
                                   ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
-                                textColor: Colors.black87,
-                                borderColor: Colors.grey.shade300,
-                                onPressed: isLoading ? null : _signInWithGoogle,
-                              ),
-
-                              const SizedBox(height: 16),
-
-                              // Email Sign In Button
-                              _buildSecondaryAuthButton(
-                                context: context,
-                                icon: CupertinoIcons.mail_solid,
-                                label: 'Continue with Email',
-                                color: theme.colorScheme.primary,
-                                onPressed: isLoading
-                                    ? null
-                                    : () => _showEmailLoginSheet(context),
-                              ),
-
-                              const SizedBox(height: 16),
-
-                              // Phone Sign In Button
-                              _buildSecondaryAuthButton(
-                                context: context,
-                                icon: CupertinoIcons.phone_solid,
-                                label: 'Continue with Phone',
-                                color: theme.colorScheme.secondary,
-                                onPressed: isLoading
-                                    ? null
-                                    : () => context.push(AppRoutes.phoneAuth),
-                              ),
-
-                              const SizedBox(height: 32),
-
-                              // Divider
-                              Row(
-                                children: [
-                                  const Expanded(child: Divider()),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                                    child: Text(
-                                      'New to Pendeza?',
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.onSurface.withOpacity(0.5),
-                                      ),
-                                    ),
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 8),
                                   ),
-                                  const Expanded(child: Divider()),
                                 ],
                               ),
-
-                              const SizedBox(height: 24),
-
-                              // Sign Up Button
-                              OutlinedButton(
-                                onPressed: isLoading
-                                    ? null
-                                    : () => context.push(AppRoutes.signup),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  side: BorderSide(
-                                    color: theme.colorScheme.primary.withOpacity(0.3),
-                                    width: 1.5,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: Text(
-                                  'auth.login.signup_link'.tr(),
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                              child: Icon(
+                                Icons.cut_sharp,
+                                size: AuthChrome.iconSize,
+                                color: theme.colorScheme.primary,
                               ),
-
-                              const SizedBox(height: 32),
-
-                              // Privacy Policy & Terms
-                              _buildLegalLinks(context, theme),
-                            ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
 
-                  // IMPROVED: Better Loading Overlay with dynamic message
-                  if (isLoading)
-                    _buildLoadingOverlay(context, theme, loadingMessage),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
+                      const SizedBox(height: AuthChrome.headerGap),
 
-  // ============================================================================
-  // IMPROVED: Animated loading overlay
-  // ============================================================================
-
-  Widget _buildLoadingOverlay(BuildContext context, ThemeData theme, String message) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 200),
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Container(
-            color: Colors.black.withOpacity(0.5 * value),
-            child: Center(
-              child: Transform.scale(
-                scale: 0.8 + (0.2 * value),
-                child: Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: theme.cardColor,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+                      // Google Sign In Button (Priority)
+                      _buildPrimaryAuthButton(
+                        context: context,
+                        label: 'Continue with Google',
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white,
+                            Colors.grey.shade50,
+                          ],
+                        ),
+                        textColor: Colors.black87,
+                        borderColor: Colors.grey.shade300,
+                        onPressed: isLoading ? null : _signInWithGoogle,
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          theme.colorScheme.primary,
+
+                      if (_showAppleSignIn) ...[
+                        const SizedBox(height: AuthChrome.actionGap),
+                        _buildAppleAuthButton(
+                          context: context,
+                          onPressed: isLoading ? null : _signInWithApple,
+                        ),
+                      ],
+
+                      const SizedBox(height: AuthChrome.actionGap),
+
+                      _buildSecondaryAuthButton(
+                        context: context,
+                        icon: CupertinoIcons.mail_solid,
+                        label: 'auth.login.continue_email'.tr(),
+                        color: theme.colorScheme.primary,
+                        onPressed: isLoading
+                            ? null
+                            : () => _showEmailLoginSheet(context),
+                      ),
+
+                      const SizedBox(height: AuthChrome.actionGap),
+
+                      _buildSecondaryAuthButton(
+                        context: context,
+                        icon: CupertinoIcons.phone_solid,
+                        label: 'auth.login.continue_phone'.tr(),
+                        color: theme.colorScheme.secondary,
+                        onPressed: isLoading
+                            ? null
+                            : () => context.push(AppRoutes.phoneAuth),
+                      ),
+
+                      const SizedBox(height: AuthChrome.headerGap),
+
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'auth.login.no_account'.tr(),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                              ),
+                            ),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+
+                      const SizedBox(height: AuthChrome.actionGap),
+
+                      OutlinedButton(
+                        onPressed: isLoading
+                            ? null
+                            : () => context.push(AppRoutes.signup),
+                        style: authOutlinedButtonStyle(theme),
+                        child: Text(
+                          'auth.login.signup_link'.tr(),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      Text(
-                        message,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+
+                      const SizedBox(height: AuthChrome.headerGap),
+
+                      _buildLegalLinks(context, theme),
                     ],
                   ),
                 ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -402,7 +310,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               border: Border.all(color: borderColor, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -424,6 +332,54 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   label,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: textColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppleAuthButton({
+    required BuildContext context,
+    required VoidCallback? onPressed,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isDisabled = onPressed == null;
+    final background = isDark ? Colors.white : Colors.black;
+    final foreground = isDark ? Colors.black : Colors.white;
+
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 200),
+      opacity: isDisabled ? 0.6 : 1.0,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            decoration: BoxDecoration(
+              color: background,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? Colors.white : Colors.black,
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.apple, size: 24, color: foreground),
+                const SizedBox(width: 12),
+                Text(
+                  'Continue with Apple',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: foreground,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -458,15 +414,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  color.withOpacity(0.15),
-                  color.withOpacity(0.08),
+                  color.withValues(alpha: 0.15),
+                  color.withValues(alpha: 0.08),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: color.withOpacity(0.3),
+                color: color.withValues(alpha: 0.3),
                 width: 1.5,
               ),
             ),
@@ -498,7 +454,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         Text(
           'By continuing, you agree to our',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
         GestureDetector(
@@ -519,7 +475,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         Text(
           'and',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
         GestureDetector(
@@ -635,7 +591,7 @@ class _EmailLoginSheetState extends State<_EmailLoginSheet> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AuthChrome.pagePadding),
           child: Form(
             key: _formKey,
             child: Column(
@@ -648,22 +604,22 @@ class _EmailLoginSheetState extends State<_EmailLoginSheet> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurface.withOpacity(0.2),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: AuthChrome.fieldGap),
 
                 Text(
-                  'Sign in with Email',
+                  'auth.login.email_sheet_title'.tr(),
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: AuthChrome.fieldGap),
 
                 // Email Field
                 TextFormField(
@@ -671,7 +627,7 @@ class _EmailLoginSheetState extends State<_EmailLoginSheet> {
                   focusNode: _emailFocusNode,
                   enabled: !_isSubmitting,
                   decoration: InputDecoration(
-                    labelText: 'Email',
+                    labelText: 'auth.login.email_label'.tr(),
                     prefixIcon: const Icon(CupertinoIcons.mail),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -691,7 +647,7 @@ class _EmailLoginSheetState extends State<_EmailLoginSheet> {
                   },
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: AuthChrome.actionGap),
 
                 // Password Field
                 TextFormField(
@@ -700,7 +656,7 @@ class _EmailLoginSheetState extends State<_EmailLoginSheet> {
                   enabled: !_isSubmitting,
                   obscureText: _isPasswordObscured,
                   decoration: InputDecoration(
-                    labelText: 'Password',
+                    labelText: 'auth.login.password_label'.tr(),
                     prefixIcon: const Icon(CupertinoIcons.lock),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -742,38 +698,16 @@ class _EmailLoginSheetState extends State<_EmailLoginSheet> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: AuthChrome.actionGap),
 
-                // Sign In Button
-                ElevatedButton(
+                PrimaryGradientButton(
+                  text: 'auth.login.button'.tr(),
                   onPressed: _isSubmitting ? null : _signInWithEmail,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isSubmitting
-                      ? SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        theme.colorScheme.onPrimary,
-                      ),
-                    ),
-                  )
-                      : Text(
-                    'Sign In',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  isLoading: _isSubmitting,
+                  height: AuthChrome.ctaHeight,
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: AuthChrome.actionGap),
               ],
             ),
           ),

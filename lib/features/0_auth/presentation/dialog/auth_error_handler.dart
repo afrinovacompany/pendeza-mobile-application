@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../widgets/auth_chrome.dart';
 
 /// A mixin that provides consistent auth error handling for StatefulWidgets.
 ///
@@ -51,7 +52,7 @@ mixin AuthErrorHandlerMixin<T extends StatefulWidget> on State<T> {
                 error.recoveryHint!,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                 ),
               ),
             ],
@@ -113,7 +114,7 @@ class AuthErrorHandler extends StatelessWidget {
           children: [
             child,
             if (showLoadingOverlay && state is AuthLoading)
-              _buildLoadingOverlay(context, state),
+              AuthLoadingOverlay(message: state.message),
           ],
         );
       },
@@ -139,7 +140,7 @@ class AuthErrorHandler extends StatelessWidget {
                 error.recoveryHint!,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                 ),
               ),
             ],
@@ -164,33 +165,6 @@ class AuthErrorHandler extends StatelessWidget {
     );
   }
 
-  Widget _buildLoadingOverlay(BuildContext context, AuthLoading state) {
-    return Container(
-      color: Colors.black.withOpacity(0.3),
-      child: Center(
-        child: Card(
-          elevation: 8,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(),
-                if (state.message != null) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    state.message!,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// A specialized error display widget for inline error messages.
@@ -222,7 +196,7 @@ class AuthErrorDisplay extends StatelessWidget {
         color: theme.colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.error.withOpacity(0.3),
+          color: theme.colorScheme.error.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -248,7 +222,7 @@ class AuthErrorDisplay extends StatelessWidget {
                   Text(
                     error!.recoveryHint!,
                     style: TextStyle(
-                      color: theme.colorScheme.onErrorContainer.withOpacity(0.8),
+                      color: theme.colorScheme.onErrorContainer.withValues(alpha: 0.8),
                       fontSize: 12,
                     ),
                   ),
@@ -303,7 +277,7 @@ extension AuthErrorDialogs on BuildContext {
                 error.recoveryHint!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                   fontSize: 14,
                 ),
               ),

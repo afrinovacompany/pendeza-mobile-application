@@ -1,5 +1,8 @@
 import 'package:data_table_2/data_table_2.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'
+    hide DataColumn, DataRow, DataCell, DataTable, DataTableSource;
+import 'package:material_ui/material_ui.dart'
+    show DataColumn, DataTableSource;
 import '../../app/config/theme/app_constants.dart' show AppConstants;
 import 'custom_card.dart';
 
@@ -46,7 +49,7 @@ class CustomDataTable extends StatelessWidget {
         // Styling Configuration
         minWidth: 600, // Provides a minimum width for horizontal scrolling on small screens
         border: TableBorder.all(color: theme.dividerColor, width: 1),
-        headingRowColor: WidgetStateProperty.all(theme.colorScheme.surface.withOpacity(0.5)),
+        headingRowColor: WidgetStateProperty.all(theme.colorScheme.surface.withValues(alpha: 0.5)),
         headingTextStyle: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
         dataTextStyle: textTheme.bodySmall,
         columnSpacing: AppConstants.padM,

@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
-import 'package:pendeza/app/services/firestore_service.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
 import 'package:pendeza/shared/models/salon_video_model.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_bloc.dart';
@@ -10,17 +9,15 @@ import 'package:pendeza/features/0_auth/presentation/bloc/auth_state.dart';
 import 'salon_profile_repository.dart';
 
 class SalonProfileRepositoryImpl implements SalonProfileRepository {
-  final FirestoreService _firestoreService;
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
   final AuthBloc _authBloc;
 
-  SalonProfileRepositoryImpl(
-      this._firestoreService, {
-        required FirebaseFirestore firestore,
-        required FirebaseStorage storage,
-        required AuthBloc authBloc,
-      })  : _firestore = firestore,
+  SalonProfileRepositoryImpl({
+    required FirebaseFirestore firestore,
+    required FirebaseStorage storage,
+    required AuthBloc authBloc,
+  })  : _firestore = firestore,
         _storage = storage,
         _authBloc = authBloc;
 
@@ -196,9 +193,6 @@ class SalonProfileRepositoryImpl implements SalonProfileRepository {
   @override
   Future<void> deleteImage(String imageUrl) async {
     try {
-      // Extract storage path from URL
-      final uri = Uri.parse(imageUrl);
-      // Basic attempt to find path in URL, though refFromURL is safer usually
       final ref = _storage.refFromURL(imageUrl);
       await ref.delete();
     } catch (e) {

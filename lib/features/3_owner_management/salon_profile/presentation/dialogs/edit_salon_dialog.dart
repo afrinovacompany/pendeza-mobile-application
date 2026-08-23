@@ -178,7 +178,7 @@ class _EditContactDialogState extends State<EditContactDialog> {
                 Container(
                   padding: const EdgeInsets.all(AppConstants.padM),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                     // FIX: Use radiusValM (double) instead of radiusM (BorderRadius)
                     borderRadius: BorderRadius.circular(AppConstants.radiusValM),
                   ),

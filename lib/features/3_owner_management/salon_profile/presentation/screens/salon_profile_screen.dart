@@ -64,8 +64,6 @@ class _SalonProfileView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Salon Profile'),
@@ -353,7 +351,7 @@ class _SalonProfileView extends StatelessWidget {
         color: theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
@@ -376,7 +374,7 @@ class _SalonProfileView extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: stageColor.withOpacity(0.1),
+                    color: stageColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(stageIcon, size: 22, color: stageColor),
@@ -410,7 +408,7 @@ class _SalonProfileView extends StatelessWidget {
                           Text(
                             progress > 0 ? '${(progress * 100).toInt()}%' : '...',
                             style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -482,7 +480,7 @@ class _SalonProfileView extends StatelessWidget {
         color: theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -523,7 +521,7 @@ class _SalonProfileView extends StatelessWidget {
                         Text(
                           '${(progress * 100).toInt()}%',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                     ],
@@ -552,15 +550,15 @@ class _SalonProfileView extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            theme.colorScheme.primary.withOpacity(0.1),
-            theme.colorScheme.secondary.withOpacity(0.05),
+            theme.colorScheme.primary.withValues(alpha: 0.1),
+            theme.colorScheme.secondary.withValues(alpha: 0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(AppConstants.radiusValL),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.2),
+          color: theme.colorScheme.primary.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -578,8 +576,8 @@ class _SalonProfileView extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
                     colors: [
-                      completionColor.withOpacity(0.2),
-                      completionColor.withOpacity(0.1),
+                      completionColor.withValues(alpha: 0.2),
+                      completionColor.withValues(alpha: 0.1),
                     ],
                   ),
                   border: Border.all(color: completionColor, width: 3),
@@ -615,14 +613,14 @@ class _SalonProfileView extends StatelessWidget {
                         Icon(
                           Icons.location_on_rounded,
                           size: 14,
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             salon.address,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -639,8 +637,8 @@ class _SalonProfileView extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: salon.isOpen
-                            ? Colors.green.withOpacity(0.1)
-                            : Colors.red.withOpacity(0.1),
+                            ? Colors.green.withValues(alpha: 0.1)
+                            : Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppConstants.radiusValL),
                       ),
                       child: Row(
@@ -676,7 +674,7 @@ class _SalonProfileView extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(AppConstants.padM),
             decoration: BoxDecoration(
-              color: completionColor.withOpacity(0.1),
+              color: completionColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppConstants.radiusValM),
             ),
             child: Row(
@@ -773,7 +771,7 @@ https://pendeza.co.tz/salon/${salon.id}
     final theme = Theme.of(context);
 
     return Material(
-      color: color.withOpacity(0.1),
+      color: color.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(AppConstants.radiusValM),
       child: InkWell(
         onTap: onTap,
@@ -808,7 +806,7 @@ https://pendeza.co.tz/salon/${salon.id}
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withOpacity(0.1),
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppConstants.radiusValS),
           ),
           child: Icon(

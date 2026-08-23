@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
+import '../../../../app/services/auth_service.dart';
 import '../../../../app/services/service_locator.dart';
 import '../../../../app/utils/logger.dart';
 import '../../data/models/user_model.dart';
@@ -34,8 +35,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   // PHONE AUTH STATE
   // ============================================================================
 
-  String? _phoneVerificationId;
-  int? _phoneResendToken;
+  String? _phoneSessionId;
+  String? _phoneNumber;
   DateTime? _phoneVerificationTimestamp;
 
   /// Phone verification codes typically expire after 2 minutes
@@ -65,6 +66,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SignUpRequested>(_onSignUpRequested);
     on<SignInRequested>(_onSignInRequested);
     on<GoogleSignInRequested>(_onGoogleSignInRequested);
+    on<AppleSignInRequested>(_onAppleSignInRequested);
     on<PhoneSignInRequested>(_onPhoneSignInRequested);
     on<OtpVerificationRequested>(_onOtpVerificationRequested);
     on<ReloadUser>(_onReloadUser);
@@ -147,6 +149,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   /// Converts Firebase exceptions to user-friendly messages
   String _mapFirebaseError(dynamic error) {
+    if (error is PhoneAuthException) {
+      return error.message;
+    }
     if (error is firebase.FirebaseAuthException) {
       switch (error.code) {
       // Sign Up Errors
@@ -175,11 +180,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         case 'invalid-phone-number':
           return 'Please enter a valid phone number with country code.';
         case 'invalid-verification-code':
+        case 'invalid-otp':
           return 'The verification code is incorrect. Please check and try again.';
         case 'session-expired':
           return 'Verification code has expired. Please request a new code.';
         case 'quota-exceeded':
           return 'SMS quota exceeded. Please try again later.';
+        case 'cooldown':
+          return 'Too many attempts. Please wait a moment and try again.';
 
       // Network Errors
         case 'network-request-failed':
@@ -210,6 +218,31 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     return 'An unexpected error occurred. Please try again.';
   }
 
+  AuthError _mapToAuthError(dynamic error) {
+    if (error is PhoneAuthException) {
+      return AuthError(
+        error.message,
+        code: switch (error.code) {
+          'invalid-phone-number' => AuthErrorCode.invalidPhoneNumber,
+          'invalid-otp' || 'invalid-verification-code' =>
+            AuthErrorCode.invalidVerificationCode,
+          'session-expired' => AuthErrorCode.verificationCodeExpired,
+          'cooldown' || 'too-many-requests' => AuthErrorCode.tooManyRequests,
+          'quota-exceeded' => AuthErrorCode.smsQuotaExceeded,
+          'network' => AuthErrorCode.networkError,
+          _ => AuthErrorCode.unknown,
+        },
+        isRecoverable: true,
+        recoveryHint: error.recoveryHint,
+        originalError: error,
+      );
+    }
+    return AuthError(
+      _mapFirebaseError(error),
+      originalError: error,
+    );
+  }
+
   // ============================================================================
   // APP INITIALIZATION
   // ============================================================================
@@ -236,12 +269,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     })
         .listen(
           (firebaseUser) {
-        // Only process if not already processing
-        if (!_isProcessing) {
-          add(AuthStateChanged(firebaseUser));
-        } else {
-          log.d('Skipping auth state change - already processing');
-        }
+        add(AuthStateChanged(firebaseUser));
       },
       onError: (error) {
         log.e('Auth state stream error', error: error);
@@ -426,6 +454,39 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
+  Future<void> _onAppleSignInRequested(
+      AppleSignInRequested event,
+      Emitter<AuthState> emit,
+      ) async {
+    _safeEmit(emit, AuthLoading());
+
+    try {
+      log.i('Apple sign in requested');
+
+      await _authRepository.signInWithApple();
+
+      _currentGuestUser = null;
+
+      log.i('Apple sign in successful');
+    } catch (e, s) {
+      if (e is AuthCancelledException) {
+        log.i('Apple sign in cancelled by user');
+        _safeEmit(emit, _fallbackState);
+        return;
+      }
+
+      final errorString = e.toString().toLowerCase();
+      if (errorString.contains('cancel') || errorString.contains('aborted')) {
+        log.i('Apple sign in cancelled by user');
+        _safeEmit(emit, _fallbackState);
+        return;
+      }
+
+      log.e('Error during Apple sign in', error: e, stackTrace: s);
+      _safeEmit(emit, AuthError(_mapFirebaseError(e)));
+    }
+  }
+
   // ============================================================================
   // PHONE AUTH HANDLERS - Improved with expiration tracking
   // ============================================================================
@@ -439,28 +500,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       log.i('Phone sign in requested for: ${event.phoneNumber}');
 
-      await _authRepository.signInWithPhone(
+      final sessionId = await _authRepository.requestPhoneOtp(
         phoneNumber: event.phoneNumber,
-        codeSent: (String verificationId, int? resendToken) {
-          _phoneVerificationId = verificationId;
-          _phoneResendToken = resendToken;
-          _phoneVerificationTimestamp = DateTime.now();
-
-          log.i('SMS code sent successfully');
-
-          _safeEmit(emit, PhoneVerificationCodeSent(
-            verificationId: verificationId,
-            phoneNumber: event.phoneNumber,
-          ));
-        },
-        verificationFailed: (firebase.FirebaseAuthException e) {
-          log.e('Phone verification failed: ${e.code} - ${e.message}');
-          _safeEmit(emit, AuthError(_mapFirebaseError(e)));
-        },
       );
+
+      _phoneSessionId = sessionId;
+      _phoneNumber = event.phoneNumber;
+      _phoneVerificationTimestamp = DateTime.now();
+
+      log.i('Briq OTP sent successfully');
+
+      _safeEmit(emit, PhoneVerificationCodeSent(
+        sessionId: sessionId,
+        phoneNumber: event.phoneNumber,
+      ));
     } catch (e, s) {
       log.e('Error during phone sign in', error: e, stackTrace: s);
-      _safeEmit(emit, AuthError(_mapFirebaseError(e)));
+      _safeEmit(emit, _mapToAuthError(e));
     }
   }
 
@@ -473,11 +529,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final elapsed = DateTime.now().difference(_phoneVerificationTimestamp!);
       if (elapsed > _phoneVerificationTimeout) {
         log.w('Phone verification code has expired');
-        _safeEmit(emit, const AuthError(
-          'Verification code has expired. Please request a new code.',
-        ));
+        _safeEmit(emit, AuthError.verificationExpired());
         return;
       }
+    }
+
+    final sessionId = event.sessionId.isNotEmpty
+        ? event.sessionId
+        : (_phoneSessionId ?? '');
+    if (sessionId.isEmpty) {
+      _safeEmit(emit, AuthError.verificationExpired());
+      return;
     }
 
     _safeEmit(emit, AuthLoading());
@@ -486,22 +548,52 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       log.i('OTP verification requested');
 
       await _authRepository.verifyOtp(
-        verificationId: event.verificationId,
+        sessionId: sessionId,
         smsCode: event.smsCode,
+        phoneNumber: _phoneNumber,
       );
 
       // Clear phone auth state
-      _phoneVerificationId = null;
-      _phoneResendToken = null;
+      _phoneSessionId = null;
+      _phoneNumber = null;
       _phoneVerificationTimestamp = null;
       _currentGuestUser = null;
 
       log.i('OTP verification successful');
-      // Auth state change listener will handle navigation
 
+      // Don't wait for the auth-state stream — it can be dropped by
+      // distinct()/in-flight guards, which left OTP stuck until hot restart.
+      final firebaseUser = _authRepository.currentUser;
+      if (firebaseUser == null) {
+        _safeEmit(
+          emit,
+          const AuthError(
+            'Verification succeeded but sign-in failed. Please try again.',
+          ),
+        );
+        return;
+      }
+
+      UserModel? userModel = await _fetchUserProfileWithRetry(firebaseUser.uid);
+      if (userModel == null) {
+        await _authRepository.createUserProfile(firebaseUser);
+        userModel = await _fetchUserProfileWithRetry(firebaseUser.uid);
+      }
+      if (userModel == null) {
+        _safeEmit(
+          emit,
+          const AuthError(
+            'Failed to set up your profile. Please check your connection and try again.',
+          ),
+        );
+        return;
+      }
+
+      _lastProcessedUid = firebaseUser.uid;
+      await _emitAuthStateForUser(userModel, emit);
     } catch (e, s) {
       log.e('Error during OTP verification', error: e, stackTrace: s);
-      _safeEmit(emit, AuthError(_mapFirebaseError(e)));
+      _safeEmit(emit, _mapToAuthError(e));
       // Don't clear verification state - user might want to retry
     }
   }
@@ -877,8 +969,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       // Reset state
       _lastProcessedUid = null;
-      _phoneVerificationId = null;
-      _phoneResendToken = null;
+      _phoneSessionId = null;
+      _phoneNumber = null;
       _phoneVerificationTimestamp = null;
 
       // Create fresh guest user

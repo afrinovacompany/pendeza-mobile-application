@@ -222,7 +222,6 @@ class _FilterPanelState extends State<FilterPanel>
             theme: theme,
             label: 'categories.${category.name}'.tr(),
             isSelected: isSelected,
-            color: Color(category.color),
             onTap: () => setState(() => _selectedCategoryId = category.id),
           );
         }),
@@ -234,10 +233,9 @@ class _FilterPanelState extends State<FilterPanel>
     required ThemeData theme,
     required String label,
     required bool isSelected,
-    Color? color,
     required VoidCallback onTap,
   }) {
-    final chipColor = color ?? theme.colorScheme.primary;
+    final colorScheme = theme.colorScheme;
 
     return GestureDetector(
       onTap: onTap,
@@ -249,31 +247,19 @@ class _FilterPanelState extends State<FilterPanel>
           vertical: AppConstants.padS + 2,
         ),
         decoration: BoxDecoration(
-          gradient: isSelected
-              ? LinearGradient(
-            colors: [chipColor, chipColor.withValues(alpha: 0.8)],
-          )
-              : null,
-          color: isSelected ? null : theme.colorScheme.surface,
+          color: isSelected ? colorScheme.primary : colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? chipColor : theme.colorScheme.outline.withValues(alpha: 0.3),
+            color: isSelected
+                ? colorScheme.primary
+                : colorScheme.outline.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
           ),
-          boxShadow: isSelected
-              ? [
-            BoxShadow(
-              color: chipColor.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            )
-          ]
-              : null,
         ),
         child: Text(
           label,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+            color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),

@@ -4,7 +4,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pendeza/app/config/app_router.dart';
-import 'package:pendeza/app/widgets/adaptive/adaptive_text_field.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
 import 'package:pendeza/shared/widgets/empty_state_widget.dart';
 import 'package:pendeza/shared/widgets/loading_indicator.dart';
@@ -39,7 +38,7 @@ class DiscoveryScreen extends StatefulWidget {
 
 class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard {
   final TextEditingController _searchController = TextEditingController();
-  String? _selectedCategory;
+  String? _lastRouteCategory;
 
   late final GuestSessionTracker _sessionTracker;
   late final LocalStorageService _localStorage;
@@ -52,15 +51,27 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
     _localStorage = sl<LocalStorageService>();
     final authState = context.read<AuthBloc>().state;
     _isGuest = authState is GuestMode;
+  }
 
-    if (widget.initialCategoryId != null) {
-      _selectedCategory = widget.initialCategoryId;
-      context.read<DiscoveryBloc>().add(FilterByCategory(widget.initialCategoryId));
-    } else {
-      final state = context.read<DiscoveryBloc>().state;
-      if (state is DiscoveryInitial) {
-        context.read<DiscoveryBloc>().add(const LoadSalons());
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final extra = GoRouterState.of(context).extra;
+    final fromRoute = extra is String && extra.isNotEmpty
+        ? extra
+        : widget.initialCategoryId;
+
+    if (fromRoute != _lastRouteCategory) {
+      _lastRouteCategory = fromRoute;
+      if (fromRoute != null) {
+        context.read<DiscoveryBloc>().add(FilterByCategory(fromRoute));
+        return;
       }
+    }
+
+    final state = context.read<DiscoveryBloc>().state;
+    if (state is DiscoveryInitial) {
+      context.read<DiscoveryBloc>().add(const LoadSalons());
     }
   }
 
@@ -69,10 +80,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
     super.didUpdateWidget(oldWidget);
     if (widget.initialCategoryId != oldWidget.initialCategoryId &&
         widget.initialCategoryId != null) {
-      setState(() {
-        _selectedCategory = widget.initialCategoryId;
-      });
-      context.read<DiscoveryBloc>().add(FilterByCategory(widget.initialCategoryId));
+      context.read<DiscoveryBloc>().add(
+            FilterByCategory(widget.initialCategoryId),
+          );
     }
   }
 
@@ -94,9 +104,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
   }
 
   void _handleCategoryFilter(String? categoryId) {
-    setState(() {
-      _selectedCategory = categoryId;
-    });
     context.read<DiscoveryBloc>().add(FilterByCategory(categoryId));
 
     if (_isGuest && categoryId != null) {
@@ -371,36 +378,44 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
   Widget _buildCategoryChips(ThemeData theme) {
     return SizedBox(
       height: 44,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-        itemCount: CategoriesData.allCategories.length + 1,
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            final isSelected = _selectedCategory == null;
-            return Padding(
-              padding: const EdgeInsets.only(right: AppConstants.padS),
-              child: _buildCategoryChip(
-                theme: theme,
-                label: 'client.discover.all'.tr(),
-                isSelected: isSelected,
-                onTap: () => _handleCategoryFilter(null),
-              ),
-            );
-          }
+      child: BlocBuilder<DiscoveryBloc, DiscoveryState>(
+        buildWhen: (previous, current) {
+          final prevId = previous is DiscoveryLoaded ? previous.filters.categoryId : null;
+          final currId = current is DiscoveryLoaded ? current.filters.categoryId : null;
+          return prevId != currId;
+        },
+        builder: (context, state) {
+          final selectedId =
+              state is DiscoveryLoaded ? state.filters.categoryId : null;
 
-          final category = CategoriesData.allCategories[index - 1];
-          final isSelected = _selectedCategory == category.id;
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
+            itemCount: CategoriesData.allCategories.length + 1,
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: AppConstants.padS),
+                  child: _buildCategoryChip(
+                    theme: theme,
+                    label: 'client.discover.all'.tr(),
+                    isSelected: selectedId == null,
+                    onTap: () => _handleCategoryFilter(null),
+                  ),
+                );
+              }
 
-          return Padding(
-            padding: const EdgeInsets.only(right: AppConstants.padS),
-            child: _buildCategoryChip(
-              theme: theme,
-              label: 'categories.${category.name}'.tr(),
-              isSelected: isSelected,
-              color: Color(category.color),
-              onTap: () => _handleCategoryFilter(category.id),
-            ),
+              final category = CategoriesData.allCategories[index - 1];
+              return Padding(
+                padding: const EdgeInsets.only(right: AppConstants.padS),
+                child: _buildCategoryChip(
+                  theme: theme,
+                  label: 'categories.${category.name}'.tr(),
+                  isSelected: selectedId == category.id,
+                  onTap: () => _handleCategoryFilter(category.id),
+                ),
+              );
+            },
           );
         },
       ),
@@ -411,10 +426,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
     required ThemeData theme,
     required String label,
     required bool isSelected,
-    Color? color,
     required VoidCallback onTap,
   }) {
-    final chipColor = color ?? theme.colorScheme.primary;
+    final colorScheme = theme.colorScheme;
 
     return AnimatedContainer(
       duration: AppConstants.durationFast,
@@ -427,33 +441,19 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
             vertical: AppConstants.padS,
           ),
           decoration: BoxDecoration(
-            gradient: isSelected
-                ? LinearGradient(
-              colors: [chipColor, chipColor.withValues(alpha: 0.8)],
-            )
-                : null,
-            color: isSelected ? null : theme.colorScheme.surface,
+            color: isSelected ? colorScheme.primary : colorScheme.surface,
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
               color: isSelected
-                  ? chipColor
-                  : theme.colorScheme.outline.withValues(alpha: 0.2),
+                  ? colorScheme.primary
+                  : colorScheme.outline.withValues(alpha: 0.2),
               width: isSelected ? 2 : 1,
             ),
-            boxShadow: isSelected
-                ? [
-              BoxShadow(
-                color: chipColor.withValues(alpha: 0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ]
-                : [],
           ),
           child: Text(
             label,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+              color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
               fontSize: 13,
             ),

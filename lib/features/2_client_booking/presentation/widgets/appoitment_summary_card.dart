@@ -22,7 +22,7 @@ class AppointmentSummaryCard extends StatelessWidget {
     return CustomCard(
       padding: const EdgeInsets.all(AppConstants.padL),
       // Use primary color with low opacity for background
-      color: theme.colorScheme.primary.withOpacity(0.05),
+      color: theme.colorScheme.primary.withValues(alpha: 0.05),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -72,7 +72,7 @@ class AppointmentSummaryCard extends StatelessWidget {
             value,
             style: theme.textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w500, // Make details slightly bolder
-              color: theme.colorScheme.onSurface.withOpacity(0.9), // Slightly darker text
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.9), // Slightly darker text
             ),
           ),
         ),

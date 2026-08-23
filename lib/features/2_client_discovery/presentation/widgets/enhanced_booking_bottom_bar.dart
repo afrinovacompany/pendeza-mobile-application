@@ -5,16 +5,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pendeza/app/config/app_router.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
-import 'package:pendeza/app/services/service_locator.dart';
 import 'package:pendeza/app/utils/business_hours_utils.dart';
 import 'package:pendeza/app/utils/formatters.dart';
 import 'package:pendeza/app/utils/navigation_guard.dart';
-import 'package:pendeza/features/2_client_booking/domain/repositories/booking_repository.dart';
 import 'package:pendeza/features/2_client_booking/presentation/bloc/booking_bloc.dart';
 import 'package:pendeza/features/2_client_booking/presentation/bloc/booking_event.dart';
 import 'package:pendeza/features/3_reviews/presentation/bloc/reviews_bloc.dart';
 import 'package:pendeza/features/3_reviews/presentation/bloc/reviews_state.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
+import 'package:pendeza/shared/models/service_model.dart';
 
 /// Enhanced booking bottom bar with rating, status indicator, and starting price.
 ///
@@ -26,10 +25,14 @@ import 'package:pendeza/shared/models/salon_model.dart';
 /// - Disabled state when closed (grey gradient)
 class EnhancedBookingBottomBar extends StatefulWidget {
   final SalonModel salon;
+  final List<ServiceModel>? services;
+  final bool servicesLoading;
 
   const EnhancedBookingBottomBar({
     super.key,
     required this.salon,
+    this.services,
+    this.servicesLoading = false,
   });
 
   @override
@@ -38,36 +41,18 @@ class EnhancedBookingBottomBar extends StatefulWidget {
 }
 
 class _EnhancedBookingBottomBarState extends State<EnhancedBookingBottomBar> {
-  double? _startingPrice;
-  bool _loadingPrice = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadStartingPrice();
+  double? get _startingPrice {
+    final services = widget.services;
+    if (services == null || services.isEmpty) return null;
+    return services
+        .map((s) => s.effectivePrice)
+        .reduce((a, b) => a < b ? a : b);
   }
 
-  Future<void> _loadStartingPrice() async {
-    try {
-      final services =
-          await sl<BookingRepository>().getServicesForSalon(widget.salon.id);
-      final activeServices = services.where((s) => s.isActive).toList();
+  bool get _loadingPrice => widget.servicesLoading;
 
-      if (activeServices.isNotEmpty && mounted) {
-        final minPrice = activeServices
-            .map((s) => s.effectivePrice)
-            .reduce((a, b) => a < b ? a : b);
-        setState(() {
-          _startingPrice = minPrice;
-          _loadingPrice = false;
-        });
-      } else if (mounted) {
-        setState(() => _loadingPrice = false);
-      }
-    } catch (e) {
-      if (mounted) setState(() => _loadingPrice = false);
-    }
-  }
+  bool get _hasNoServices =>
+      !widget.servicesLoading && (widget.services?.isEmpty ?? true);
 
   void _startBooking(BuildContext context) {
     if (!NavigationDebouncer.shouldNavigate('book_now_${widget.salon.id}')) {
@@ -98,7 +83,7 @@ class _EnhancedBookingBottomBarState extends State<EnhancedBookingBottomBar> {
         color: theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: theme.colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),
@@ -135,10 +120,10 @@ class _EnhancedBookingBottomBarState extends State<EnhancedBookingBottomBar> {
                             return Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
+                                Icon(
                                   CupertinoIcons.star_fill,
                                   size: 14,
-                                  color: Colors.amber,
+                                  color: theme.colorScheme.tertiary,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
@@ -216,6 +201,13 @@ class _EnhancedBookingBottomBarState extends State<EnhancedBookingBottomBar> {
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
+                      )
+                    else if (_hasNoServices)
+                      Text(
+                        'No services yet',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                   ],
                 ),
@@ -223,8 +215,7 @@ class _EnhancedBookingBottomBarState extends State<EnhancedBookingBottomBar> {
 
               const SizedBox(width: AppConstants.padM),
 
-              // Book Now Button (disabled only for pending approval salons)
-              _buildBookButton(context, isBookable),
+              _buildBookButton(context, isBookable && !_hasNoServices),
             ],
           ),
         ),
@@ -244,8 +235,8 @@ class _EnhancedBookingBottomBarState extends State<EnhancedBookingBottomBar> {
           )
         : LinearGradient(
             colors: [
-              Colors.grey.shade400,
-              Colors.grey.shade500,
+              theme.colorScheme.outline,
+              theme.colorScheme.outline.withValues(alpha: 0.8),
             ],
           );
 
@@ -281,16 +272,22 @@ class _EnhancedBookingBottomBarState extends State<EnhancedBookingBottomBar> {
                   isBookable
                       ? CupertinoIcons.calendar_badge_plus
                       : CupertinoIcons.clock,
-                  color: Colors.white,
+                  color: isBookable
+                      ? theme.colorScheme.onPrimary
+                      : theme.colorScheme.onSurface,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  isBookable
-                      ? 'client.appointments.book_now'.tr()
-                      : 'Pending Approval',
+                  !widget.salon.isBookable
+                      ? 'Pending Approval'
+                      : _hasNoServices
+                          ? 'Unavailable'
+                          : 'client.appointments.book_now'.tr(),
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
+                    color: isBookable
+                        ? theme.colorScheme.onPrimary
+                        : theme.colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
                   ),
                 ),

@@ -89,7 +89,7 @@ class _AdminRoleDialogState extends State<AdminRoleDialog>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 30,
                 offset: const Offset(0, 10),
               ),
@@ -113,7 +113,7 @@ class _AdminRoleDialogState extends State<AdminRoleDialog>
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -140,7 +140,7 @@ class _AdminRoleDialogState extends State<AdminRoleDialog>
                             widget.user.fullName,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -151,7 +151,7 @@ class _AdminRoleDialogState extends State<AdminRoleDialog>
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(CupertinoIcons.xmark, color: Colors.white),
                       style: IconButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.2),
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
                       ),
                     ),
                   ],
@@ -176,7 +176,7 @@ class _AdminRoleDialogState extends State<AdminRoleDialog>
                       'Choose the appropriate role for this user',
                       style: AppTextStyles.caption.copyWith(
                         color: isDark
-                            ? Colors.white.withOpacity(0.6)
+                            ? Colors.white.withValues(alpha: 0.6)
                             : AppColors.textSecondary,
                       ),
                     ),
@@ -227,7 +227,7 @@ class _AdminRoleDialogState extends State<AdminRoleDialog>
                           ),
                           elevation: 0,
                           disabledBackgroundColor: isDark
-                              ? Colors.white.withOpacity(0.1)
+                              ? Colors.white.withValues(alpha: 0.1)
                               : AppColors.border,
                         ),
                         child: FittedBox(
@@ -270,13 +270,13 @@ class _AdminRoleDialogState extends State<AdminRoleDialog>
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
-              ? roleOption.color.withOpacity(0.1)
-              : (isDark ? Colors.white.withOpacity(0.03) : AppColors.background),
+              ? roleOption.color.withValues(alpha: 0.1)
+              : (isDark ? Colors.white.withValues(alpha: 0.03) : AppColors.background),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
                 ? roleOption.color
-                : (isDark ? Colors.white.withOpacity(0.05) : AppColors.border),
+                : (isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.border),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -285,7 +285,7 @@ class _AdminRoleDialogState extends State<AdminRoleDialog>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: roleOption.color.withOpacity(0.1),
+                color: roleOption.color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(roleOption.icon, color: roleOption.color, size: 24),
@@ -307,7 +307,7 @@ class _AdminRoleDialogState extends State<AdminRoleDialog>
                     roleOption.description,
                     style: AppTextStyles.caption.copyWith(
                       color: isDark
-                          ? Colors.white.withOpacity(0.6)
+                          ? Colors.white.withValues(alpha: 0.6)
                           : AppColors.textSecondary,
                     ),
                   ),
@@ -324,7 +324,7 @@ class _AdminRoleDialogState extends State<AdminRoleDialog>
                 border: Border.all(
                   color: isSelected
                       ? roleOption.color
-                      : (isDark ? Colors.white.withOpacity(0.3) : AppColors.border),
+                      : (isDark ? Colors.white.withValues(alpha: 0.3) : AppColors.border),
                   width: 2,
                 ),
               ),

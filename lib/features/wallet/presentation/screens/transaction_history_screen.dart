@@ -142,7 +142,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             Icon(
               CupertinoIcons.doc_text,
               size: 80,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: AppConstants.padL),
             Text(
@@ -157,7 +157,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             Text(
               'Your transactions will appear here',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -252,11 +252,11 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: theme.dividerColor.withOpacity(0.1),
+            color: theme.dividerColor.withValues(alpha: 0.1),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -268,7 +268,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.15),
+                color: iconColor.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: iconColor, size: 28),
@@ -298,7 +298,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: _getStatusColor(transaction.status)
-                              .withOpacity(0.15),
+                              .withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -314,7 +314,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                       Text(
                         DateFormat('h:mm a').format(transaction.createdAt),
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -481,7 +481,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                 color: Theme.of(context)
                     .colorScheme
                     .onSurface
-                    .withOpacity(0.6),
+                    .withValues(alpha: 0.6),
               ),
             ),
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:pendeza/app/config/app_config.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/app/utils/formatters.dart';
 import 'package:pendeza/features/2_client_appointments/domain/models/appointment_with_details.dart';
@@ -232,8 +233,11 @@ class AppointmentCard extends StatelessWidget {
             ),
           ),
 
+          // TEMPORARILY DISABLED - Payments turned off for App Store submission
           // Pending payment action button
-          if (status == AppointmentStatus.pendingPayment && onCompletePayment != null) ...[
+          if (AppConfig.paymentsEnabled &&
+              status == AppointmentStatus.pendingPayment &&
+              onCompletePayment != null) ...[
             const SizedBox(height: AppConstants.padM),
             Container(
               decoration: BoxDecoration(

@@ -70,7 +70,7 @@ class CustomBottomNavBar extends StatelessWidget {
         color: theme.cardColor,
         boxShadow: [
           BoxShadow(
-            color: theme.shadowColor.withOpacity(0.1),
+            color: theme.shadowColor.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -85,7 +85,7 @@ class CustomBottomNavBar extends StatelessWidget {
             final bool isActive = index == currentIndex;
             final Color itemColor = isActive
                 ? colorScheme.primary
-                : colorScheme.onSurface.withOpacity(0.6);
+                : colorScheme.onSurface.withValues(alpha: 0.6);
 
             return Expanded(
               child: _NavBarItem(

@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/models/dashboard_stats.dart';
+import '../../domain/models/go_live_checklist.dart';
 
 
 abstract class OwnerDashboardState extends Equatable {
@@ -23,14 +24,16 @@ class OwnerDashboardLoading extends OwnerDashboardState {
 class OwnerDashboardLoaded extends OwnerDashboardState {
   final DashboardStats stats;
   final String salonName;
+  final GoLiveChecklist checklist;
 
   const OwnerDashboardLoaded({
     required this.stats,
     required this.salonName,
+    required this.checklist,
   });
 
   @override
-  List<Object> get props => [stats, salonName];
+  List<Object> get props => [stats, salonName, checklist];
 }
 
 /// Error loading dashboard data

@@ -37,21 +37,33 @@
     "date_weeks_ago": "{}w ago",
     "retry": "Retry",
     "delete": "Delete",
-    "undo": "Undo"
+    "undo": "Undo",
+    "phone_required": "Phone number is required",
+    "phone_error_length": "Phone number must be 9 digits",
+    "phone_error_prefix": "Phone number must start with 6 or 7"
+  },
+  "splash": {
+    "app_name": "Pendeza",
+    "tagline": "Your Style, Your Schedule"
   },
   "auth": {
     "login": {
       "title": "Welcome Back!",
+      "subtitle": "Choose your preferred sign-in method",
       "email_label": "Email Address",
       "password_label": "Password",
       "button": "SIGN IN",
       "forgot_password": "Forgot Password?",
       "no_account": "Don't have an account?",
       "signup_link": "Sign Up",
-      "signing_in": "Signing in..."
+      "signing_in": "Signing in...",
+      "continue_email": "Continue with Email",
+      "continue_phone": "Continue with Phone",
+      "email_sheet_title": "Sign in with Email"
     },
     "signup": {
       "title": "Create Account",
+      "subtitle": "Let's get you started!",
       "name_label": "Full Name",
       "name_hint": "Said Said",
       "email_label": "Email Address",
@@ -61,7 +73,8 @@
       "confirm_password_hint": "Repeat your password",
       "button": "SIGN UP",
       "have_account": "Already have an account?",
-      "signin_link": "Sign In"
+      "signin_link": "Sign In",
+      "creating": "Creating your account..."
     },
     "forgot_password": {
       "title": "Forgot Password?",
@@ -72,14 +85,23 @@
     "phone": {
       "title": "Enter Your Phone Number",
       "description": "We will send you a 6-digit verification code.",
-      "button": "SEND CODE"
+      "button": "SEND CODE",
+      "sending": "Sending verification code..."
     },
     "otp": {
       "title": "Verification",
       "description": "Enter the code sent to {}",
       "button": "VERIFY",
       "resend": "Didn't receive the code? Resend",
-      "incomplete": "Pin is incomplete"
+      "incomplete": "Pin is incomplete",
+      "expired": "Code expired",
+      "expires_in": "Code expires in {}",
+      "didnt_receive": "Didn't receive the code?",
+      "resend_action": "Resend",
+      "resend_in": "Resend in {}s",
+      "verifying": "Verifying code...",
+      "code_sent": "New verification code sent!",
+      "helper": "Enter the 6-digit code we sent to your phone"
     },
     "role": {
       "title": "How will you use the app?",
@@ -117,6 +139,10 @@
       "gender_female": "Female",
       "gender_other": "Other",
       "gender_prefer_not_say": "Prefer not to say",
+      "gender_error": "Please select your gender",
+      "photo_error": "Couldn't pick that photo. Try again.",
+      "upload_error": "Couldn't upload your photo. Try again.",
+      "saving": "Saving your profile...",
       "button": "COMPLETE SETUP"
     },
     "owner": {
@@ -235,6 +261,8 @@
         "saved": "Saved"
       },
       "no_promotions": "No promotions available",
+      "no_stories": "No stories yet",
+      "stories_error": "Couldn't load stories",
       "categories_title": "All Categories"
     },
     "profile": {
@@ -260,6 +288,11 @@
       "section_preferences": "Preferences",
       "wallet_balance": "Balance: {}",
       "wallet_error": "Unable to load wallet",
+      "stats": {
+        "bookings": "Bookings",
+        "reviews": "Reviews",
+        "saved": "Saved"
+      },
       "edit_profile_subtitle": "Update your personal information",
       "logout_title": "Log Out",
       "logout_confirm": "Are you sure you want to log out?"
@@ -334,7 +367,19 @@
       "greeting_evening": "Good Evening",
       "notifications_coming_soon": "Notifications coming soon!",
       "services_count": "{} service(s)",
-      "view_schedule": "View Full Schedule"
+      "view_schedule": "View Full Schedule",
+      "golive_pending_title": "Not listed yet",
+      "golive_pending_body": "Your salon is under review. Clients cannot find or book you until it's approved.",
+      "golive_rejected_title": "Listing not approved",
+      "golive_approved_incomplete_title": "You're listed — finish your profile",
+      "golive_approved_incomplete_body": "Clients can find you. Complete these so your listing looks ready.",
+      "golive_live_title": "Your salon is live",
+      "golive_live_body": "Clients can find and book you.",
+      "golive_checklist_title": "Finish these to look ready",
+      "golive_photo": "Add a salon photo",
+      "golive_hours": "Set opening hours",
+      "golive_phone": "Add a phone number",
+      "golive_service": "Add at least one service"
     },
     "calendar": {
       "title": "My Schedule",
@@ -367,7 +412,18 @@
       "status_cancelled": "Cancelled",
       "status_pending_payment": "Pending Payment",
       "status_no_show": "No Show",
-      "status_payment_failed": "Payment Failed"
+      "status_payment_failed": "Payment Failed",
+      "walk_in": "Walk-in",
+      "walk_in_title": "Add walk-in",
+      "walk_in_name_label": "Client name",
+      "walk_in_name_hint": "e.g. Amina",
+      "walk_in_service_label": "Service",
+      "walk_in_time_label": "Time",
+      "walk_in_save": "Add to schedule",
+      "walk_in_no_services": "Add a service first, then you can log walk-ins.",
+      "walk_in_success": "Walk-in added",
+      "walk_in_error": "Couldn't add walk-in. Try again.",
+      "walk_in_client": "Walk-in"
     },
     "services": {
       "title": "Manage Services",
@@ -384,7 +440,23 @@
       "duration_label": "Duration (in minutes)",
       "duration_hint": "e.g., 45",
       "desc_label": "Description (Optional)",
-      "desc_hint": "A short description of the service..."
+      "desc_hint": "A short description of the service...",
+      "add_action": "Add Service",
+      "sort": "Sort",
+      "sort_name": "Name (A-Z)",
+      "sort_price_asc": "Price (Low-High)",
+      "sort_price_desc": "Price (High-Low)",
+      "sort_popular": "Most Popular",
+      "search_hint": "Search services...",
+      "active_count": "{} Active",
+      "inactive_count": "{} Inactive",
+      "shown_count": "{} shown",
+      "all": "All",
+      "featured": "Featured",
+      "activate": "Activate",
+      "pause": "Pause",
+      "bookings_count": "{} bookings",
+      "no_match": "No services match your search"
     },
     "clients": {
       "title": "Clients",
@@ -406,7 +478,13 @@
       "no_results_title": "No clients found",
       "no_results_msg": "No clients match \"{}\"",
       "clear_search": "Clear Search",
-      "add_client": "Add Client"
+      "add_client": "Add Client",
+      "search_hint": "Search by name or phone...",
+      "regulars_title": "Your Regulars",
+      "recent_bookings": "Recent Bookings",
+      "no_bookings_title": "No bookings yet",
+      "no_bookings_msg": "Your recent appointments will appear here",
+      "no_results_hint": "Try a different name or phone number"
     },
     "client_details": {
       "title": "Client Details",

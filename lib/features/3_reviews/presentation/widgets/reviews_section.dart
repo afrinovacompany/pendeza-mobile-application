@@ -55,7 +55,7 @@ class ReviewsSection extends StatelessWidget {
           Icon(
             Icons.star_border_rounded,
             size: 48,
-            color: theme.colorScheme.outline.withOpacity(0.5),
+            color: theme.colorScheme.outline.withValues(alpha: 0.5),
           ),
           const SizedBox(height: AppConstants.padM),
           Text(
@@ -161,7 +161,10 @@ class ReviewsSection extends StatelessWidget {
               width: double.infinity,
               child: OutlinedButton(
                 onPressed: () {
-                  // View all
+                  context.push(
+                    AppRoutes.salonReviews.replaceFirst(':salonId', salon.id),
+                    extra: salon,
+                  );
                 },
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -183,10 +186,10 @@ class ReviewsSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppConstants.padM),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: AppConstants.radiusL,
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.1),
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
         ),
       ),
       child: Row(

@@ -81,7 +81,7 @@ class UpcomingAppointmentWidget extends StatelessWidget {
                       dateStr.split(' ')[1],
                       style: theme.textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: theme.colorScheme.onPrimary,
                         height: 1.0,
                       ),
                     ),
@@ -89,7 +89,7 @@ class UpcomingAppointmentWidget extends StatelessWidget {
                       dateStr.split(' ')[0].toUpperCase(),
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.w900,
-                        color: Colors.white.withValues(alpha: 0.9),
+                        color: theme.colorScheme.onPrimary.withValues(alpha: 0.9),
                         fontSize: 10,
                         letterSpacing: 0.5,
                       ),

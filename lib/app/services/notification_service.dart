@@ -68,7 +68,7 @@ class NotificationService {
     );
 
     await _localNotifications.initialize(
-      initializationSettings,
+      settings: initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         _handleNotificationTap(response.payload);
       },
@@ -136,7 +136,6 @@ class NotificationService {
   /// ✅ FIXED: Properly handles images with BigPictureStyle
   Future<void> _showLocalNotification(RemoteMessage message, [String? imageUrl]) async {
     RemoteNotification? notification = message.notification;
-    AndroidNotification? android = message.notification?.android;
 
     if (notification != null) {
       try {
@@ -198,10 +197,10 @@ class NotificationService {
         );
 
         await _localNotifications.show(
-          notification.hashCode,
-          notification.title,
-          notification.body,
-          notificationDetails,
+          id: notification.hashCode,
+          title: notification.title,
+          body: notification.body,
+          notificationDetails: notificationDetails,
           payload: message.data['route'] ?? jsonEncode(message.data),
         );
 
@@ -211,10 +210,10 @@ class NotificationService {
 
         // ✅ Fallback to simple notification
         await _localNotifications.show(
-          notification.hashCode,
-          notification.title,
-          notification.body,
-          const NotificationDetails(
+          id: notification.hashCode,
+          title: notification.title,
+          body: notification.body,
+          notificationDetails: const NotificationDetails(
             android: AndroidNotificationDetails(
               'high_importance_channel',
               'High Importance Notifications',

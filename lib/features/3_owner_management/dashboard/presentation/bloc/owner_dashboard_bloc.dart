@@ -3,7 +3,9 @@ import 'package:pendeza/features/0_auth/presentation/bloc/auth_bloc.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_state.dart';
 import 'package:pendeza/app/utils/logger.dart';
 import '../../../../../shared/models/appointment_model.dart';
+import '../../../../../shared/models/service_model.dart';
 import '../../domain/models/dashboard_stats.dart';
+import '../../domain/models/go_live_checklist.dart';
 import '../../domain/repositories/owner_dashboard_repository.dart';
 import 'owner_dashboard_event.dart';
 import 'owner_dashboard_state.dart';
@@ -73,11 +75,13 @@ class OwnerDashboardBloc
         _repository.getAppointmentsForDate(salon.id, today),
         _repository.getNewClientsCount(salon.id, startOfWeek, endOfWeek),
         _repository.getAppointmentsForDateRange(salon.id, today, next7Days),
+        _repository.getServicesForSalon(salon.id),
       ]);
 
       final todayAppointments = results[0] as List<AppointmentModel>;
       final newClientsCount = results[1] as int;
       final weekAppointments = results[2] as List<AppointmentModel>;
+      final services = results[3] as List<ServiceModel>;
 
       // Calculate today's revenue (only completed/confirmed appointments)
       final todayRevenue = todayAppointments
@@ -120,12 +124,20 @@ class OwnerDashboardBloc
         salon.closingTime ?? '20:00',
       );
 
+      final checklist = GoLiveChecklist.from(
+        salon: salon,
+        services: services,
+      );
+
       log.i('OwnerDashboardBloc: Dashboard stats calculated successfully');
       log.d('Today Revenue: TSh ${todayRevenue.toStringAsFixed(0)}');
       log.d('Today Appointments: $todayAppointmentsCount');
       log.d('New Clients This Week: $newClientsCount');
       log.d('Occupancy Rate: ${occupancyRate.toStringAsFixed(1)}%');
       log.d('Upcoming Today: ${upcomingToday.length}');
+      log.d(
+        'Active services: ${services.where((s) => s.isActive).length}/${services.length}',
+      );
 
       final stats = DashboardStats(
         todayRevenue: todayRevenue,
@@ -140,6 +152,7 @@ class OwnerDashboardBloc
       emit(OwnerDashboardLoaded(
         stats: stats,
         salonName: salon.salonName,
+        checklist: checklist,
       ));
     } catch (e, s) {
       log.e('OwnerDashboardBloc: Error fetching dashboard data',

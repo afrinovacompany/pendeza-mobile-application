@@ -91,15 +91,15 @@ class ServiceModel extends Equatable {
       name: data['name'] as String? ?? '',
       description: data['description'] as String? ?? '',
       price: (data['price'] as num?)?.toDouble() ?? 0.0,
-      durationMinutes: data['durationMinutes'] as int? ?? 0,
+      durationMinutes: (data['durationMinutes'] as num?)?.toInt() ?? 0,
       category: data['category'] as String? ?? 'Other',
-      isActive: data['isActive'] as bool? ?? true,
+      isActive: _firestoreBool(data['isActive'], fallback: true),
       imageUrl: data['imageUrl'] as String?,
-      bookingsCount: data['bookingsCount'] as int? ?? 0,
+      bookingsCount: (data['bookingsCount'] as num?)?.toInt() ?? 0,
       discountedPrice: (data['discountedPrice'] as num?)?.toDouble(),
       tags: List<String>.from(data['tags'] ?? []),
       isFeatured: data['isFeatured'] as bool? ?? false,
-      sortOrder: data['sortOrder'] as int? ?? 0,
+      sortOrder: (data['sortOrder'] as num?)?.toInt() ?? 0,
       staffNote: data['staffNote'] as String?,
       requiresDeposit: data['requiresDeposit'] as bool? ?? false,
       depositAmount: (data['depositAmount'] as num?)?.toDouble(),
@@ -180,4 +180,22 @@ class ServiceModel extends Equatable {
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+}
+
+bool _firestoreBool(dynamic value, {required bool fallback}) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    switch (value.toLowerCase().trim()) {
+      case 'true':
+      case '1':
+      case 'yes':
+        return true;
+      case 'false':
+      case '0':
+      case 'no':
+        return false;
+    }
+  }
+  return fallback;
 }

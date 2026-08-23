@@ -65,6 +65,12 @@ class AppointmentModel extends Equatable {
   final String? paymentTransactionId;
   final DateTime? paidAt;
 
+  /// Display name for owner-created walk-ins (no app user).
+  final String? walkInName;
+
+  /// Sentinel clientId used for walk-in appointments.
+  static const String walkInClientId = 'walk-in';
+
   const AppointmentModel({
     required this.id,
     required this.clientId,
@@ -81,6 +87,7 @@ class AppointmentModel extends Equatable {
     this.paymentMethod,
     this.paymentTransactionId,
     this.paidAt,
+    this.walkInName,
   });
 
   //============================================================================
@@ -98,6 +105,10 @@ class AppointmentModel extends Equatable {
 
   /// Check if this appointment is cancelled
   bool get isCancelled => status == AppointmentStatus.cancelled;
+
+  bool get isWalkIn =>
+      clientId == walkInClientId ||
+      (walkInName != null && walkInName!.trim().isNotEmpty);
 
   /// Check if this appointment is in an active state (not terminal)
   bool get isActive => AppointmentStatus.active.contains(status);
@@ -138,6 +149,7 @@ class AppointmentModel extends Equatable {
     paymentMethod,
     paymentTransactionId,
     paidAt,
+    walkInName,
   ];
 
   factory AppointmentModel.fromFirestore(
@@ -161,6 +173,7 @@ class AppointmentModel extends Equatable {
       paidAt: data['paidAt'] != null
           ? (data['paidAt'] as Timestamp).toDate()
           : null,
+      walkInName: data['walkInName'] as String?,
     );
   }
 
@@ -179,6 +192,7 @@ class AppointmentModel extends Equatable {
       if (paymentMethod != null) 'paymentMethod': paymentMethod,
       if (paymentTransactionId != null) 'paymentTransactionId': paymentTransactionId,
       if (paidAt != null) 'paidAt': Timestamp.fromDate(paidAt!),
+      if (walkInName != null && walkInName!.isNotEmpty) 'walkInName': walkInName,
     };
   }
 
@@ -197,6 +211,7 @@ class AppointmentModel extends Equatable {
     String? paymentMethod,
     String? paymentTransactionId,
     DateTime? paidAt,
+    String? walkInName,
   }) {
     return AppointmentModel(
       id: id ?? this.id,
@@ -212,6 +227,7 @@ class AppointmentModel extends Equatable {
       paymentMethod: paymentMethod ?? this.paymentMethod,
       paymentTransactionId: paymentTransactionId ?? this.paymentTransactionId,
       paidAt: paidAt ?? this.paidAt,
+      walkInName: walkInName ?? this.walkInName,
     );
   }
 

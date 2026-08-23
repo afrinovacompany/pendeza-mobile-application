@@ -337,7 +337,7 @@ class _NotificationToggle extends StatelessWidget {
           CupertinoSwitch(
             value: value,
             onChanged: onChanged,
-            activeColor: color,
+            activeTrackColor: color,
           ),
         ],
       ),

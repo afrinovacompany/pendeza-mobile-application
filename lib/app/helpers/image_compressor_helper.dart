@@ -27,13 +27,6 @@ class ImageCompressionHelper {
       final dir = await getTemporaryDirectory();
       final targetPath = '${dir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      // 🔥 CRITICAL FIX: First decode then compress with LOWER quality
-      // This ensures actual compression happens
-
-      // Step 1: Get image dimensions first
-      final originalBytes = await file.readAsBytes();
-
-      // Step 2: Force resize AND lower quality
       final result = await FlutterImageCompress.compressWithFile(
         file.absolute.path,
         quality: quality, // 75 is optimal for photos

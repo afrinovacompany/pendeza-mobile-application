@@ -59,7 +59,7 @@ class BookingSummaryFooter extends StatelessWidget {
                 Text(
                   'common.total_label'.tr(),
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
                 // Price - Larger and bolder
@@ -79,7 +79,7 @@ class BookingSummaryFooter extends StatelessWidget {
                   Text(
                     'client.booking.approx_duration'.tr(args: ['$totalDurationMinutes']),
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.9),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

@@ -67,14 +67,14 @@ class _PaymentWaitingDialogState extends State<_PaymentWaitingDialog>
                       gradient: LinearGradient(
                         colors: [
                           theme.colorScheme.primary,
-                          theme.colorScheme.primary.withOpacity(0.7),
+                          theme.colorScheme.primary.withValues(alpha: 0.7),
                         ],
                       ),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: theme.colorScheme.primary.withOpacity(
-                            0.3 * _pulseController.value,
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.3 * _pulseController.value,
                           ),
                           blurRadius: 20,
                           spreadRadius: 4,

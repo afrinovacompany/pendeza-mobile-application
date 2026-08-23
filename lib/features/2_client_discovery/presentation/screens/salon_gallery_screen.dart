@@ -299,7 +299,7 @@ class _VideoGridTile extends StatelessWidget {
                 color: theme.colorScheme.surfaceContainerHighest,
                 child: Icon(
                   CupertinoIcons.video_camera,
-                  color: theme.colorScheme.onSurface.withOpacity(0.3),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   size: 28,
                 ),
               ),
@@ -315,7 +315,7 @@ class _VideoGridTile extends StatelessWidget {
                     colors: [
                       Colors.transparent,
                       Colors.transparent,
-                      Colors.black.withOpacity(0.7),
+                      Colors.black.withValues(alpha: 0.7),
                     ],
                     stops: const [0.0, 0.5, 1.0],
                   ),
@@ -328,7 +328,7 @@ class _VideoGridTile extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.35),
+                  color: Colors.black.withValues(alpha: 0.35),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -346,7 +346,7 @@ class _VideoGridTile extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.75),
+                  color: Colors.black.withValues(alpha: 0.75),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(

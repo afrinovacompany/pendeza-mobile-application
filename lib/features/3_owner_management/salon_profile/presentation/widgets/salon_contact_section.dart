@@ -127,7 +127,7 @@ class SalonContactSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: (iconColor ?? theme.colorScheme.primary).withOpacity(0.1),
+                color: (iconColor ?? theme.colorScheme.primary).withValues(alpha: 0.1),
                 // ✅ FIX: Use the BorderRadius object AppConstants.radiusS directly
                 borderRadius: AppConstants.radiusS,
               ),
@@ -145,7 +145,7 @@ class SalonContactSection extends StatelessWidget {
                   Text(
                     label,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -153,7 +153,7 @@ class SalonContactSection extends StatelessWidget {
                     value,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: isPlaceholder
-                          ? theme.colorScheme.onSurface.withOpacity(0.4)
+                          ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
                           : null,
                       fontStyle: isPlaceholder ? FontStyle.italic : null,
                     ),
@@ -165,7 +165,7 @@ class SalonContactSection extends StatelessWidget {
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 16,
-                color: theme.colorScheme.onSurface.withOpacity(0.3),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
               ),
           ],
         ),

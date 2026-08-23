@@ -1,6 +1,6 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:intl/intl.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/shared/models/appointment_model.dart';
 
@@ -27,7 +27,7 @@ class RecentBookingsSection extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
           child: Text(
-            'Recent Bookings',
+            'owner.clients.recent_bookings'.tr(),
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -68,14 +68,14 @@ class RecentBookingsSection extends StatelessWidget {
           ),
           const SizedBox(height: AppConstants.padM),
           Text(
-            'No bookings yet',
+            'owner.clients.no_bookings_title'.tr(),
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: AppConstants.padS),
           Text(
-            'Your recent appointments will appear here',
+            'owner.clients.no_bookings_msg'.tr(),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
@@ -107,8 +107,8 @@ class _BookingItem extends StatelessWidget {
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Booking icon
           Container(
             width: 48,
             height: 48,
@@ -123,24 +123,38 @@ class _BookingItem extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppConstants.padM),
-
-          // Booking info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Service count
-                Text(
-                  _getServicesSummary(),
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _getServicesSummary(),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'TZS ${booking.totalPrice.toStringAsFixed(0)}',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
-
-                // Date and status
                 Row(
                   children: [
                     Icon(
@@ -149,26 +163,24 @@ class _BookingItem extends StatelessWidget {
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      DateFormat('MMM d, h:mm a').format(booking.startTime),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    Expanded(
+                      child: Text(
+                        DateFormat('MMM d, h:mm a').format(booking.startTime),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    _StatusBadge(status: booking.status),
                   ],
                 ),
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: _StatusBadge(status: booking.status),
+                ),
               ],
-            ),
-          ),
-
-          // Price
-          Text(
-            'TZS ${booking.totalPrice.toStringAsFixed(0)}',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
             ),
           ),
         ],
@@ -199,23 +211,23 @@ class _StatusBadge extends StatelessWidget {
 
     switch (statusLower) {
       case 'completed':
-        bgColor = Colors.green.withValues(alpha: 0.15);
-        textColor = Colors.green;
+        bgColor = theme.colorScheme.tertiary.withValues(alpha: 0.15);
+        textColor = theme.colorScheme.tertiary;
         icon = CupertinoIcons.check_mark_circled_solid;
         break;
       case 'confirmed':
-        bgColor = Colors.blue.withValues(alpha: 0.15);
-        textColor = Colors.blue;
+        bgColor = theme.colorScheme.primary.withValues(alpha: 0.15);
+        textColor = theme.colorScheme.primary;
         icon = CupertinoIcons.checkmark_seal_fill;
         break;
       case 'pending payment':
-        bgColor = Colors.orange.withValues(alpha: 0.15);
-        textColor = Colors.orange;
+        bgColor = theme.colorScheme.secondary.withValues(alpha: 0.15);
+        textColor = theme.colorScheme.secondary;
         icon = CupertinoIcons.time_solid;
         break;
       case 'cancelled':
-        bgColor = Colors.red.withValues(alpha: 0.15);
-        textColor = Colors.red;
+        bgColor = theme.colorScheme.error.withValues(alpha: 0.15);
+        textColor = theme.colorScheme.error;
         icon = CupertinoIcons.xmark_circle_fill;
         break;
       default:
@@ -237,6 +249,8 @@ class _StatusBadge extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             status,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: theme.textTheme.labelSmall?.copyWith(
               color: textColor,
               fontWeight: FontWeight.w600,

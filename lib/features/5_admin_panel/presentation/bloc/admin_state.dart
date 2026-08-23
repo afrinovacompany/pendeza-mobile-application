@@ -1,6 +1,7 @@
 // admin_state.dart - FULL UPDATED FILE
 import 'package:equatable/equatable.dart';
 import 'package:pendeza/features/0_auth/data/models/user_model.dart';
+import 'package:pendeza/shared/models/appointment_model.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
 import 'package:pendeza/shared/models/promotion_model.dart';
 import 'package:pendeza/shared/models/transaction_model.dart';
@@ -25,7 +26,9 @@ class AdminLoaded extends AdminState {
   final List<LookbookImageModel> lookbook;
   final List<PromotionModel> promotions;
   final List<Map<String, dynamic>> notifications;
-  final List<TransactionModel> transactions; // NEW: All transactions
+  final List<TransactionModel> transactions; // unused while payments are off
+  final List<AppointmentModel> appointments;
+  final Map<String, String> serviceNames;
   final int totalAppointments;
 
   const AdminLoaded({
@@ -35,7 +38,9 @@ class AdminLoaded extends AdminState {
     this.lookbook = const [],
     this.promotions = const [],
     this.notifications = const [],
-    this.transactions = const [], // NEW
+    this.transactions = const [],
+    this.appointments = const [],
+    this.serviceNames = const {},
     this.totalAppointments = 0,
   });
 
@@ -48,6 +53,8 @@ class AdminLoaded extends AdminState {
     List<PromotionModel>? promotions,
     List<Map<String, dynamic>>? notifications,
     List<TransactionModel>? transactions,
+    List<AppointmentModel>? appointments,
+    Map<String, String>? serviceNames,
     int? totalAppointments,
   }) {
     return AdminLoaded(
@@ -58,6 +65,8 @@ class AdminLoaded extends AdminState {
       promotions: promotions ?? this.promotions,
       notifications: notifications ?? this.notifications,
       transactions: transactions ?? this.transactions,
+      appointments: appointments ?? this.appointments,
+      serviceNames: serviceNames ?? this.serviceNames,
       totalAppointments: totalAppointments ?? this.totalAppointments,
     );
   }
@@ -71,7 +80,9 @@ class AdminLoaded extends AdminState {
     lookbook,
     promotions,
     notifications,
-    transactions, // NEW
+    transactions,
+    appointments,
+    serviceNames,
   ];
 }
 

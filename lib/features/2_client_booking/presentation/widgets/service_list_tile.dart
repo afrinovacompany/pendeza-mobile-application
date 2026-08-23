@@ -25,16 +25,16 @@ class ServiceSelectionCard extends StatelessWidget {
     // Determine colors based on selection state using theme colors
     final borderColor = isSelected ? colorScheme.primary : Colors.transparent;
     final backgroundColor =
-    isSelected ? colorScheme.primary.withOpacity(0.05) : theme.cardColor;
+    isSelected ? colorScheme.primary.withValues(alpha: 0.05) : theme.cardColor;
     final iconColor = isSelected
         ? colorScheme.primary
-        : colorScheme.onSurface.withOpacity(0.4);
+        : colorScheme.onSurface.withValues(alpha: 0.4);
     final titleStyle = theme.textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.bold,
       // Slightly dim title if not selected
-      color: isSelected ? colorScheme.onSurface : colorScheme.onSurface.withOpacity(0.8),
+      color: isSelected ? colorScheme.onSurface : colorScheme.onSurface.withValues(alpha: 0.8),
     );
-    final detailsColor = colorScheme.onSurface.withOpacity(0.7);
+    final detailsColor = colorScheme.onSurface.withValues(alpha: 0.7);
 
     return CustomCard(
       onTap: onTap,
@@ -88,7 +88,7 @@ class ServiceSelectionCard extends StatelessWidget {
                       child: Text(
                         service.description,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: detailsColor.withOpacity(0.8), // Slightly dimmer description
+                          color: detailsColor.withValues(alpha: 0.8), // Slightly dimmer description
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,

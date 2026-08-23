@@ -56,7 +56,7 @@ class SalonVideosSection extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppConstants.radiusValL),
                   ),
                   child: Text(
@@ -89,7 +89,7 @@ class SalonVideosSection extends StatelessWidget {
                   vertical: AppConstants.padS,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppConstants.radiusValM),
                 ),
                 child: Row(
@@ -99,7 +99,7 @@ class SalonVideosSection extends StatelessWidget {
                       height: 16,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        value: (state as SalonVideoUploading).progress > 0
+                        value: (state).progress > 0
                             ? (state).progress
                             : null,
                       ),
@@ -120,7 +120,7 @@ class SalonVideosSection extends StatelessWidget {
 
         // 🆕 Show upload progress card if uploading
         if (isUploading) ...[
-          _buildUploadProgressCard(context, state as SalonVideoUploading),
+          _buildUploadProgressCard(context, state),
           const SizedBox(height: AppConstants.padM),
         ],
 
@@ -207,7 +207,7 @@ class SalonVideosSection extends StatelessWidget {
                 child: Text(
                   'Optimizing for best quality and size...',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ),
@@ -284,10 +284,10 @@ class SalonVideosSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppConstants.padM),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(AppConstants.radiusValM),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.2),
+          color: theme.colorScheme.primary.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -305,14 +305,14 @@ class SalonVideosSection extends StatelessWidget {
                 Text(
                   'Short videos (max 60 sec) showcase your work.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.8),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Videos go live immediately after upload.',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -334,13 +334,13 @@ class SalonVideosSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppConstants.padL),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.1),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.play_circle_outline_rounded,
                 size: 48,
-                color: theme.colorScheme.primary.withOpacity(0.6),
+                color: theme.colorScheme.primary.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: AppConstants.padM),
@@ -354,7 +354,7 @@ class SalonVideosSection extends StatelessWidget {
             Text(
               'Add short videos to showcase your best work\nand attract more clients!',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -465,7 +465,7 @@ class SalonVideosSection extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -492,7 +492,7 @@ class SalonVideosSection extends StatelessWidget {
             Text(
               'Duration: ${video.formattedDuration}',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: AppConstants.padL),
@@ -628,7 +628,7 @@ class _VideoThumbnailCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppConstants.radiusValM),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -652,7 +652,7 @@ class _VideoThumbnailCard extends StatelessWidget {
                   color: theme.dividerColor,
                   child: Icon(
                     Icons.videocam_off_rounded,
-                    color: theme.colorScheme.onSurface.withOpacity(0.3),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                 ),
               ),
@@ -664,7 +664,7 @@ class _VideoThumbnailCard extends StatelessWidget {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.7),
+                      Colors.black.withValues(alpha: 0.7),
                     ],
                     stops: const [0.5, 1.0],
                   ),
@@ -675,7 +675,7 @@ class _VideoThumbnailCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.4),
+                    color: Colors.black.withValues(alpha: 0.4),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -692,7 +692,7 @@ class _VideoThumbnailCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
+                    color: Colors.black.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -790,7 +790,7 @@ class _AddVideoSheetState extends State<_AddVideoSheet> {
               Text(
                 'Max 60 seconds • Goes live immediately after upload',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(height: AppConstants.padL),
@@ -805,7 +805,7 @@ class _AddVideoSheetState extends State<_AddVideoSheet> {
                 Container(
                   padding: const EdgeInsets.all(AppConstants.padM),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppConstants.radiusValM),
                   ),
                   child: Row(
@@ -919,7 +919,7 @@ class _AddVideoSheetState extends State<_AddVideoSheet> {
             Container(
               padding: const EdgeInsets.all(AppConstants.padM),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppConstants.radiusValS),
               ),
               child: Icon(icon, color: color),
@@ -938,7 +938,7 @@ class _AddVideoSheetState extends State<_AddVideoSheet> {
                   Text(
                     subtitle,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -947,7 +947,7 @@ class _AddVideoSheetState extends State<_AddVideoSheet> {
             Icon(
               Icons.arrow_forward_ios_rounded,
               size: 16,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
           ],
         ),
@@ -991,7 +991,7 @@ class _AddVideoSheetState extends State<_AddVideoSheet> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
+                        color: Colors.black.withValues(alpha: 0.5),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -1009,7 +1009,7 @@ class _AddVideoSheetState extends State<_AddVideoSheet> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
+                        color: Colors.black.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -1027,7 +1027,7 @@ class _AddVideoSheetState extends State<_AddVideoSheet> {
                   top: 8,
                   right: 8,
                   child: Material(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(20),
                     child: InkWell(
                       onTap: () {

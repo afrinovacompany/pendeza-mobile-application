@@ -7,6 +7,7 @@ import 'package:pendeza/app/config/app_router.dart';
 import 'package:pendeza/app/config/theme/app_colors.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/app/utils/formatters.dart';
+import 'package:pendeza/features/3_owner_management/presentation/owner_chrome.dart';
 import 'package:pendeza/features/3_owner_management/services/presentation/bloc/services_bloc.dart';
 import 'package:pendeza/features/3_owner_management/services/presentation/bloc/services_event.dart';
 import 'package:pendeza/features/3_owner_management/services/presentation/bloc/services_state.dart';
@@ -87,13 +88,14 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('owner.services.title'.tr()),
+      appBar: ownerTabAppBar(
+        context,
+        title: 'owner.services.title'.tr(),
         actions: [
           // Sort Button
           PopupMenuButton<String>(
             icon: const Icon(CupertinoIcons.sort_down),
-            tooltip: 'Sort',
+            tooltip: 'owner.services.sort'.tr(),
             onSelected: (value) => setState(() => _sortBy = value),
             itemBuilder: (context) => [
               PopupMenuItem(
@@ -102,7 +104,7 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                   children: [
                     Icon(_sortBy == 'name' ? Icons.check : null, size: 18),
                     const SizedBox(width: 8),
-                    const Text('Name (A-Z)'),
+                    Text('owner.services.sort_name'.tr()),
                   ],
                 ),
               ),
@@ -112,7 +114,7 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                   children: [
                     Icon(_sortBy == 'price' ? Icons.check : null, size: 18),
                     const SizedBox(width: 8),
-                    const Text('Price (Low-High)'),
+                    Text('owner.services.sort_price_asc'.tr()),
                   ],
                 ),
               ),
@@ -122,7 +124,7 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                   children: [
                     Icon(_sortBy == 'price_desc' ? Icons.check : null, size: 18),
                     const SizedBox(width: 8),
-                    const Text('Price (High-Low)'),
+                    Text('owner.services.sort_price_desc'.tr()),
                   ],
                 ),
               ),
@@ -132,7 +134,7 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                   children: [
                     Icon(_sortBy == 'popular' ? Icons.check : null, size: 18),
                     const SizedBox(width: 8),
-                    const Text('Most Popular'),
+                    Text('owner.services.sort_popular'.tr()),
                   ],
                 ),
               ),
@@ -142,33 +144,11 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                   children: [
                     Icon(_sortBy == 'duration' ? Icons.check : null, size: 18),
                     const SizedBox(width: 8),
-                    const Text('Duration'),
+                    Text('common.duration'.tr()),
                   ],
                 ),
               ),
             ],
-          ),
-          // Add Button
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  theme.colorScheme.primary.withValues(alpha: 0.15),
-                  theme.colorScheme.secondary.withValues(alpha: 0.15),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: Icon(
-                CupertinoIcons.add_circled_solid,
-                color: theme.colorScheme.primary,
-              ),
-              onPressed: () {
-                context.push('${AppRoutes.ownerServices}/${AppRoutes.addEditService}');
-              },
-            ),
           ),
         ],
       ),
@@ -178,7 +158,8 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
               ..showSnackBar(SnackBar(
-                  content: Text(state.message), backgroundColor: Colors.red));
+                  content: Text(state.message),
+                  backgroundColor: Theme.of(context).colorScheme.error));
           }
           if (state is ServiceOperationSuccess) {
             ScaffoldMessenger.of(context)
@@ -219,9 +200,9 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
           context.push('${AppRoutes.ownerServices}/${AppRoutes.addEditService}');
         },
         icon: const Icon(CupertinoIcons.add),
-        label: const Text('Add Service'),
+        label: Text('owner.services.add_action'.tr()),
         backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: theme.colorScheme.onPrimary,
       ),
     );
   }
@@ -245,23 +226,24 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
           child: Row(
             children: [
               _buildStatPill(
-                '$activeCount Active',
+                'owner.services.active_count'.tr(args: ['$activeCount']),
                 AppColors.success,
                 !_showInactiveOnly,
                 () => setState(() => _showInactiveOnly = false),
               ),
               const SizedBox(width: 8),
               _buildStatPill(
-                '$inactiveCount Inactive',
+                'owner.services.inactive_count'.tr(args: ['$inactiveCount']),
                 AppColors.warning,
                 _showInactiveOnly,
                 () => setState(() => _showInactiveOnly = true),
               ),
               const Spacer(),
               Text(
-                '${filteredServices.length} shown',
+                'owner.services.shown_count'
+                    .tr(args: ['${filteredServices.length}']),
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade600,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -277,7 +259,7 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
               TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search services...',
+                  hintText: 'owner.services.search_hint'.tr(),
                   prefixIcon: const Icon(CupertinoIcons.search),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
@@ -308,7 +290,7 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
                     scrollDirection: Axis.horizontal,
                     children: [
                       _buildFilterChip(
-                        'All',
+                        'owner.services.all'.tr(),
                         _selectedCategory == null,
                         () => setState(() => _selectedCategory = null),
                       ),
@@ -329,7 +311,7 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
           child: filteredServices.isEmpty
               ? EmptyStateWidget.notFound(
                   message: _searchController.text.isNotEmpty
-                      ? 'No services match your search'
+                      ? 'owner.services.no_match'.tr()
                       : 'owner.services.empty_msg'.tr(),
                 )
               : _buildServicesList(context, filteredServices),
@@ -339,6 +321,7 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
   }
 
   Widget _buildStatPill(String text, Color color, bool isSelected, VoidCallback onTap) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -347,7 +330,9 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
           color: isSelected ? color.withValues(alpha: 0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color : Colors.grey.shade300,
+            color: isSelected
+                ? color
+                : theme.colorScheme.outline.withValues(alpha: 0.4),
           ),
         ),
         child: Text(
@@ -355,7 +340,9 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-            color: isSelected ? color : Colors.grey.shade600,
+            color: isSelected
+                ? color
+                : theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ),
@@ -371,7 +358,9 @@ class _ServiceListScreenState extends State<ServiceListScreen> {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+            color: isSelected
+                ? theme.colorScheme.onPrimary
+                : theme.colorScheme.onSurface,
           ),
         ),
         selected: isSelected,
@@ -596,9 +585,9 @@ class _ServiceListItem extends StatelessWidget {
                                   color: Colors.purple.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: const Text(
-                                  'FEATURED',
-                                  style: TextStyle(
+                                child: Text(
+                                  'owner.services.featured'.tr(),
+                                  style: const TextStyle(
                                     fontSize: 8,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.purple,
@@ -613,7 +602,7 @@ class _ServiceListItem extends StatelessWidget {
                             // Duration Chip
                             _buildInfoChip(
                               CupertinoIcons.time,
-                              '${service.durationMinutes} min',
+                              '${service.durationMinutes} ${'common.min'.tr()}',
                               theme.colorScheme.primary,
                             ),
                             const SizedBox(width: 8),
@@ -630,9 +619,11 @@ class _ServiceListItem extends StatelessWidget {
                             if (service.bookingsCount > 0) ...[
                               const SizedBox(width: 8),
                               Text(
-                                '${service.bookingsCount} bookings',
+                                'owner.services.bookings_count'
+                                    .tr(args: ['${service.bookingsCount}']),
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: Colors.grey.shade500,
+                                  color: theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.5),
                                   fontSize: 10,
                                 ),
                               ),
@@ -654,7 +645,8 @@ class _ServiceListItem extends StatelessWidget {
                           AppFormatters.formatCurrency(service.price),
                           style: theme.textTheme.bodySmall?.copyWith(
                             decoration: TextDecoration.lineThrough,
-                            color: Colors.grey,
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.5),
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -706,7 +698,9 @@ class _ServiceListItem extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            isInactive ? 'Activate' : 'Pause',
+                            isInactive
+                                ? 'owner.services.activate'.tr()
+                                : 'owner.services.pause'.tr(),
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,

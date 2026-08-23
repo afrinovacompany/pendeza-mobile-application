@@ -225,7 +225,7 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            theme.colorScheme.primary.withOpacity(0.03),
+            theme.colorScheme.primary.withValues(alpha: 0.03),
             theme.scaffoldBackgroundColor,
           ],
           stops: const [0.0, 0.3],
@@ -257,7 +257,7 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
             Text(
               'client.booking.select_services_header'.tr(),
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -320,7 +320,7 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
                     vertical: AppConstants.padXS,
                   ),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: Row(
@@ -352,7 +352,7 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
                         Text(
                           'client.booking.total_price_label'.tr(),
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -369,7 +369,7 @@ class _ServiceSelectionScreenState extends State<ServiceSelectionScreen>
                             'client.booking.approx_duration'
                                 .tr(args: ['$totalDuration']),
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.7),
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
                           ),
                         ]
@@ -470,7 +470,7 @@ class _ServiceSelectionCardState extends State<_ServiceSelectionCard>
       child: CustomCard(
         onTap: widget.onTap,
         color: widget.isSelected
-            ? colorScheme.primary.withOpacity(0.08)
+            ? colorScheme.primary.withValues(alpha: 0.08)
             : theme.cardColor,
         padding: EdgeInsets.zero,
         child: Container(
@@ -500,7 +500,7 @@ class _ServiceSelectionCardState extends State<_ServiceSelectionCard>
                       : CupertinoIcons.circle,
                   color: widget.isSelected
                       ? colorScheme.primary
-                      : colorScheme.onSurface.withOpacity(0.3),
+                      : colorScheme.onSurface.withValues(alpha: 0.3),
                   size: 28,
                 ),
               ),
@@ -519,7 +519,7 @@ class _ServiceSelectionCardState extends State<_ServiceSelectionCard>
                     Text(
                       '${widget.service.durationMinutes} min • ${AppFormatters.formatCurrency(widget.service.price)}',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurface.withOpacity(0.7),
+                        color: colorScheme.onSurface.withValues(alpha: 0.7),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -528,7 +528,7 @@ class _ServiceSelectionCardState extends State<_ServiceSelectionCard>
                       Text(
                         widget.service.description,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurface.withOpacity(0.6),
+                          color: colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,

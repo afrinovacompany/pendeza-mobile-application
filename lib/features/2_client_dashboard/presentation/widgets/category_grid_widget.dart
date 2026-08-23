@@ -113,12 +113,8 @@ class _CategoryCardState extends State<_CategoryCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-
-    final backgroundColor = isDark
-        ? theme.colorScheme.surfaceContainerHighest
-        : const Color(0xFFF5F7FA);
-
-    final textColor = isDark ? Colors.white : Colors.black87;
+    final backgroundColor = theme.colorScheme.surfaceContainerHighest;
+    final textColor = theme.colorScheme.onSurface;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
@@ -132,15 +128,13 @@ class _CategoryCardState extends State<_CategoryCard> {
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(16),
-            border: isDark
-                ? Border.all(
-              color: Colors.white.withValues(alpha: 0.05),
-              width: 1.5,
-            )
-                : null,
+            border: Border.all(
+              color: theme.colorScheme.outline.withValues(alpha: isDark ? 0.2 : 0.08),
+              width: isDark ? 1.5 : 1,
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: theme.colorScheme.shadow.withValues(alpha: 0.04),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),

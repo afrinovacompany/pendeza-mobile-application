@@ -94,7 +94,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Text(
                 'client.edit_profile.gender'.tr(),
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(height: AppConstants.padXS),
@@ -105,7 +105,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(AppConstants.radiusValM),
-                  border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+                  border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
                 ),
                 child: Column(
                   children: Gender.values.map((g) {

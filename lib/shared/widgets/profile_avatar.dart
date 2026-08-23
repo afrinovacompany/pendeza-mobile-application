@@ -53,7 +53,7 @@ class ProfileAvatar extends StatelessWidget {
     // The main widget is a CircleAvatar for a circular shape.
     return CircleAvatar(
       radius: radius,
-      backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
       // The child of the CircleAvatar is a ClipOval to ensure
       // all children (image, fallback) are perfectly circular.
       child: ClipOval(

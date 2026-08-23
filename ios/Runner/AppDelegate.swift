@@ -10,17 +10,14 @@ import FirebaseMessaging
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        // Configure Firebase
-        FirebaseApp.configure()
+        // Dart owns the Firebase DEFAULT app (main.dart Firebase.initializeApp).
+        // Do not call FirebaseApp.configure() here: a second native init can
+        // crash on launch if GoogleService-Info.plist is missing from the bundle
+        // or its GOOGLE_APP_ID does not match DefaultFirebaseOptions.ios.
 
-        // Set up push notifications
         UNUserNotificationCenter.current().delegate = self
-
-        // Set Firebase Messaging delegate
-        Messaging.messaging().delegate = self
-
-        // Register for remote notifications
         application.registerForRemoteNotifications()
+        attachMessagingDelegateIfFirebaseReady()
 
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
@@ -35,8 +32,10 @@ import FirebaseMessaging
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
-        // Pass device token to Firebase
-        Messaging.messaging().apnsToken = deviceToken
+        if FirebaseApp.app() != nil {
+            attachMessagingDelegateIfFirebaseReady()
+            Messaging.messaging().apnsToken = deviceToken
+        }
         super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
     }
 
@@ -82,6 +81,11 @@ import FirebaseMessaging
 
         // Let Flutter handle the notification
         super.userNotificationCenter(center, didReceive: response, withCompletionHandler: completionHandler)
+    }
+
+    private func attachMessagingDelegateIfFirebaseReady() {
+        guard FirebaseApp.app() != nil else { return }
+        Messaging.messaging().delegate = self
     }
 }
 

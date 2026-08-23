@@ -21,7 +21,7 @@ class AdminUserListItem extends StatelessWidget {
       subtitle: Text(user.email.isEmpty ? user.phoneNumber ?? 'No Contact' : user.email),
       trailing: Chip(
         label: Text(user.role ?? 'N/A'),
-        backgroundColor: _getRoleColor(user.role).withOpacity(0.1),
+        backgroundColor: _getRoleColor(user.role).withValues(alpha: 0.1),
         labelStyle: TextStyle(color: _getRoleColor(user.role)),
       ),
       onTap: () {

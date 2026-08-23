@@ -98,14 +98,13 @@ class SalonHeroAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     // Calculate opacity for the background/title
     final double opacity = (scrollOffset / 150).clamp(0.0, 1.0);
 
     // Dynamic text color based on scroll
     final Color iconColor = opacity > 0.6
-        ? (isDark ? Colors.white : Colors.black)
+        ? theme.colorScheme.onSurface
         : Colors.white;
 
     // Check if image exists and is not empty to prevent "String?" errors
@@ -169,7 +168,7 @@ class SalonHeroAppBar extends StatelessWidget {
           child: Text(
             salon.salonName,
             style: TextStyle(
-              color: isDark ? Colors.white : Colors.black,
+              color: theme.colorScheme.onSurface,
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
@@ -184,7 +183,7 @@ class SalonHeroAppBar extends StatelessWidget {
               tag: 'salon_image_${salon.id}',
               child: CachedNetworkImage(
                 imageUrl: hasImage
-                    ? imageUrl ?? ''
+                    ? imageUrl
                     : PlaceholderImages.forSalon(salon.id),
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
@@ -208,10 +207,10 @@ class SalonHeroAppBar extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.4),
+                    Colors.black.withValues(alpha: 0.4),
                     Colors.transparent,
                     Colors.transparent,
-                    Colors.black.withOpacity(0.7),
+                    Colors.black.withValues(alpha: 0.7),
                   ],
                   stops: const [0.0, 0.3, 0.6, 1.0],
                 ),
@@ -238,14 +237,20 @@ class SalonHeroAppBar extends StatelessWidget {
 
     final isOpen = _isSalonOpen();
 
+    final theme = Theme.of(context);
+    final badgeColor =
+        isOpen ? theme.colorScheme.primary : theme.colorScheme.error;
+    final onBadge =
+        isOpen ? theme.colorScheme.onPrimary : theme.colorScheme.onError;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isOpen ? Colors.green : Colors.red,
+        color: badgeColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: theme.colorScheme.shadow.withValues(alpha: 0.2),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -256,14 +261,14 @@ class SalonHeroAppBar extends StatelessWidget {
         children: [
           Icon(
             isOpen ? Icons.check_circle : Icons.access_time_filled,
-            color: Colors.white,
+            color: onBadge,
             size: 14,
           ),
           const SizedBox(width: 4),
           Text(
             isOpen ? 'Open Now' : 'Closed',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: onBadge,
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),

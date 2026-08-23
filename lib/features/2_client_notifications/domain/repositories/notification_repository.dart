@@ -200,6 +200,7 @@ class NotificationRepository {
           .collection('readBy')
           .doc(userId)
           .set({
+        'userId': userId,
         'readAt': FieldValue.serverTimestamp(),
       });
     } catch (e, stackTrace) {
@@ -238,7 +239,7 @@ class NotificationRepository {
       for (final doc in broadcastSnap.docs) {
         readBatch.set(
           doc.reference.collection('readBy').doc(userId),
-          {'readAt': FieldValue.serverTimestamp()},
+          {'userId': userId, 'readAt': FieldValue.serverTimestamp()},
         );
       }
       await readBatch.commit();
@@ -331,9 +332,11 @@ class NotificationRepository {
   Future<Set<String>> _getReadBroadcastIds(String userId) async {
     try {
       // Query all readBy subcollections for this user using collectionGroup
+      // We query by the 'userId' field rather than FieldPath.documentId because
+      // Firestore requires a full document path for collectionGroup documentId queries.
       final readSnap = await _firestore
           .collectionGroup('readBy')
-          .where(FieldPath.documentId, isEqualTo: userId)
+          .where('userId', isEqualTo: userId)
           .get();
 
       // Extract parent document IDs

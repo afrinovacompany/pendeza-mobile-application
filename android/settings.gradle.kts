@@ -19,14 +19,12 @@ pluginManagement {
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
 
-    // ✅ STANDARDIZED: Downgraded to 8.11.1 to match AlphaBet Gold Standard
     id("com.android.application") version "8.13.2" apply false
 
     // Preserved existing Google Services version
     id("com.google.gms.google-services") version "4.4.4" apply false
 
-    // ✅ STANDARDIZED: Set to 2.2.21 to match AlphaBet Gold Standard
-    id("org.jetbrains.kotlin.android") version "2.3.0" apply false
+    id("org.jetbrains.kotlin.android") version "2.3.20" apply false
 }
 
 include(":app")

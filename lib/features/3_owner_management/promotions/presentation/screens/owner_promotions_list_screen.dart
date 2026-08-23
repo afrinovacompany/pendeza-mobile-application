@@ -1,5 +1,4 @@
 
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pendeza/app/config/theme/app_colors.dart';
@@ -146,7 +145,7 @@ class _PromotionsListViewState extends State<_PromotionsListView> {
             return ListView.separated(
               padding: const EdgeInsets.all(AppConstants.padM),
               itemCount: state.promotions.length,
-              separatorBuilder: (_, __) => const SizedBox(height: AppConstants.padM),
+              separatorBuilder: (_, _) => const SizedBox(height: AppConstants.padM),
               itemBuilder: (context, index) {
                 return PromotionCard(
                   promotion: state.promotions[index],
@@ -235,7 +234,7 @@ class _PromotionsListViewState extends State<_PromotionsListView> {
     return ListView.builder(
       padding: const EdgeInsets.all(AppConstants.padM),
       itemCount: 3,
-      itemBuilder: (_, __) => const Padding(
+      itemBuilder: (_, _) => const Padding(
         padding: EdgeInsets.only(bottom: AppConstants.padM),
         child: ShimmerPlaceholder.rectangular(height: 160),
       ),

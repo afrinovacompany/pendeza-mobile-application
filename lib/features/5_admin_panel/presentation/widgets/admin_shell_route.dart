@@ -237,9 +237,9 @@ class _AdminShellRouteState extends State<AdminShellRoute> {
           label: Text('Notifications'),
         ),
         NavigationRailDestination(
-          icon: Icon(CupertinoIcons.creditcard),
-          selectedIcon: Icon(CupertinoIcons.creditcard_fill),
-          label: Text('Transactions'),
+          icon: Icon(CupertinoIcons.calendar),
+          selectedIcon: Icon(CupertinoIcons.calendar_today),
+          label: Text('Bookings'),
         ),
       ],
     );
@@ -281,9 +281,9 @@ class _AdminShellRouteState extends State<AdminShellRoute> {
           label: 'Notifs',
         ),
         BottomNavigationBarItem(
-          icon: Icon(CupertinoIcons.creditcard),
-          activeIcon: Icon(CupertinoIcons.creditcard_fill),
-          label: 'Trans',
+          icon: Icon(CupertinoIcons.calendar),
+          activeIcon: Icon(CupertinoIcons.calendar_today),
+          label: 'Bookings',
         ),
       ],
     );

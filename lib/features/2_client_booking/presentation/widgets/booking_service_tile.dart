@@ -23,7 +23,7 @@ class BookingServiceTile extends StatelessWidget {
             child: Text(
               service.name,
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.85), // Slightly softer text
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.85), // Slightly softer text
               ),
             ),
           ),

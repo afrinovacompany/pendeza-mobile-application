@@ -23,10 +23,10 @@ class PaymentInfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppConstants.padM),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.06),
+        color: theme.colorScheme.primary.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.15),
+          color: theme.colorScheme.primary.withValues(alpha: 0.15),
         ),
       ),
       child: Row(
@@ -35,7 +35,7 @@ class PaymentInfoCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.12),
+              color: theme.colorScheme.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -49,7 +49,7 @@ class PaymentInfoCard extends StatelessWidget {
             child: Text(
               selectedMethod.infoMessage,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.primary.withOpacity(0.85),
+                color: theme.colorScheme.primary.withValues(alpha: 0.85),
                 height: 1.4,
                 fontWeight: FontWeight.w500,
               ),

@@ -106,13 +106,13 @@ class AdaptiveAlertDialog extends StatelessWidget {
         PlatformDialogAction(
           onPressed: onCancel ?? () => Navigator.of(context).pop(),
           child: Text(cancelText ?? 'Cancel'),
-          material: (_, __) => MaterialDialogActionData(
+          material: (_, _) => MaterialDialogActionData(
             style: TextButton.styleFrom(
               foregroundColor:
                   isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
             ),
           ),
-          cupertino: (_, __) => CupertinoDialogActionData(
+          cupertino: (_, _) => CupertinoDialogActionData(
             isDefaultAction: !isDestructive,
           ),
         ),
@@ -124,14 +124,14 @@ class AdaptiveAlertDialog extends StatelessWidget {
         PlatformDialogAction(
           onPressed: onConfirm ?? () => Navigator.of(context).pop(true),
           child: Text(confirmText ?? 'OK'),
-          material: (_, __) => MaterialDialogActionData(
+          material: (_, _) => MaterialDialogActionData(
             style: TextButton.styleFrom(
               foregroundColor: isDestructive
                   ? AppColors.error
                   : (isDark ? AppColors.primaryLight : AppColors.primary),
             ),
           ),
-          cupertino: (_, __) => CupertinoDialogActionData(
+          cupertino: (_, _) => CupertinoDialogActionData(
             isDestructiveAction: isDestructive,
             isDefaultAction: !isDestructive && cancelText == null,
           ),
@@ -145,7 +145,7 @@ class AdaptiveAlertDialog extends StatelessWidget {
         PlatformDialogAction(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('OK'),
-          cupertino: (_, __) => CupertinoDialogActionData(
+          cupertino: (_, _) => CupertinoDialogActionData(
             isDefaultAction: true,
           ),
         ),
@@ -156,24 +156,22 @@ class AdaptiveAlertDialog extends StatelessWidget {
       title: Text(title),
       content: contentWidget ?? (content != null ? Text(content!) : null),
       actions: actions,
-      material: (_, __) => MaterialAlertDialogData(
+      material: (_, _) => MaterialAlertDialogData(
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.surface,
         titleTextStyle: TextStyle(
           color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          fontFamily: 'Poppins',
         ),
         contentTextStyle: TextStyle(
           color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
           fontSize: 16,
-          fontFamily: 'Poppins',
         ),
         shape: RoundedRectangleBorder(
           borderRadius: AdaptiveTheme.adaptiveCardRadius,
         ),
       ),
-      cupertino: (_, __) => CupertinoAlertDialogData(),
+      cupertino: (_, _) => CupertinoAlertDialogData(),
     );
   }
 }

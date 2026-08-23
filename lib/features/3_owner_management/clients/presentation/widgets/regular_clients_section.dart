@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
@@ -28,12 +29,12 @@ class RegularClientsSection extends StatelessWidget {
             children: [
               Icon(
                 CupertinoIcons.star_fill,
-                color: Colors.amber,
+                color: theme.colorScheme.secondary,
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
-                'Your Regulars',
+                'owner.clients.regulars_title'.tr(),
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -168,7 +169,7 @@ class _RegularClientItem extends StatelessWidget {
               Text(
                 client.lastVisitFormatted,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   fontSize: 10,
                 ),
                 maxLines: 1,

@@ -40,7 +40,7 @@ class RoleCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(AppConstants.padM),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -66,7 +66,7 @@ class RoleCard extends StatelessWidget {
                       subtitle,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         // Consistent secondary text color
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -76,7 +76,7 @@ class RoleCard extends StatelessWidget {
               const SizedBox(width: AppConstants.padS),
               Icon(
                 CupertinoIcons.chevron_forward,
-                color: theme.colorScheme.onSurface.withOpacity(0.4),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                 size: 20,
               ),
             ],

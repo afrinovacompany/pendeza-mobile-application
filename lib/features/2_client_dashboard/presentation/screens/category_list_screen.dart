@@ -24,7 +24,10 @@ class CategoryListScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: AppConstants.padL),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppConstants.padL,
+          vertical: AppConstants.padL,
+        ),
         child: CategoryGridWidget(
           categories: CategoriesData.allCategories,
           showAll: true, // 🔥 This tells the widget to render EVERYTHING

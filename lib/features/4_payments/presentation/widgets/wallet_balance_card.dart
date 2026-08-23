@@ -33,10 +33,10 @@ class WalletBalanceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppConstants.padM),
       decoration: BoxDecoration(
-        color: accentColor.withOpacity(0.06),
+        color: accentColor.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: accentColor.withOpacity(0.2),
+          color: accentColor.withValues(alpha: 0.2),
           width: 1.5,
         ),
       ),
@@ -49,7 +49,7 @@ class WalletBalanceCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.12),
+                  color: accentColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -86,7 +86,7 @@ class WalletBalanceCard extends StatelessWidget {
                 vertical: AppConstants.padXS,
               ),
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.08),
+                color: accentColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(

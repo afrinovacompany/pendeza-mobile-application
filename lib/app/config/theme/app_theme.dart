@@ -1,42 +1,102 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-// Import your custom color and text style classes.
 import 'app_colors.dart';
 import 'app_text_styles.dart';
 
 /// The main theme configuration for the entire application.
-/// This class provides separate ThemeData objects for light and dark modes,
-/// built from a centralized, professional-grade palette and typography system.
+///
+/// Light and dark [ThemeData] share Poppins typography and a complete
+/// Material 3 [ColorScheme] seeded from the brand purple, with existing
+/// brand/semantic colors preserved as overrides.
 class AppTheme {
   AppTheme._();
+
+  //==========================================================================
+  // MATERIAL 3 COLOR SCHEMES
+  //==========================================================================
+
+  /// Light ColorScheme generated from the brand seed, with brand overrides.
+  static final ColorScheme lightColorScheme = ColorScheme.fromSeed(
+    seedColor: AppColors.seed,
+    brightness: Brightness.light,
+    primary: AppColors.primary,
+    onPrimary: Colors.white,
+    primaryContainer: AppColors.primaryLight,
+    onPrimaryContainer: AppColors.primaryDark,
+    secondary: AppColors.accent,
+    onSecondary: AppColors.textPrimary,
+    error: AppColors.error,
+    onError: Colors.white,
+    errorContainer: AppColors.errorLight,
+    onErrorContainer: AppColors.textPrimary,
+    surface: AppColors.surface,
+    onSurface: AppColors.textPrimary,
+    onSurfaceVariant: AppColors.textSecondary,
+    outline: AppColors.border,
+    outlineVariant: AppColors.border,
+    surfaceContainerLowest: AppColors.background,
+    surfaceContainerLow: AppColors.background,
+    surfaceContainer: AppColors.surface,
+    surfaceContainerHigh: AppColors.surface,
+    surfaceContainerHighest: AppColors.surface,
+    inversePrimary: AppColors.primaryLight,
+    surfaceTint: AppColors.primary,
+  );
+
+  /// Dark ColorScheme generated from the same seed, with brand dark overrides.
+  static final ColorScheme darkColorScheme = ColorScheme.fromSeed(
+    seedColor: AppColors.seed,
+    brightness: Brightness.dark,
+    primary: AppColors.primaryLight,
+    onPrimary: AppColors.darkOnPrimary,
+    primaryContainer: AppColors.primaryDark,
+    onPrimaryContainer: AppColors.primaryLight,
+    secondary: AppColors.accent2,
+    onSecondary: AppColors.darkOnSecondary,
+    error: AppColors.error,
+    onError: AppColors.darkOnError,
+    errorContainer: AppColors.error,
+    onErrorContainer: AppColors.darkOnError,
+    surface: AppColors.darkSurface,
+    onSurface: AppColors.darkOnSurface,
+    onSurfaceVariant: AppColors.darkTextSecondary,
+    outline: AppColors.darkBorder,
+    outlineVariant: AppColors.darkBorder,
+    surfaceContainerLowest: AppColors.darkBackground,
+    surfaceContainerLow: AppColors.darkSurface,
+    surfaceContainer: AppColors.darkSurface,
+    surfaceContainerHigh: AppColors.darkSurfaceVariant,
+    surfaceContainerHighest: AppColors.darkSurfaceVariant,
+    inversePrimary: AppColors.primary,
+    surfaceTint: AppColors.primaryLight,
+  );
 
   //==========================================================================
   // LIGHT THEME CONFIGURATION
   //==========================================================================
   static final ThemeData lightTheme = ThemeData(
-    primaryColor: AppColors.primary,
+    useMaterial3: true,
+    brightness: Brightness.light,
+    colorScheme: lightColorScheme,
+    primaryColor: lightColorScheme.primary,
     scaffoldBackgroundColor: AppColors.background,
-    colorScheme: const ColorScheme.light(
-      primary: AppColors.primary,
-      secondary: AppColors.accent,
-      error: AppColors.error,
-      surface: AppColors.surface,
-      onPrimary: Colors.white,
-      onSecondary: AppColors.textPrimary,
-      onSurface: AppColors.textPrimary,
-      onError: Colors.white,
+    fontFamily: AppTextStyles.fontFamily,
+    textTheme: _textTheme(
+      textColor: AppColors.textPrimary,
+      subtitleColor: AppColors.textSecondary,
     ),
-    fontFamily: 'Poppins',
-    textTheme: _textTheme(textColor: AppColors.textPrimary, subtitleColor: AppColors.textSecondary),
-    appBarTheme: _appBarTheme(backgroundColor: AppColors.primary, iconColor: Colors.white),
+    appBarTheme: _appBarTheme(
+      backgroundColor: AppColors.primary,
+      iconColor: Colors.white,
+    ),
     elevatedButtonTheme: _elevatedButtonTheme(
-      backgroundColor: AppColors.accent,
-      foregroundColor: AppColors.textPrimary,
+      backgroundColor: lightColorScheme.primary,
+      foregroundColor: lightColorScheme.onPrimary,
     ),
     floatingActionButtonTheme: _fabTheme(
-      backgroundColor: AppColors.accent,
-      foregroundColor: AppColors.textPrimary,
+      backgroundColor: lightColorScheme.primary,
+      foregroundColor: lightColorScheme.onPrimary,
     ),
     cardTheme: _cardTheme(
       color: AppColors.surface,
@@ -54,34 +114,31 @@ class AppTheme {
   // DARK THEME CONFIGURATION
   //==========================================================================
   static final ThemeData darkTheme = ThemeData(
+    useMaterial3: true,
     brightness: Brightness.dark,
-    primaryColor: AppColors.primaryLight,
+    colorScheme: darkColorScheme,
+    primaryColor: darkColorScheme.primary,
     scaffoldBackgroundColor: AppColors.darkBackground,
-    // **FIXED**: Using centralized colors from AppColors for the dark theme.
-    colorScheme: const ColorScheme.dark(
-      primary: AppColors.primaryLight,
-      secondary: AppColors.accent2,
-      error: AppColors.error,
-      surface: AppColors.darkSurface,
-      onPrimary: AppColors.darkOnPrimary, // Using new centralized color
-      onSecondary: AppColors.darkOnSecondary, // Using new centralized color
-      onSurface: AppColors.darkOnSurface, // Using new centralized color
-      onError: AppColors.darkOnError, // Using new centralized color
+    fontFamily: AppTextStyles.fontFamily,
+    textTheme: _textTheme(
+      textColor: AppColors.darkOnBackground,
+      subtitleColor: AppColors.textLight,
     ),
-    fontFamily: 'Poppins',
-    textTheme: _textTheme(textColor: AppColors.darkOnBackground, subtitleColor: AppColors.textLight),
-    appBarTheme: _appBarTheme(backgroundColor: AppColors.darkSurface, iconColor: Colors.white),
+    appBarTheme: _appBarTheme(
+      backgroundColor: AppColors.darkSurface,
+      iconColor: Colors.white,
+    ),
     elevatedButtonTheme: _elevatedButtonTheme(
-      backgroundColor: AppColors.accent2,
-      foregroundColor: AppColors.darkOnSecondary,
+      backgroundColor: darkColorScheme.primary,
+      foregroundColor: darkColorScheme.onPrimary,
     ),
     floatingActionButtonTheme: _fabTheme(
-      backgroundColor: AppColors.accent2,
-      foregroundColor: AppColors.darkOnSecondary,
+      backgroundColor: darkColorScheme.primary,
+      foregroundColor: darkColorScheme.onPrimary,
     ),
     cardTheme: _cardTheme(
       color: AppColors.darkSurface,
-      shadowColor: Colors.black.withOpacity(0.4),
+      shadowColor: Colors.black.withValues(alpha: 0.4),
     ),
     inputDecorationTheme: _inputDecorationTheme(
       fillColor: AppColors.darkSurface,
@@ -160,7 +217,10 @@ class AppTheme {
     );
   }
 
-  static ElevatedButtonThemeData _elevatedButtonTheme({required Color backgroundColor, required Color foregroundColor}) {
+  static ElevatedButtonThemeData _elevatedButtonTheme({
+    required Color backgroundColor,
+    required Color foregroundColor,
+  }) {
     return ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: backgroundColor,
@@ -169,12 +229,15 @@ class AppTheme {
         textStyle: AppTextStyles.button,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 4,
-        shadowColor: backgroundColor.withOpacity(0.3),
+        shadowColor: backgroundColor.withValues(alpha: 0.3),
       ),
     );
   }
 
-  static FloatingActionButtonThemeData _fabTheme({required Color backgroundColor, required Color foregroundColor}) {
+  static FloatingActionButtonThemeData _fabTheme({
+    required Color backgroundColor,
+    required Color foregroundColor,
+  }) {
     return FloatingActionButtonThemeData(
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
@@ -194,13 +257,17 @@ class AppTheme {
     );
   }
 
-  static InputDecorationTheme _inputDecorationTheme({required Color fillColor, required Color borderColor, required Color labelColor}) {
+  static InputDecorationTheme _inputDecorationTheme({
+    required Color fillColor,
+    required Color borderColor,
+    required Color labelColor,
+  }) {
     return InputDecorationTheme(
       filled: true,
       fillColor: fillColor,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       labelStyle: AppTextStyles.caption.copyWith(color: labelColor),
-      hintStyle: AppTextStyles.bodyMedium.copyWith(color: labelColor.withOpacity(0.7)),
+      hintStyle: AppTextStyles.bodyMedium.copyWith(color: labelColor.withValues(alpha: 0.7)),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -229,6 +296,5 @@ class AppTheme {
       TargetPlatform.android: CupertinoPageTransitionsBuilder(),
       TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
     },
-
   );
 }

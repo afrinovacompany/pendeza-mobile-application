@@ -195,7 +195,7 @@ class _VideoViewerScreenState extends State<VideoViewerScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.close, color: Colors.white, size: 24),
@@ -208,7 +208,7 @@ class _VideoViewerScreenState extends State<VideoViewerScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -263,7 +263,7 @@ class _VideoPage extends StatelessWidget {
             Center(
               child: Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
                 child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 50),
               ),
             ),
@@ -277,7 +277,7 @@ class _VideoPage extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                  colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
                 ),
               ),
             ),
@@ -313,7 +313,7 @@ class _VideoPage extends StatelessWidget {
                         children: [
                           Text(video.salonName, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
                           if (video.salonAddress != null)
-                            Text(video.salonAddress!, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            Text(video.salonAddress!, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                         ],
                       ),
                     ),
@@ -347,7 +347,7 @@ class _VideoPage extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(16)),
+                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(16)),
                   child: Text(video.formattedDuration, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
               ],
@@ -363,8 +363,8 @@ class _VideoPage extends StatelessWidget {
                 allowScrubbing: true,
                 colors: VideoProgressColors(
                   playedColor: Theme.of(context).colorScheme.primary,
-                  bufferedColor: Colors.white.withOpacity(0.3),
-                  backgroundColor: Colors.white.withOpacity(0.1),
+                  bufferedColor: Colors.white.withValues(alpha: 0.3),
+                  backgroundColor: Colors.white.withValues(alpha: 0.1),
                 ),
                 padding: EdgeInsets.zero,
               ),

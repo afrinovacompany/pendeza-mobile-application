@@ -90,11 +90,11 @@ class AdaptiveScaffold extends StatelessWidget {
               trailingActions: trailing != null ? [trailing!] : null,
               automaticallyImplyLeading: automaticallyImplyLeading,
               backgroundColor: isDark ? AppColors.darkSurface : AppColors.primary,
-              material: (_, __) => MaterialAppBarData(
+              material: (_, _) => MaterialAppBarData(
                 elevation: 1,
                 centerTitle: true,
               ),
-              cupertino: (_, __) => CupertinoNavigationBarData(
+              cupertino: (_, _) => CupertinoNavigationBarData(
                 border: Border(
                   bottom: BorderSide(
                     color: isDark ? AppColors.darkBorder : AppColors.border,
@@ -106,7 +106,7 @@ class AdaptiveScaffold extends StatelessWidget {
           : null,
       body: body,
       backgroundColor: bgColor,
-      material: (_, __) => MaterialScaffoldData(
+      material: (_, _) => MaterialScaffoldData(
         floatingActionButton: floatingActionButton,
         floatingActionButtonLocation: floatingActionButtonLocation,
         bottomNavBar: bottomNavigationBar,
@@ -114,7 +114,7 @@ class AdaptiveScaffold extends StatelessWidget {
         extendBodyBehindAppBar: extendBodyBehindAppBar,
         extendBody: extendBody,
       ),
-      cupertino: (_, __) => CupertinoPageScaffoldData(
+      cupertino: (_, _) => CupertinoPageScaffoldData(
         resizeToAvoidBottomInset: resizeToAvoidBottomInset,
         navigationBar: effectiveAppBar != null
             ? CupertinoNavigationBar(

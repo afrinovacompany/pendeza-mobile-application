@@ -124,9 +124,24 @@ class AppointmentsRepositoryImpl implements AppointmentsRepository {
 
       final appointments = snapshot.docs
           .map((doc) => AppointmentModel.fromFirestore(doc))
-      // Filter out cancelled appointments on the client side
-          .where((app) => app.status != 'Cancelled')
           .toList();
+      int statusRank(AppointmentModel m) {
+        if (m.status == AppointmentStatus.cancelled ||
+            m.status == AppointmentStatus.paymentFailed) {
+          return 2;
+        }
+        if (m.status == AppointmentStatus.completed ||
+            m.status == AppointmentStatus.noShow) {
+          return 1;
+        }
+        return 0;
+      }
+
+      appointments.sort((a, b) {
+        final byStatus = statusRank(a).compareTo(statusRank(b));
+        if (byStatus != 0) return byStatus;
+        return a.startTime.compareTo(b.startTime);
+      });
 
       log.d(
           "Found ${appointments.length} appointments for salon $salonId on ${date.toIso8601String()}");

@@ -2,8 +2,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
-import 'package:pendeza/app/services/service_locator.dart';
-import 'package:pendeza/features/2_client_booking/domain/repositories/booking_repository.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
 import 'package:pendeza/shared/models/service_model.dart';
 import 'package:pendeza/shared/widgets/loading_indicator.dart';
@@ -19,11 +17,19 @@ import 'service_card.dart';
 /// - Empty state handling
 class SalonServicesTab extends StatefulWidget {
   final SalonModel salon;
+  final List<ServiceModel> services;
+  final bool isLoading;
+  final String? error;
+  final VoidCallback? onRetry;
   final ValueChanged<ServiceModel>? onServiceTap;
 
   const SalonServicesTab({
     super.key,
     required this.salon,
+    required this.services,
+    this.isLoading = false,
+    this.error,
+    this.onRetry,
     this.onServiceTap,
   });
 
@@ -32,44 +38,24 @@ class SalonServicesTab extends StatefulWidget {
 }
 
 class _SalonServicesTabState extends State<SalonServicesTab> {
-  List<ServiceModel> _services = [];
-  bool _isLoading = true;
-  String? _error;
-
   // Track expanded categories
   final Set<String> _expandedCategories = {};
+
+  List<ServiceModel> get _services => widget.services;
 
   @override
   void initState() {
     super.initState();
-    _fetchServices();
+    _expandedCategories.addAll(_getCategories());
   }
 
-  Future<void> _fetchServices() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
-
-      final services =
-          await sl<BookingRepository>().getServicesForSalon(widget.salon.id);
-
-      if (mounted) {
-        setState(() {
-          _services = services.where((s) => s.isActive).toList();
-          _isLoading = false;
-          // Expand all categories by default
-          _expandedCategories.addAll(_getCategories());
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _error = e.toString();
-        });
-      }
+  @override
+  void didUpdateWidget(SalonServicesTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.services != widget.services &&
+        widget.services.isNotEmpty &&
+        _expandedCategories.isEmpty) {
+      _expandedCategories.addAll(_getCategories());
     }
   }
 
@@ -107,11 +93,11 @@ class _SalonServicesTabState extends State<SalonServicesTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    if (widget.isLoading) {
       return _buildLoadingState();
     }
 
-    if (_error != null) {
+    if (widget.error != null) {
       return _buildErrorState();
     }
 
@@ -120,7 +106,7 @@ class _SalonServicesTabState extends State<SalonServicesTab> {
     }
 
     return RefreshIndicator(
-      onRefresh: _fetchServices,
+      onRefresh: () async => widget.onRetry?.call(),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(bottom: 100),
@@ -154,7 +140,7 @@ class _SalonServicesTabState extends State<SalonServicesTab> {
               Icon(
                 CupertinoIcons.star_fill,
                 size: 18,
-                color: Colors.amber,
+                color: theme.colorScheme.tertiary,
               ),
               const SizedBox(width: 8),
               Text(
@@ -275,7 +261,7 @@ class _SalonServicesTabState extends State<SalonServicesTab> {
             ),
             const SizedBox(height: AppConstants.padS),
             TextButton.icon(
-              onPressed: _fetchServices,
+              onPressed: widget.onRetry,
               icon: const Icon(CupertinoIcons.refresh),
               label: const Text('Try Again'),
             ),

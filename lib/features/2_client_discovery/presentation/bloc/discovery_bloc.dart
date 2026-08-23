@@ -7,6 +7,7 @@ import 'discovery_state.dart';
 /// BLoC for managing salon discovery with filtering and sorting
 class DiscoveryBloc extends Bloc<DiscoveryEvent, DiscoveryState> {
   final BookingRepository _bookingRepository;
+  String? _pendingCategoryId;
 
   DiscoveryBloc(this._bookingRepository) : super(const DiscoveryInitial()) {
     on<LoadSalons>(_onLoadSalons);
@@ -29,14 +30,16 @@ class DiscoveryBloc extends Bloc<DiscoveryEvent, DiscoveryState> {
 
     try {
       final salons = await _bookingRepository.getSalons();
-
-      // Apply default sorting (by popularity)
-      final sortedSalons = _sortSalons(salons, SortType.popularity);
+      final filters = _pendingCategoryId != null
+          ? DiscoveryFilters(categoryId: _pendingCategoryId)
+          : DiscoveryFilters.defaults();
+      _pendingCategoryId = null;
+      final filtered = _applyAllFilters(salons, filters, null);
 
       emit(DiscoveryLoaded(
         allSalons: salons,
-        filteredSalons: sortedSalons,
-        filters: DiscoveryFilters.defaults(),
+        filteredSalons: filtered,
+        filters: filters,
       ));
     } catch (e) {
       emit(DiscoveryError('Failed to load: ${e.toString()}'));
@@ -66,12 +69,15 @@ class DiscoveryBloc extends Bloc<DiscoveryEvent, DiscoveryState> {
           filteredSalons: filtered,
         ));
       } else {
-        // Fresh load
-        final sortedSalons = _sortSalons(salons, SortType.popularity);
+        final filters = _pendingCategoryId != null
+            ? DiscoveryFilters(categoryId: _pendingCategoryId)
+            : DiscoveryFilters.defaults();
+        _pendingCategoryId = null;
+        final filtered = _applyAllFilters(salons, filters, null);
         emit(DiscoveryLoaded(
           allSalons: salons,
-          filteredSalons: sortedSalons,
-          filters: DiscoveryFilters.defaults(),
+          filteredSalons: filtered,
+          filters: filters,
         ));
       }
     } catch (e) {
@@ -105,7 +111,13 @@ class DiscoveryBloc extends Bloc<DiscoveryEvent, DiscoveryState> {
       Emitter<DiscoveryState> emit,
       ) {
     final currentState = state;
-    if (currentState is! DiscoveryLoaded) return;
+    if (currentState is! DiscoveryLoaded) {
+      _pendingCategoryId = event.categoryId;
+      if (currentState is DiscoveryInitial || currentState is DiscoveryError) {
+        add(const LoadSalons());
+      }
+      return;
+    }
 
     final newFilters = currentState.filters.copyWith(
       categoryId: event.categoryId,

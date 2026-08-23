@@ -41,8 +41,8 @@ class PromotionCard extends StatelessWidget {
                   child: CachedNetworkImage(
                     imageUrl: promotion.imageUrl,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(color: Colors.grey[200]),
-                    errorWidget: (_, __, ___) => Container(color: Colors.grey[300], child: const Icon(Icons.image)),
+                    placeholder: (_, _) => Container(color: Colors.grey[200]),
+                    errorWidget: (_, _, _) => Container(color: Colors.grey[300], child: const Icon(Icons.image)),
                   ),
                 ),
                 // Active/Inactive Badge

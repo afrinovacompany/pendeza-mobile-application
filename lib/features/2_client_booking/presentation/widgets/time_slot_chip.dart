@@ -21,7 +21,7 @@ class TimeSlotChip extends StatelessWidget {
     // Use theme colors for selected/unselected states
     final containerColor = isSelected ? colorScheme.primary : theme.cardColor;
     final textColor = isSelected ? colorScheme.onPrimary : colorScheme.onSurface;
-    final borderColor = isSelected ? colorScheme.primary : theme.dividerColor.withOpacity(0.5);
+    final borderColor = isSelected ? colorScheme.primary : theme.dividerColor.withValues(alpha: 0.5);
 
     return InkWell(
       onTap: onTap,
@@ -36,7 +36,7 @@ class TimeSlotChip extends StatelessWidget {
           border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1.0),
           boxShadow: isSelected ? [ // Add subtle shadow when selected
             BoxShadow(
-              color: colorScheme.primary.withOpacity(0.2),
+              color: colorScheme.primary.withValues(alpha: 0.2),
               blurRadius: 4,
               offset: const Offset(0, 2),
             )

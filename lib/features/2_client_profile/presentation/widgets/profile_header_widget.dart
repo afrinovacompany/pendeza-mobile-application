@@ -1,6 +1,6 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:pendeza/app/config/theme/app_colors.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/features/0_auth/data/models/user_model.dart';
 
@@ -13,6 +13,8 @@ class ProfileHeaderWidget extends StatelessWidget {
   final ProfileStats stats;
   final bool isImageUploading;
   final VoidCallback onAvatarTap;
+  final VoidCallback? onBookingsTap;
+  final VoidCallback? onSavedTap;
 
   const ProfileHeaderWidget({
     super.key,
@@ -20,6 +22,8 @@ class ProfileHeaderWidget extends StatelessWidget {
     required this.stats,
     this.isImageUploading = false,
     required this.onAvatarTap,
+    this.onBookingsTap,
+    this.onSavedTap,
   });
 
   @override
@@ -39,7 +43,7 @@ class ProfileHeaderWidget extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: theme.colorScheme.primary.withOpacity(0.2),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.2),
                     width: 4,
                   ),
                 ),
@@ -54,11 +58,13 @@ class ProfileHeaderWidget extends StatelessWidget {
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.black45,
+                    color: theme.colorScheme.scrim.withValues(alpha: 0.45),
                     shape: BoxShape.circle,
                   ),
-                  child: const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: theme.colorScheme.onPrimary,
+                    ),
                   ),
                 ),
               ),
@@ -70,14 +76,17 @@ class ProfileHeaderWidget extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    color: theme.colorScheme.primary,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(
+                      color: theme.colorScheme.surface,
+                      width: 2,
+                    ),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     CupertinoIcons.camera_fill,
                     size: 16,
-                    color: Colors.white,
+                    color: theme.colorScheme.onPrimary,
                   ),
                 ),
               ),
@@ -101,16 +110,12 @@ class ProfileHeaderWidget extends StatelessWidget {
             Text(
               user.email,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
-            if (user.phoneNumber!.isNotEmpty) ...[
+            if (user.phoneNumber?.isNotEmpty == true) ...[
               const SizedBox(width: 8),
-              Icon(
-                Icons.verified,
-                size: 14,
-                color: theme.colorScheme.primary,
-              ),
+              Icon(Icons.verified, size: 14, color: theme.colorScheme.primary),
             ],
           ],
         ),
@@ -127,7 +132,7 @@ class ProfileHeaderWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppConstants.radiusValL),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: theme.colorScheme.shadow.withValues(alpha: 0.04),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -137,18 +142,20 @@ class ProfileHeaderWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 ProfileStatItem(
-                  label: 'Bookings',
+                  label: 'client.profile.stats.bookings'.tr(),
                   value: '${stats.totalBookings}',
+                  onTap: onBookingsTap,
                 ),
                 _buildDivider(theme),
                 ProfileStatItem(
-                  label: 'Reviews',
+                  label: 'client.profile.stats.reviews'.tr(),
                   value: '${stats.totalReviews}',
                 ),
                 _buildDivider(theme),
                 ProfileStatItem(
-                  label: 'Saved',
+                  label: 'client.profile.stats.saved'.tr(),
                   value: '${stats.totalFavorites}',
+                  onTap: onSavedTap,
                 ),
               ],
             ),
@@ -162,7 +169,7 @@ class ProfileHeaderWidget extends StatelessWidget {
     return Container(
       height: 30,
       width: 1,
-      color: theme.dividerColor.withOpacity(0.5),
+      color: theme.dividerColor.withValues(alpha: 0.5),
     );
   }
 }

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 
@@ -113,7 +112,7 @@ class AdaptiveBottomNav extends StatelessWidget {
                 label: item.label,
               ))
           .toList(),
-      material: (_, __) => MaterialNavBarData(
+      material: (_, _) => MaterialNavBarData(
         elevation: elevation,
         type: type ?? BottomNavigationBarType.fixed,
         selectedItemColor: selectedColor,
@@ -124,15 +123,13 @@ class AdaptiveBottomNav extends StatelessWidget {
         unselectedFontSize: unselectedFontSize,
         iconSize: iconSize,
         selectedLabelStyle: const TextStyle(
-          fontFamily: 'Poppins',
           fontWeight: FontWeight.w500,
         ),
         unselectedLabelStyle: const TextStyle(
-          fontFamily: 'Poppins',
           fontWeight: FontWeight.w400,
         ),
       ),
-      cupertino: (_, __) => CupertinoTabBarData(
+      cupertino: (_, _) => CupertinoTabBarData(
         activeColor: selectedColor,
         inactiveColor: unselectedColor,
         iconSize: iconSize,
@@ -265,10 +262,11 @@ class AdaptiveBottomNavBar extends StatelessWidget {
                 child: AnimatedContainer(
                   duration: animationDuration,
                   curve: Curves.easeInOut,
-                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _buildAnimatedIcon(
                         item: item,
@@ -277,21 +275,19 @@ class AdaptiveBottomNavBar extends StatelessWidget {
                         isDark: isDark,
                       ),
                       if (showLabels) ...[
-                        const SizedBox(height: 4),
-                        AnimatedDefaultTextStyle(
-                          duration: animationDuration,
+                        const SizedBox(height: 2),
+                        Text(
+                          item.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             color: color,
                             fontSize: labelSize,
                             fontWeight: isSelected
                                 ? FontWeight.w600
                                 : FontWeight.w400,
-                            fontFamily: 'Poppins',
-                          ),
-                          child: Text(
-                            item.label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            height: 1.1,
                           ),
                         ),
                       ],
@@ -314,11 +310,7 @@ class AdaptiveBottomNavBar extends StatelessWidget {
   }) {
     final icon = isSelected ? (item.activeIcon ?? item.icon) : item.icon;
 
-    Widget iconWidget = AnimatedScale(
-      scale: isSelected ? 1.1 : 1.0,
-      duration: animationDuration,
-      child: Icon(icon, color: color, size: iconSize),
-    );
+    Widget iconWidget = Icon(icon, color: color, size: iconSize);
 
     if (item.badge != null && item.badge! > 0) {
       iconWidget = Stack(
@@ -453,7 +445,6 @@ class AdaptiveFloatingBottomNav extends StatelessWidget {
                           color: color,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          fontFamily: 'Poppins',
                         ),
                       ),
                     ],

@@ -4,12 +4,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/config/app_router.dart';
-import '../../../../app/config/theme/app_constants.dart';
 import '../../../../shared/widgets/phone_number_input_field.dart';
 import '../../../../shared/widgets/primary_gradient_button.dart';
+import '../auth_navigation.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../widgets/auth_chrome.dart';
 
 class PhoneAuthScreen extends StatefulWidget {
   const PhoneAuthScreen({super.key});
@@ -58,123 +59,73 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
       listener: (context, state) {
         // 🔥 NEW: Handle phone verification code sent state
         if (state is PhoneVerificationCodeSent) {
-          // Navigate to OTP screen
-          context.push(AppRoutes.otp, extra: {
-            'verificationId': state.verificationId,
-            'phoneNumber': state.phoneNumber,
-          });
+          // Only push OTP from this screen. Resend from OtpScreen also emits
+          // PhoneVerificationCodeSent and must not stack another OTP route.
+          final currentPath = GoRouterState.of(context).uri.path;
+          if (currentPath == AppRoutes.phoneAuth) {
+            context.push(AppRoutes.otp, extra: {
+              'sessionId': state.sessionId,
+              'phoneNumber': state.phoneNumber,
+            });
+          }
         } else if (state is AuthError) {
-          _showErrorSnackBar(state.message);
+          final currentPath = GoRouterState.of(context).uri.path;
+          if (currentPath == AppRoutes.phoneAuth) {
+            _showErrorSnackBar(state.message);
+          }
         } else if (state is RoleSelectionRequired) {
           context.go(AppRoutes.roleSelection);
+        } else if (state is ClientProfileSetupRequired) {
+          context.go(AppRoutes.clientSetup);
+        } else if (state is OwnerProfileSetupRequired) {
+          context.go(AppRoutes.ownerSetup);
         } else if (state is Authenticated) {
-          final role = state.user.role;
-          if (role == 'owner') {
-            context.go(AppRoutes.ownerHome);
-          } else {
-            context.go(AppRoutes.clientHome);
-          }
+          goAfterAuthenticated(context, state);
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           final isLoading = state is AuthLoading;
 
-          return Scaffold(
-            appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
-            ),
-            backgroundColor: theme.scaffoldBackgroundColor,
-            body: SafeArea(
-              child: Stack(
-                children: [
-                  Center(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(AppConstants.padL),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Icon(
-                              Icons.phone_android_rounded,
-                              size: 80,
-                              color: theme.colorScheme.primary,
-                            ),
-                            const SizedBox(height: AppConstants.padL),
-                            Text('auth.phone.title'.tr(),
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.displayMedium),
-                            const SizedBox(height: AppConstants.padS),
-                            Text(
-                              'auth.phone.description'.tr(),
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: theme.colorScheme.onSurface.withAlpha(178),
-                              ),
-                            ),
-                            const SizedBox(height: AppConstants.padXXL),
-
-                            PhoneNumberInputField(
-                              controller: _phoneController,
-                              onCountryChanged: (country) {
-                                setState(() {
-                                  _countryCode = country.dialCode ?? '+255';
-                                });
-                              },
-                            ),
-                            const SizedBox(height: AppConstants.padXXL),
-
-                            PrimaryGradientButton(
-                              text: 'auth.phone.button'.tr(),
-                              onPressed: isLoading ? null : _sendOtp,
-                              isLoading: isLoading,
-                            ),
-
-                            const SizedBox(height: AppConstants.padL),
-
-                            // Helper text
-                            Text(
-                              'We\'ll send you a 6-digit verification code',
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface.withAlpha(153),
-                              ),
-                            ),
-                          ],
-                        ),
+          return AuthScaffold(
+            isLoading: isLoading,
+            loadingMessage: 'auth.phone.sending'.tr(),
+            body: AuthPageBody(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AuthHeader(
+                      title: 'auth.phone.title'.tr(),
+                      subtitle: 'auth.phone.description'.tr(),
+                      leading: Icon(
+                        Icons.phone_android_rounded,
+                        size: AuthChrome.iconSize,
+                        color: theme.colorScheme.primary,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: AuthChrome.headerGap),
 
-                  // Loading overlay
-                  if (isLoading)
-                    Container(
-                      color: Colors.black26,
-                      child: Center(
-                        child: Card(
-                          elevation: 8,
-                          child: Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const CircularProgressIndicator(),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Sending verification code...',
-                                  style: theme.textTheme.titleMedium,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                    PhoneNumberInputField(
+                      controller: _phoneController,
+                      onCountryChanged: (country) {
+                        setState(() {
+                          _countryCode = country.dialCode ?? '+255';
+                        });
+                      },
                     ),
-                ],
+                    const SizedBox(height: AuthChrome.headerGap),
+
+                    PrimaryGradientButton(
+                      text: 'auth.phone.button'.tr(),
+                      onPressed: isLoading ? null : _sendOtp,
+                      isLoading: isLoading,
+                      height: AuthChrome.ctaHeight,
+                    ),
+                  ],
+                ),
               ),
             ),
           );

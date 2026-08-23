@@ -31,7 +31,6 @@ class OwnerDashboardRepositoryImpl implements OwnerDashboardRepository {
           .where('salonId', isEqualTo: salonId)
           .where('startTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-          .where('status', isEqualTo: 'Confirmed')  // ✅ FILTER HERE!
           .get();
 
       return snapshot.docs
@@ -137,17 +136,9 @@ class OwnerDashboardRepositoryImpl implements OwnerDashboardRepository {
 
   // Added the new method implementation
   @override
-  Future<List<ServiceModel>> getServicesForSalon(String salonId) async {
-    try {
-      final snapshot = await _db
-          .collection('salons')
-          .doc(salonId)
-          .collection('services')
-          .get();
-      return snapshot.docs.map((doc) => ServiceModel.fromFirestore(doc)).toList();
-    } catch (e, s) {
-      log.e('Error fetching services', error: e, stackTrace: s);
-      return [];
-    }
+  Future<List<ServiceModel>> getServicesForSalon(String salonId) {
+    // Services live in the top-level `services` collection, same as
+    // ServicesRepository / owner Services tab — not a salon subcollection.
+    return _firestoreService.getServicesForSalon(salonId);
   }
 }

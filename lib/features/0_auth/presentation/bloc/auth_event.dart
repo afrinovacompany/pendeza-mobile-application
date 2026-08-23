@@ -112,6 +112,9 @@ class SignInRequested extends AuthEvent {
 /// Fired when user attempts Google sign-in
 class GoogleSignInRequested extends AuthEvent {}
 
+/// Fired when user attempts Apple sign-in (iOS only)
+class AppleSignInRequested extends AuthEvent {}
+
 // ============================================================================
 // PHONE AUTH EVENTS
 // ============================================================================
@@ -128,16 +131,16 @@ class PhoneSignInRequested extends AuthEvent {
 
 /// Fired when OTP verification is submitted
 class OtpVerificationRequested extends AuthEvent {
-  final String verificationId;
+  final String sessionId;
   final String smsCode;
 
   const OtpVerificationRequested({
-    required this.verificationId,
+    required this.sessionId,
     required this.smsCode,
   });
 
   @override
-  List<Object> get props => [verificationId, smsCode];
+  List<Object> get props => [sessionId, smsCode];
 }
 
 /// Fired to request a new OTP (resend)

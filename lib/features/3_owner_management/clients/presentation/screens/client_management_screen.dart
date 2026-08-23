@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
+import 'package:pendeza/features/3_owner_management/presentation/owner_chrome.dart';
 import 'package:pendeza/shared/widgets/profile_avatar.dart';
 
 import '../../domain/models/regular_client.dart';
@@ -32,10 +34,9 @@ class ClientManagementScreen extends StatelessWidget {
         authBloc: context.read(),
       )..add(const LoadClients()),
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Clients'),
-          centerTitle: true,
-          elevation: 0,
+        appBar: ownerTabAppBar(
+          context,
+          title: 'owner.clients.title'.tr(),
         ),
         body: BlocBuilder<ClientManagementBloc, ClientManagementState>(
           builder: (context, state) {
@@ -109,11 +110,11 @@ class ClientManagementScreen extends StatelessWidget {
             Icon(
               CupertinoIcons.exclamationmark_triangle,
               size: 64,
-              color: theme.colorScheme.error.withOpacity(0.5),
+              color: theme.colorScheme.error.withValues(alpha: 0.5),
             ),
             const SizedBox(height: AppConstants.padL),
             Text(
-              'Oops!',
+              'common.oops'.tr(),
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -123,7 +124,7 @@ class ClientManagementScreen extends StatelessWidget {
               message,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: AppConstants.padL),
@@ -132,7 +133,7 @@ class ClientManagementScreen extends StatelessWidget {
                 context.read<ClientManagementBloc>().add(const LoadClients());
               },
               icon: const Icon(CupertinoIcons.refresh),
-              label: const Text('Try Again'),
+              label: Text('common.retry'.tr()),
             ),
           ],
         ),
@@ -167,20 +168,20 @@ class _ClientSearchResults extends StatelessWidget {
                   Icon(
                     CupertinoIcons.search,
                     size: 48,
-                    color: theme.colorScheme.onSurface.withOpacity(0.3),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                   const SizedBox(height: AppConstants.padM),
                   Text(
-                    'No clients found',
+                    'owner.clients.no_results_title'.tr(),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: AppConstants.padS),
                   Text(
-                    'Try a different name or phone number',
+                    'owner.clients.no_results_hint'.tr(),
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -230,7 +231,7 @@ class _SearchResultItem extends StatelessWidget {
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: theme.colorScheme.outline.withOpacity(0.1),
+            color: theme.colorScheme.outline.withValues(alpha: 0.1),
           ),
         ),
         child: Row(
@@ -258,7 +259,7 @@ class _SearchResultItem extends StatelessWidget {
                     Text(
                       client.phone!,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                 ],
@@ -278,7 +279,7 @@ class _SearchResultItem extends StatelessWidget {
                 Text(
                   client.lastVisitFormatted,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                 ),
               ],

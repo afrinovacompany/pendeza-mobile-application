@@ -130,14 +130,14 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Colors.red.shade600,
-                        Colors.orange.shade500,
+                        theme.colorScheme.primary,
+                        theme.colorScheme.primaryContainer,
                       ],
                     ),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.red.withValues(alpha: 0.4),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.4),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -149,13 +149,13 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
                       Icon(
                         Icons.local_offer,
                         size: 14,
-                        color: Colors.white,
+                        color: theme.colorScheme.onPrimary,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         'SPECIAL OFFER',
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.white,
+                          color: theme.colorScheme.onPrimary,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.5,
                         ),

@@ -51,9 +51,9 @@ class AdaptiveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = color ?? (isDark ? AppColors.accent2 : AppColors.accent);
-    final fgColor = textColor ?? AppColors.textPrimary;
+    final colorScheme = Theme.of(context).colorScheme;
+    final bgColor = color ?? colorScheme.primary;
+    final fgColor = textColor ?? colorScheme.onPrimary;
     final effectivePadding =
         padding ?? AdaptiveTheme.adaptiveButtonPadding;
     final effectiveRadius =
@@ -64,7 +64,7 @@ class AdaptiveButton extends StatelessWidget {
             height: 20,
             width: 20,
             child: PlatformConfig.useCupertino
-                ? const CupertinoActivityIndicator(color: Colors.white)
+                ? CupertinoActivityIndicator(color: fgColor)
                 : CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor: AlwaysStoppedAnimation<Color>(fgColor),
@@ -81,11 +81,10 @@ class AdaptiveButton extends StatelessWidget {
           color: fgColor,
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          fontFamily: 'Poppins',
         ),
         child: buttonChild,
       ),
-      material: (_, __) => MaterialElevatedButtonData(
+      material: (_, _) => MaterialElevatedButtonData(
         style: ElevatedButton.styleFrom(
           backgroundColor: bgColor,
           foregroundColor: fgColor,
@@ -97,7 +96,7 @@ class AdaptiveButton extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: effectiveRadius),
         ),
       ),
-      cupertino: (_, __) => CupertinoElevatedButtonData(
+      cupertino: (_, _) => CupertinoElevatedButtonData(
         color: bgColor,
         disabledColor: disabledColor ?? bgColor.withAlpha(128),
         padding: effectivePadding,
@@ -143,16 +142,15 @@ class AdaptiveTextButton extends StatelessWidget {
           color: textColor,
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          fontFamily: 'Poppins',
         ),
         child: child,
       ),
-      material: (_, __) => MaterialTextButtonData(
+      material: (_, _) => MaterialTextButtonData(
         style: TextButton.styleFrom(
           foregroundColor: textColor,
         ),
       ),
-      cupertino: (_, __) => CupertinoTextButtonData(
+      cupertino: (_, _) => CupertinoTextButtonData(
         color: textColor,
       ),
     );
@@ -204,7 +202,6 @@ class AdaptiveOutlinedButton extends StatelessWidget {
             color: textColor,
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            fontFamily: 'Poppins',
           ),
           child: child,
         ),
@@ -233,7 +230,6 @@ class AdaptiveOutlinedButton extends StatelessWidget {
             color: textColor,
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            fontFamily: 'Poppins',
           ),
           child: child,
         ),
@@ -278,11 +274,11 @@ class AdaptiveIconButton extends StatelessWidget {
       onPressed: onPressed,
       icon: Icon(icon, color: iconColor, size: iconSize),
       padding: padding ?? const EdgeInsets.all(8),
-      material: (_, __) => MaterialIconButtonData(
+      material: (_, _) => MaterialIconButtonData(
         tooltip: tooltip,
         splashRadius: 24,
       ),
-      cupertino: (_, __) => CupertinoIconButtonData(
+      cupertino: (_, _) => CupertinoIconButtonData(
         padding: padding ?? const EdgeInsets.all(8),
       ),
     );
@@ -336,7 +332,6 @@ class AdaptiveGradientButton extends StatelessWidget {
               color: Colors.white,
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              fontFamily: 'Poppins',
             ),
             child: child,
           );
@@ -396,10 +391,9 @@ class AdaptiveFloatingActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = backgroundColor ??
-        (isDark ? AppColors.accent2 : AppColors.accent);
-    final fgColor = foregroundColor ?? AppColors.textPrimary;
+    final colorScheme = Theme.of(context).colorScheme;
+    final bgColor = backgroundColor ?? colorScheme.primary;
+    final fgColor = foregroundColor ?? colorScheme.onPrimary;
 
     // On iOS, we still use a Material FAB but with subtle styling
     if (extended && label != null) {

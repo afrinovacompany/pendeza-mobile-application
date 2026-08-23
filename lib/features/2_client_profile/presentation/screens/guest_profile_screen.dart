@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/config/app_config.dart';
 import '../../../../app/config/app_router.dart';
 import '../../../../app/config/theme/app_constants.dart';
 import '../../../0_auth/presentation/bloc/auth_bloc.dart';
@@ -65,15 +66,15 @@ class GuestProfileScreen extends StatelessWidget {
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
                           colors: [
-                            theme.colorScheme.primary.withOpacity(0.2),
-                            theme.colorScheme.primary.withOpacity(0.1),
+                            theme.colorScheme.primary.withValues(alpha: 0.2),
+                            theme.colorScheme.primary.withValues(alpha: 0.1),
                           ],
                         ),
                       ),
                       child: Icon(
                         CupertinoIcons.person_circle,
                         size: 80,
-                        color: theme.colorScheme.primary.withOpacity(0.6),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.6),
                       ),
                     ),
                   ),
@@ -94,7 +95,7 @@ class GuestProfileScreen extends StatelessWidget {
                   Text(
                     'client.guest_profile.subtitle'.tr(),
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -111,17 +112,18 @@ class GuestProfileScreen extends StatelessWidget {
                     onTap: () => context.push(AppRoutes.clientFavorites),
                   ),
 
-                  const SizedBox(height: AppConstants.padM),
-
-                  // 🆕 WALLET PREVIEW FOR GUESTS (Shows locked state)
-                  _buildLockedFeatureCard(
-                    theme,
-                    icon: CupertinoIcons.creditcard_fill,
-                    iconColor: Colors.blueAccent,
-                    title: 'client.profile.menu.wallet'.tr(),
-                    subtitle: 'client.guest_profile.wallet_subtitle'.tr(),
-                    lockedMessage: 'client.guest_profile.wallet_locked'.tr(),
-                  ),
+                  // TEMPORARILY DISABLED - Payments turned off for App Store submission
+                  if (AppConfig.paymentsEnabled) ...[
+                    const SizedBox(height: AppConstants.padM),
+                    _buildLockedFeatureCard(
+                      theme,
+                      icon: CupertinoIcons.creditcard_fill,
+                      iconColor: Colors.blueAccent,
+                      title: 'client.profile.menu.wallet'.tr(),
+                      subtitle: 'client.guest_profile.wallet_subtitle'.tr(),
+                      lockedMessage: 'client.guest_profile.wallet_locked'.tr(),
+                    ),
+                  ],
 
                   const SizedBox(height: AppConstants.padXL),
 
@@ -194,7 +196,7 @@ class GuestProfileScreen extends StatelessWidget {
         borderRadius: AppConstants.radiusM,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -205,7 +207,7 @@ class GuestProfileScreen extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
+            color: iconColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: iconColor),
@@ -228,15 +230,15 @@ class GuestProfileScreen extends StatelessWidget {
       }) {
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withOpacity(0.5),
+        color: theme.colorScheme.surface.withValues(alpha: 0.5),
         borderRadius: AppConstants.radiusM,
         border: Border.all(
-          color: theme.dividerColor.withOpacity(0.3),
+          color: theme.dividerColor.withValues(alpha: 0.3),
           style: BorderStyle.solid,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -249,10 +251,10 @@ class GuestProfileScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
+                color: iconColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: iconColor.withOpacity(0.4)),
+              child: Icon(icon, color: iconColor.withValues(alpha: 0.4)),
             ),
             Positioned(
               right: 0,
@@ -266,7 +268,7 @@ class GuestProfileScreen extends StatelessWidget {
                 child: Icon(
                   CupertinoIcons.lock_fill,
                   size: 14,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ),
@@ -275,19 +277,19 @@ class GuestProfileScreen extends StatelessWidget {
         title: Text(
           title,
           style: TextStyle(
-            color: theme.colorScheme.onSurface.withOpacity(0.5),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
           ),
         ),
         subtitle: Text(
           subtitle,
           style: TextStyle(
-            color: theme.colorScheme.onSurface.withOpacity(0.4),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
           ),
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withOpacity(0.1),
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -309,11 +311,13 @@ class GuestProfileScreen extends StatelessWidget {
         title: 'client.guest_profile.benefit_book_title'.tr(),
         description: 'client.guest_profile.benefit_book_desc'.tr(),
       ),
-      BenefitItem(
-        icon: CupertinoIcons.creditcard,
-        title: 'client.guest_profile.benefit_wallet_title'.tr(),
-        description: 'client.guest_profile.benefit_wallet_desc'.tr(),
-      ),
+      // TEMPORARILY DISABLED - Payments turned off for App Store submission
+      if (AppConfig.paymentsEnabled)
+        BenefitItem(
+          icon: CupertinoIcons.creditcard,
+          title: 'client.guest_profile.benefit_wallet_title'.tr(),
+          description: 'client.guest_profile.benefit_wallet_desc'.tr(),
+        ),
       BenefitItem(
         icon: CupertinoIcons.heart,
         title: 'client.guest_profile.benefit_favorites_title'.tr(),
@@ -333,13 +337,13 @@ class GuestProfileScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            theme.colorScheme.primary.withOpacity(0.08),
-            theme.colorScheme.primary.withOpacity(0.03),
+            theme.colorScheme.primary.withValues(alpha: 0.08),
+            theme.colorScheme.primary.withValues(alpha: 0.03),
           ],
         ),
         borderRadius: AppConstants.radiusL,
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.2),
+          color: theme.colorScheme.primary.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -378,7 +382,7 @@ class GuestProfileScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(AppConstants.padS),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: AppConstants.radiusS,
             ),
             child: Icon(
@@ -402,7 +406,7 @@ class GuestProfileScreen extends StatelessWidget {
                 Text(
                   benefit.description,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -455,14 +459,14 @@ class GuestProfileScreen extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: AppConstants.radiusM,
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.2),
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: Row(
         children: [
           Icon(
             icon,
-            color: theme.colorScheme.primary.withOpacity(0.6),
+            color: theme.colorScheme.primary.withValues(alpha: 0.6),
             size: 24,
           ),
           const SizedBox(width: AppConstants.padM),
@@ -479,7 +483,7 @@ class GuestProfileScreen extends StatelessWidget {
                 Text(
                   subtitle,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -487,7 +491,7 @@ class GuestProfileScreen extends StatelessWidget {
           ),
           Icon(
             CupertinoIcons.checkmark_circle_fill,
-            color: theme.colorScheme.primary.withOpacity(0.3),
+            color: theme.colorScheme.primary.withValues(alpha: 0.3),
             size: 20,
           ),
         ],

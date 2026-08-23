@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/config/app_router.dart';
+import '../auth_return_store.dart';
 
 /// A simple, beautiful dialog that prompts guest users to sign in.
 class AuthPromptDialog extends StatelessWidget {
@@ -134,6 +135,7 @@ class AuthPromptDialog extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
+                    AuthReturnStore.setPending(returnRoute);
                     context.pop();
                     context.push(
                       AppRoutes.login,
@@ -176,6 +178,7 @@ class AuthPromptDialog extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () {
+                    AuthReturnStore.setPending(returnRoute);
                     context.pop();
                     context.push(
                       AppRoutes.signup,

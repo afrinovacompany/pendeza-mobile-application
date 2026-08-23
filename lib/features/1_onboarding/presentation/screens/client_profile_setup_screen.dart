@@ -1,63 +1,50 @@
+import 'dart:io';
+
 import 'package:easy_localization/easy_localization.dart';
-import 'dart:async'; // Required for Timer (Kept, but no longer used for username debounce)
-import 'dart:io';    // Required for File
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:permission_handler/permission_handler.dart' show openAppSettings;
 
-// Assume these imports exist based on your project structure
 import '../../../../app/config/theme/app_constants.dart';
-// import '../../../../app/services/service_locator.dart'; // No longer needed since AuthRepository.isUsernameTaken is removed
 import '../../../../app/utils/logger.dart';
 import '../../../../app/utils/permission_handler.dart';
+import '../../../../app/widgets/adaptive/adaptive_dialog.dart';
 import '../../../../shared/widgets/primary_gradient_button.dart';
 import '../../../../shared/widgets/text_form_field.dart';
 import '../../../../shared/widgets/phone_number_input_field.dart';
 
 import '../../../0_auth/data/models/user_model.dart';
-// import '../../../0_auth/domain/repositories/auth_repository.dart'; // No longer needed
 import '../../../0_auth/presentation/bloc/auth_bloc.dart';
 import '../../../0_auth/presentation/bloc/auth_event.dart';
 import '../../../0_auth/presentation/bloc/auth_state.dart';
+import '../../../0_auth/presentation/widgets/auth_chrome.dart';
 
-/// 🔥 CLIENT PROFILE SETUP SCREEN (WITHOUT USERNAME)
+/// Collects mandatory client profile fields after role selection.
 ///
-/// Collects mandatory fields:
-/// - Full Name
-/// - Phone Number (TZ default)
-/// - Gender
-/// - Profile Picture (optional)
+/// Successful completion emits [Authenticated]; GoRouter then sends the
+/// user to client home or a pending booking return path.
 class ClientProfileSetupScreen extends StatefulWidget {
   const ClientProfileSetupScreen({super.key});
 
   @override
-  State<ClientProfileSetupScreen> createState() => _ClientProfileSetupScreenState();
+  State<ClientProfileSetupScreen> createState() =>
+      _ClientProfileSetupScreenState();
 }
 
 class _ClientProfileSetupScreenState extends State<ClientProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
-
-  // Controllers
   final _nameController = TextEditingController();
-  // Removed: final _usernameController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  // Image State
   final ImagePicker _picker = ImagePicker();
   XFile? _pickedImage;
   bool _isUploading = false;
 
-  // Form State
   Gender? _selectedGender;
-  String _countryCode = '+255'; // Tanzania default
-
-  // Removed: Username Validation State
-  // Removed: bool _isCheckingUsername = false;
-  // Removed: bool? _isUsernameAvailable;
-  // Removed: Timer? _usernameDebounce;
+  String _countryCode = '+255';
 
   @override
   void initState() {
@@ -66,12 +53,10 @@ class _ClientProfileSetupScreenState extends State<ClientProfileSetupScreen> {
     if (authState is ClientProfileSetupRequired) {
       final user = authState.user;
 
-      // Pre-fill name from Google or existing data
       if (user.fullName.isNotEmpty && user.fullName != 'New User') {
         _nameController.text = user.fullName;
       }
 
-      // Pre-fill phone if exists
       if (user.phoneNumber != null && user.phoneNumber!.isNotEmpty) {
         final phone = user.phoneNumber!;
         if (phone.startsWith('+255')) {
@@ -83,36 +68,29 @@ class _ClientProfileSetupScreenState extends State<ClientProfileSetupScreen> {
         }
       }
 
-      // Pre-fill gender if exists
       if (user.gender != null) {
         _selectedGender = user.gender;
       }
-
-      // Removed: Username suggestion logic
     }
-
-    // Removed: Username listener setup
   }
-
-  // Removed: _suggestUsername function
 
   @override
   void dispose() {
     _nameController.dispose();
-    // Removed: _usernameController.dispose();
     _phoneController.dispose();
-    // Removed: _usernameDebounce?.cancel();
     super.dispose();
   }
 
-  // Removed: USERNAME AVAILABILITY CHECKING region and functions
-
-  // ============================================================================
-  // IMAGE PICKER
-  // ============================================================================
+  void _showMessage(String message, {bool isError = true}) {
+    if (!mounted) return;
+    showAdaptiveSnackBar(
+      context: context,
+      message: message,
+      isError: isError,
+    );
+  }
 
   Future<void> _pickImage(ImageSource source) async {
-    // Camera always needs permission check
     if (source == ImageSource.camera) {
       final hasPermission = await PermissionService.requestCameraPermission();
       if (!hasPermission && mounted) {
@@ -126,12 +104,6 @@ class _ClientProfileSetupScreenState extends State<ClientProfileSetupScreen> {
       }
     }
 
-    // Gallery (ImageSource.gallery) doesn't need permission on Android 13+
-    // The system picker handles it automatically. Only check permission on older Android
-    // or if your app explicitly needs storage access for other reasons.
-    //
-    // For most cases, just skip the permission check for gallery and let the picker handle it.
-
     try {
       final XFile? image = await _picker.pickImage(
         source: source,
@@ -143,11 +115,7 @@ class _ClientProfileSetupScreenState extends State<ClientProfileSetupScreen> {
       }
     } catch (e, s) {
       log.e('Error picking image', error: e, stackTrace: s);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error picking image. Please try again.')),
-        );
-      }
+      _showMessage('onboarding.client.photo_error'.tr());
     }
   }
 
@@ -155,7 +123,6 @@ class _ClientProfileSetupScreenState extends State<ClientProfileSetupScreen> {
     showCupertinoModalPopup<void>(
       context: context,
       builder: (BuildContext context) => CupertinoActionSheet(
-        // Key: "common.choose_photo_title"
         title: Text('common.choose_photo_title'.tr()),
         actions: <CupertinoActionSheetAction>[
           CupertinoActionSheetAction(
@@ -176,7 +143,6 @@ class _ClientProfileSetupScreenState extends State<ClientProfileSetupScreen> {
         cancelButton: CupertinoActionSheetAction(
           isDestructiveAction: true,
           onPressed: () => Navigator.pop(context),
-          // Key: "common.cancel"
           child: Text('common.cancel'.tr()),
         ),
       ),
@@ -194,55 +160,39 @@ class _ClientProfileSetupScreenState extends State<ClientProfileSetupScreen> {
           .child('profile_pictures')
           .child('$userId.jpg');
 
-      UploadTask uploadTask = ref.putFile(file);
-      TaskSnapshot snapshot = await uploadTask;
-      String downloadUrl = await snapshot.ref.getDownloadURL();
+      final snapshot = await ref.putFile(file);
+      final downloadUrl = await snapshot.ref.getDownloadURL();
 
-      setState(() => _isUploading = false);
+      if (mounted) setState(() => _isUploading = false);
       return downloadUrl;
     } catch (e, s) {
       log.e('Error uploading profile picture', error: e, stackTrace: s);
-      setState(() => _isUploading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error uploading image. Please try again.')),
-        );
-      }
+      if (mounted) setState(() => _isUploading = false);
+      _showMessage('onboarding.client.upload_error'.tr());
       return null;
     }
   }
-
-  // ============================================================================
-  // FORM SUBMISSION
-  // ============================================================================
 
   Future<void> _finishSetup() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     if (_selectedGender == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select your gender')), // Hardcoded error message
-      );
+      _showMessage('onboarding.client.gender_error'.tr());
       return;
     }
-
-    // Removed: Username availability check logic
 
     final authState = context.read<AuthBloc>().state;
     if (authState is! ClientProfileSetupRequired) return;
 
-    // Upload profile picture if selected
     String? imageUrl;
     if (_pickedImage != null) {
       imageUrl = await _uploadProfilePicture(authState.user.uid);
     }
 
-    // Prepare phone number
+    if (!mounted) return;
+
     final fullPhoneNumber = '$_countryCode${_phoneController.text.trim()}';
 
-    // Dispatch completion event
-    // NOTE: Assuming CompleteClientProfile is updated to accept null/omit username,
-    // or the system handles its absence. We pass null for the username field here.
     context.read<AuthBloc>().add(
       CompleteClientProfile(
         uid: authState.user.uid,
@@ -254,138 +204,55 @@ class _ClientProfileSetupScreenState extends State<ClientProfileSetupScreen> {
     );
   }
 
-  // ============================================================================
-  // UI BUILD
-  // ============================================================================
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return BlocBuilder<AuthBloc, AuthState>(
-      builder: (context, state) {
-        final isLoading = state is AuthLoading || _isUploading;
-
-        UserModel? currentUser;
-        String? existingImageUrl;
-        if (state is ClientProfileSetupRequired) {
-          currentUser = state.user;
-          existingImageUrl = currentUser.profilePictureUrl;
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is AuthError) {
+          _showMessage(state.message);
         }
+      },
+      child: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, state) {
+          final isLoading = state is AuthLoading || _isUploading;
 
-        return Scaffold(
-          appBar: AppBar(
-            // Key: "onboarding.client.title"
-            title: Text('onboarding.client.title'.tr()),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            automaticallyImplyLeading: false,
-          ),
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppConstants.padL),
+          String? existingImageUrl;
+          if (state is ClientProfileSetupRequired) {
+            existingImageUrl = state.user.profilePictureUrl;
+          }
+
+          return AuthScaffold(
+            isLoading: isLoading,
+            loadingMessage: 'onboarding.client.saving'.tr(),
+            body: AuthPageBody(
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: AppConstants.padM),
-
-                    // Key: "common.step"
-                    Text(
-                      'common.step'.tr(args: ['1', '1']),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppConstants.padS),
-
-                    // Key: "onboarding.client.headline"
-                    Text(
-                      'onboarding.client.headline'.tr(),
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppConstants.padXL),
-
-                    // ========== PROFILE PICTURE (Optional) ==========
-                    Center(
-                      child: Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 60,
-                            backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                            backgroundImage: _pickedImage != null
-                                ? FileImage(File(_pickedImage!.path)) as ImageProvider
-                                : (existingImageUrl != null
-                                ? NetworkImage(existingImageUrl) as ImageProvider
-                                : null),
-                            child: _pickedImage == null && existingImageUrl == null
-                                ? Icon(
-                              Icons.person_outline,
-                              size: 48,
-                              color: theme.colorScheme.primary,
-                            )
-                                : null,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: GestureDetector(
-                              onTap: isLoading ? null : _showImageSourceActionSheet,
-                              child: CircleAvatar(
-                                radius: 20,
-                                backgroundColor: theme.colorScheme.primary,
-                                child: _isUploading
-                                    ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                                    : const Icon(
-                                  CupertinoIcons.camera_fill,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                          )
-                        ],
+                    AuthHeader(
+                      title: 'onboarding.client.title'.tr(),
+                      subtitle: 'onboarding.client.headline'.tr(),
+                      leading: _buildPhotoPicker(
+                        theme,
+                        existingImageUrl,
+                        isLoading,
                       ),
                     ),
-                    const SizedBox(height: AppConstants.padS),
-                    // Key: "common.optional"
-                    Text(
-                      'common.optional'.tr(),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppConstants.padXL),
+                    const SizedBox(height: AuthChrome.headerGap),
 
-                    // ========== FULL NAME ==========
                     CustomTextFormField(
                       controller: _nameController,
-                      // Key: "onboarding.client.name_label"
                       labelText: 'onboarding.client.name_label'.tr(),
-                      // Key: "onboarding.client.name_hint"
                       hintText: 'onboarding.client.name_hint'.tr(),
                       prefixIcon: Icons.person_outline,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          // Key: "onboarding.client.name_error_empty"
                           return 'onboarding.client.name_error_empty'.tr();
                         }
                         if (value.trim().length < 2) {
-                          // Key: "onboarding.client.name_error_short"
                           return 'onboarding.client.name_error_short'.tr();
                         }
                         return null;
@@ -393,24 +260,20 @@ class _ClientProfileSetupScreenState extends State<ClientProfileSetupScreen> {
                       enabled: !isLoading,
                       textInputAction: TextInputAction.next,
                     ),
-                    const SizedBox(height: AppConstants.padL),
+                    const SizedBox(height: AuthChrome.fieldGap),
 
-                    // Removed: USERNAME field
-
-                    // ========== PHONE NUMBER ==========
                     PhoneNumberInputField(
                       controller: _phoneController,
                       enabled: !isLoading,
+                      labelText: 'onboarding.client.phone_label'.tr(),
                       onCountryChanged: (country) {
                         setState(() {
                           _countryCode = country.dialCode ?? '+255';
                         });
                       },
                     ),
-                    const SizedBox(height: AppConstants.padL),
+                    const SizedBox(height: AuthChrome.fieldGap),
 
-                    // ========== GENDER SELECTION ==========
-                    // Key: "onboarding.client.gender_label"
                     Text(
                       'onboarding.client.gender_label'.tr(),
                       style: theme.textTheme.bodyMedium?.copyWith(
@@ -422,58 +285,161 @@ class _ClientProfileSetupScreenState extends State<ClientProfileSetupScreen> {
                       spacing: AppConstants.padM,
                       runSpacing: AppConstants.padM,
                       children: [
-                        _buildGenderChip(Gender.male, 'onboarding.client.gender_male'.tr(), Icons.male, theme, isLoading),
-                        _buildGenderChip(Gender.female, 'onboarding.client.gender_female'.tr(), Icons.female, theme, isLoading),
-                        _buildGenderChip(Gender.other, 'onboarding.client.gender_other'.tr(), Icons.transgender, theme, isLoading),
-                        _buildGenderChip(Gender.preferNotToSay, 'onboarding.client.gender_prefer_not_say'.tr(), Icons.do_not_disturb_alt, theme, isLoading),
+                        _buildGenderChip(
+                          Gender.male,
+                          'onboarding.client.gender_male'.tr(),
+                          Icons.male,
+                          theme,
+                          isLoading,
+                        ),
+                        _buildGenderChip(
+                          Gender.female,
+                          'onboarding.client.gender_female'.tr(),
+                          Icons.female,
+                          theme,
+                          isLoading,
+                        ),
+                        _buildGenderChip(
+                          Gender.other,
+                          'onboarding.client.gender_other'.tr(),
+                          Icons.transgender,
+                          theme,
+                          isLoading,
+                        ),
+                        _buildGenderChip(
+                          Gender.preferNotToSay,
+                          'onboarding.client.gender_prefer_not_say'.tr(),
+                          Icons.do_not_disturb_alt,
+                          theme,
+                          isLoading,
+                        ),
                       ],
                     ),
-                    const SizedBox(height: AppConstants.padXXL),
+                    const SizedBox(height: AuthChrome.headerGap),
 
-                    // ========== SUBMIT BUTTON ==========
                     PrimaryGradientButton(
-                      // Key: "onboarding.client.button"
                       text: 'onboarding.client.button'.tr(),
                       onPressed: isLoading ? null : _finishSetup,
                       isLoading: isLoading,
+                      height: AuthChrome.ctaHeight,
                     ),
-                    const SizedBox(height: AppConstants.padL),
                   ],
                 ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildGenderChip(Gender gender, String label, IconData icon, ThemeData theme, bool isLoading) {
+  Widget _buildPhotoPicker(
+    ThemeData theme,
+    String? existingImageUrl,
+    bool isLoading,
+  ) {
+    return Column(
+      children: [
+        Stack(
+          children: [
+            CircleAvatar(
+              radius: 56,
+              backgroundColor:
+                  theme.colorScheme.primary.withValues(alpha: 0.1),
+              backgroundImage: _pickedImage != null
+                  ? FileImage(File(_pickedImage!.path)) as ImageProvider
+                  : (existingImageUrl != null
+                      ? NetworkImage(existingImageUrl) as ImageProvider
+                      : null),
+              child: _pickedImage == null && existingImageUrl == null
+                  ? Icon(
+                      Icons.person_outline,
+                      size: 48,
+                      color: theme.colorScheme.primary,
+                    )
+                  : null,
+            ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: GestureDetector(
+                onTap: isLoading ? null : _showImageSourceActionSheet,
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: theme.colorScheme.primary,
+                  child: _isUploading
+                      ? SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: theme.colorScheme.onPrimary,
+                          ),
+                        )
+                      : Icon(
+                          CupertinoIcons.camera_fill,
+                          color: theme.colorScheme.onPrimary,
+                          size: 18,
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppConstants.padS),
+        Text(
+          'common.optional'.tr(),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurface.withValues(
+              alpha: AuthChrome.subtitleOpacity,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGenderChip(
+    Gender gender,
+    String label,
+    IconData icon,
+    ThemeData theme,
+    bool isLoading,
+  ) {
     final isSelected = _selectedGender == gender;
+    final selectedFg = theme.colorScheme.onPrimary;
     return FilterChip(
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: isSelected ? Colors.white : theme.colorScheme.primary),
+          Icon(
+            icon,
+            size: 18,
+            color: isSelected ? selectedFg : theme.colorScheme.primary,
+          ),
           const SizedBox(width: AppConstants.padXS),
           Text(label),
         ],
       ),
       selected: isSelected,
-      onSelected: isLoading ? null : (selected) {
-        setState(() {
-          _selectedGender = selected ? gender : null;
-        });
-      },
+      onSelected: isLoading
+          ? null
+          : (selected) {
+              setState(() {
+                _selectedGender = selected ? gender : null;
+              });
+            },
       selectedColor: theme.colorScheme.primary,
-      checkmarkColor: Colors.white,
+      checkmarkColor: selectedFg,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+        color: isSelected ? selectedFg : theme.colorScheme.onSurface,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
       ),
       backgroundColor: theme.colorScheme.surface,
       side: BorderSide(
-        color: isSelected ? theme.colorScheme.primary : theme.dividerColor,
+        color: isSelected
+            ? theme.colorScheme.primary
+            : theme.colorScheme.outline.withValues(alpha: 0.4),
         width: isSelected ? 2 : 1,
       ),
     );

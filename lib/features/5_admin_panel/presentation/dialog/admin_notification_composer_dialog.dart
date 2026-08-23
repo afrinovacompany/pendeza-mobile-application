@@ -268,7 +268,7 @@ class _AdminNotificationComposerDialogState
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: AppConstants.radiusM,
             ),
             child: const Icon(
@@ -305,7 +305,7 @@ class _AdminNotificationComposerDialogState
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(CupertinoIcons.xmark, color: Colors.white),
             style: IconButton.styleFrom(
-              backgroundColor: Colors.white.withOpacity(0.2),
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
             ),
           ),
         ],
@@ -414,7 +414,7 @@ class _AdminNotificationComposerDialogState
                 const SizedBox(height: AppConstants.padM),
                 // Priority
                 DropdownButtonFormField<String>(
-                  value: _priority,
+                  initialValue: _priority,
                   decoration: InputDecoration(
                     labelText: 'Priority',
                     prefixIcon: const Icon(CupertinoIcons.flag, size: 20),
@@ -482,7 +482,7 @@ class _AdminNotificationComposerDialogState
               CupertinoIcons.photo_on_rectangle,
               size: 40,
               color: isDark
-                  ? Colors.white.withOpacity(0.5)
+                  ? Colors.white.withValues(alpha: 0.5)
                   : Colors.grey,
             ),
             const SizedBox(height: 8),
@@ -490,7 +490,7 @@ class _AdminNotificationComposerDialogState
               'Add promotional image (optional)',
               style: TextStyle(
                 color: isDark
-                    ? Colors.white.withOpacity(0.5)
+                    ? Colors.white.withValues(alpha: 0.5)
                     : Colors.grey,
               ),
             ),
@@ -574,7 +574,7 @@ class _AdminNotificationComposerDialogState
           setState(() => _targetAudience = value);
         }
       },
-      selectedColor: color.withOpacity(0.2),
+      selectedColor: color.withValues(alpha: 0.2),
       checkmarkColor: color,
       backgroundColor: isDark
           ? AppColors.darkSurface

@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:pendeza/app/services/firestore_service.dart';
+import 'package:pendeza/app/config/app_config.dart';
 import 'package:pendeza/app/services/service_locator.dart';
 import 'package:pendeza/app/utils/logger.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_bloc.dart';
@@ -14,7 +14,6 @@ import 'booking_state.dart';
 
 class BookingBloc extends Bloc<BookingEvent, BookingState> {
   final BookingRepository _bookingRepository = sl<BookingRepository>();
-  final FirestoreService _firestoreService = sl<FirestoreService>();
   final AuthBloc _authBloc;
 
   BookingBloc({required AuthBloc authBloc})
@@ -183,7 +182,8 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
       }
       final clientId = authState.user.uid;
 
-      // Create the appointment
+      // TEMPORARILY DISABLED - Payments turned off for App Store submission
+      // Restore: status: AppointmentStatus.pendingPayment and emit BookingPaymentRequired.
       final appointment = AppointmentModel(
         id: '', // Firestore will generate
         clientId: clientId,
@@ -192,19 +192,25 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
         startTime: appointmentDateTime,
         durationMinutes: currentState.totalDurationMinutes,
         totalPrice: currentState.totalPrice,
-        status: AppointmentStatus.pendingPayment,
+        status: AppConfig.paymentsEnabled
+            ? AppointmentStatus.pendingPayment
+            : AppointmentStatus.confirmed,
         createdAt: DateTime.now(),
       );
 
       final appointmentId = await _bookingRepository.createAppointment(appointment);
 
-      emit(BookingPaymentRequired(
-        appointmentId: appointmentId,
-        amount: currentState.totalPrice,
-        salon: currentState.salon,
-        services: currentState.selectedServices,
-        appointmentDateTime: appointmentDateTime,
-      ));
+      if (AppConfig.paymentsEnabled) {
+        emit(BookingPaymentRequired(
+          appointmentId: appointmentId,
+          amount: currentState.totalPrice,
+          salon: currentState.salon,
+          services: currentState.selectedServices,
+          appointmentDateTime: appointmentDateTime,
+        ));
+      } else {
+        emit(BookingSuccess(appointmentId: appointmentId));
+      }
     } catch (e) {
       log.e('ConfirmBooking error: $e');
       emit(BookingFailure(error: 'Failed to create booking: $e'));

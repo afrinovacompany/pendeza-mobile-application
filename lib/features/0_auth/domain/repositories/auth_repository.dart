@@ -44,15 +44,17 @@ abstract class AuthRepository {
 
   Future<void> signInWithGoogle();
 
-  Future<void> signInWithPhone({
-    required String phoneNumber,
-    required void Function(String, int?) codeSent,
-    required void Function(firebase.FirebaseAuthException) verificationFailed,
-  });
+  Future<void> signInWithApple();
 
+  /// Requests a Briq OTP and returns the sessionId for later verification.
+  Future<String> requestPhoneOtp({required String phoneNumber});
+
+  /// Verifies the Briq OTP, signs in with the custom token, and ensures a
+  /// Firestore user document exists.
   Future<void> verifyOtp({
-    required String verificationId,
+    required String sessionId,
     required String smsCode,
+    String? phoneNumber,
   });
 
   Future<void> updateUserRole({required String uid, required String role});

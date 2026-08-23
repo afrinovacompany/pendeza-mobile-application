@@ -386,9 +386,9 @@ class AdminDashboardScreen extends StatelessWidget {
             ),
             _StatCard(
               theme: theme,
-              title: 'Transactions',
-              value: state.transactions.length.toString(),
-              icon: CupertinoIcons.creditcard_fill,
+              title: 'Bookings',
+              value: state.appointments.length.toString(),
+              icon: CupertinoIcons.calendar,
               color: AppColors.accent2,
               onTap: () => context.go(AppRoutes.adminManageTransactions),
             ),
@@ -452,9 +452,9 @@ class AdminDashboardScreen extends StatelessWidget {
     return Column(
       children: [
         _ManagementCard(
-          icon: CupertinoIcons.creditcard_fill,
-          title: 'View All Transactions',
-          subtitle: 'Deposits, payments, refunds & more',
+          icon: CupertinoIcons.calendar,
+          title: 'View All Bookings',
+          subtitle: 'Appointments across every salon',
           color: AppColors.primary,
           onTap: () => context.go(AppRoutes.adminManageTransactions),
         ),

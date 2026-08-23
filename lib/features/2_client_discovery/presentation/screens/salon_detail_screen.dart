@@ -4,7 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/app/services/service_locator.dart';
+import 'package:pendeza/features/2_client_booking/domain/repositories/booking_repository.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
+import 'package:pendeza/shared/models/service_model.dart';
 import 'package:pendeza/features/2_client_discovery/presentation/widgets/salon_overview_tab.dart';
 
 // REVIEWS
@@ -37,6 +39,10 @@ class _SalonDetailScreenState extends State<SalonDetailScreen>
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0.0;
 
+  List<ServiceModel> _services = [];
+  bool _servicesLoading = true;
+  String? _servicesError;
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +55,29 @@ class _SalonDetailScreenState extends State<SalonDetailScreen>
         });
       }
     });
+    _loadServices();
+  }
+
+  Future<void> _loadServices() async {
+    setState(() {
+      _servicesLoading = true;
+      _servicesError = null;
+    });
+    try {
+      final services =
+          await sl<BookingRepository>().getServicesForSalon(widget.salon.id);
+      if (!mounted) return;
+      setState(() {
+        _services = services.where((s) => s.isActive).toList();
+        _servicesLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _servicesLoading = false;
+        _servicesError = e.toString();
+      });
+    }
   }
 
   @override
@@ -121,6 +150,10 @@ class _SalonDetailScreenState extends State<SalonDetailScreen>
               // TAB 2: SERVICES (Enhanced with featured carousel and categories)
               SalonServicesTab(
                 salon: widget.salon,
+                services: _services,
+                isLoading: _servicesLoading,
+                error: _servicesError,
+                onRetry: _loadServices,
                 onServiceTap: _onServiceTap,
               ),
 
@@ -139,7 +172,11 @@ class _SalonDetailScreenState extends State<SalonDetailScreen>
         ),
 
         // Enhanced Booking Bottom Bar
-        bottomNavigationBar: EnhancedBookingBottomBar(salon: widget.salon),
+        bottomNavigationBar: EnhancedBookingBottomBar(
+          salon: widget.salon,
+          services: _services,
+          servicesLoading: _servicesLoading,
+        ),
       ),
     );
   }

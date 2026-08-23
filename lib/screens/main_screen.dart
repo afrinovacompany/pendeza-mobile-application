@@ -49,7 +49,7 @@ final ownerNavItems = [
   const AdaptiveNavItem(
     icon: CupertinoIcons.chart_bar,
     activeIcon: CupertinoIcons.chart_bar_fill,
-    label: 'Dashboard',
+    label: 'Home',
   ),
   const AdaptiveNavItem(
     icon: CupertinoIcons.calendar,
@@ -213,7 +213,7 @@ class _MainScreenState extends State<MainScreen> with NavigationGuard {
   @override
   Widget build(BuildContext context) {
     final currentIndex = _calculateSelectedIndex(context);
-    final String location = GoRouterState.of(context).uri.toString();
+    final String location = GoRouterState.of(context).uri.path;
     final isOnMainTab = _isMainTabRoute(location);
 
     // Sync PageController with current tab when navigating via route
@@ -240,10 +240,27 @@ class _MainScreenState extends State<MainScreen> with NavigationGuard {
     }
     _wasOnMainTab = isOnMainTab;
 
+    final homeRoute = widget.userRole == 'client'
+        ? AppRoutes.clientHome
+        : AppRoutes.ownerHome;
+    final canPopSecondary = !isOnMainTab && context.canPop();
+
     return PopScope(
-      canPop: false,
+      canPop: canPopSecondary,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
+        if (!isOnMainTab) {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(homeRoute);
+          }
+          return;
+        }
+        if (currentIndex != 0) {
+          _goToRoute(0);
+          return;
+        }
         _showExitConfirmation();
       },
       child: Scaffold(
@@ -296,10 +313,13 @@ class _MainScreenState extends State<MainScreen> with NavigationGuard {
                   );
                 },
               )
-            : AdaptiveBottomNav(
+            : AdaptiveBottomNavBar(
                 items: ownerNavItems,
                 currentIndex: currentIndex,
                 onTap: (index) => _onItemTapped(index, context),
+                height: 60,
+                labelSize: 10,
+                iconSize: 22,
               ),
       ),
     );

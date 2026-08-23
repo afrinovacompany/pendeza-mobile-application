@@ -122,7 +122,7 @@ class DashboardHeader extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
+                        color: theme.colorScheme.shadow.withValues(alpha: 0.05),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -150,9 +150,7 @@ class DashboardHeader extends StatelessWidget {
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Colors.red, Colors.orange],
-                        ),
+                        color: theme.colorScheme.error,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: theme.scaffoldBackgroundColor,
@@ -160,7 +158,7 @@ class DashboardHeader extends StatelessWidget {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.red.withValues(alpha: 0.5),
+                            color: theme.colorScheme.error.withValues(alpha: 0.5),
                             blurRadius: 4,
                             offset: const Offset(0, 1),
                           ),
@@ -169,8 +167,8 @@ class DashboardHeader extends StatelessWidget {
                       child: Center(
                         child: Text(
                           unreadCount > 99 ? '99+' : unreadCount.toString(),
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: theme.colorScheme.onError,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                           ),
@@ -246,16 +244,16 @@ class DashboardHeader extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 CupertinoIcons.arrow_right_circle_fill,
                 size: 20,
-                color: Colors.white,
+                color: theme.colorScheme.onPrimary,
               ),
               const SizedBox(width: 8),
               Text(
                 'auth.login.button'.tr(),
                 style: theme.textTheme.titleSmall?.copyWith(
-                  color: Colors.white,
+                  color: theme.colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
                 ),

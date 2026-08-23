@@ -14,6 +14,7 @@ class QuickActionsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return SizedBox(
       height: 105,
       child: ListView(
@@ -24,7 +25,7 @@ class QuickActionsBar extends StatelessWidget {
             context,
             'client.dashboard.quick_actions.offers'.tr(),
             CupertinoIcons.tag_fill,
-            const Color(0xFFFF7675),
+            colors.error,
             onTap: () {
               onActionTap?.call('offers');
               // Navigate to discovery without extra filter
@@ -37,7 +38,7 @@ class QuickActionsBar extends StatelessWidget {
             context,
             'client.dashboard.quick_actions.near_me'.tr(),
             CupertinoIcons.location_solid,
-            const Color(0xFF74B9FF),
+            colors.primary,
             onTap: () {
               onActionTap?.call('near_me');
               // Navigate to discovery without extra filter
@@ -50,7 +51,7 @@ class QuickActionsBar extends StatelessWidget {
             context,
             'client.dashboard.quick_actions.trending'.tr(),
             CupertinoIcons.flame_fill,
-            const Color(0xFFFD79A8),
+            colors.tertiary,
             onTap: () {
               onActionTap?.call('trending');
               // Navigate to discovery without extra filter
@@ -63,7 +64,7 @@ class QuickActionsBar extends StatelessWidget {
             context,
             'client.dashboard.quick_actions.saved'.tr(),
             CupertinoIcons.heart_fill,
-            const Color(0xFFFFB400),
+            colors.secondary,
             onTap: () {
               onActionTap?.call('favorites');
               context.push('/client/favorites');

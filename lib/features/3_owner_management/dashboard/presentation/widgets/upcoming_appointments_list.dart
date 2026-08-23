@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:intl/intl.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/app/services/firestore_service.dart';
 import 'package:pendeza/app/services/service_locator.dart';
@@ -51,13 +50,19 @@ class UpcomingAppointmentsList extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            Text(
-              'owner.dashboard.upcoming'.tr(),
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                'owner.dashboard.upcoming'.tr(),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-            const Spacer(),
+            if (onAppointmentTap != null)
+              TextButton(
+                onPressed: onAppointmentTap,
+                child: Text('owner.dashboard.view_schedule'.tr()),
+              ),
             Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: 10,

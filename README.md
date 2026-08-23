@@ -1,16 +1,27 @@
-# pendeza
+# Pendeza Booking App
 
-A new Flutter project.
+Beauty & salon booking platform for Tanzania.
 
-## Getting Started
+## Stack
+- Flutter (Client / Owner / Admin)
+- Firebase Auth, Firestore, Cloud Functions
+- Briq SMS (OTP + booking notifications)
+- Google Sign-In / Apple Sign-In (iOS handoff)
 
-This project is a starting point for a Flutter application.
+## Roles
+- **Client** — discover, book, appointments
+- **Owner** — salon profile, schedule, services, walk-ins
+- **Admin** — approve salons, users, promotions, bookings overview
 
-A few resources to get you started if this is your first Flutter project:
+## Current release notes (1.6.0)
+- Auth + Briq OTP stable
+- Client polish (Home, Discovery, Profile, Booking)
+- Owner go-live checklist + walk-in
+- Admin salon approval + Bookings overview
+- Payments temporarily disabled for store submission
+- SMS booking confirmations enabled
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Android build
+```bash
+flutter pub get
+flutter build appbundle --release

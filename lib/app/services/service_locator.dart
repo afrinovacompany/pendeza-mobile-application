@@ -228,7 +228,6 @@ Future<void> initializeDependencies() async {
 
   sl.registerLazySingleton<SalonProfileRepository>(
         () => SalonProfileRepositoryImpl(
-      sl<FirestoreService>(),
       firestore: sl<FirebaseFirestore>(),
       storage: sl<FirebaseStorage>(),
       authBloc: sl<AuthBloc>(),
@@ -317,7 +316,6 @@ Future<void> initializeDependencies() async {
   sl.registerFactory<FavoritesBloc>(
         () => FavoritesBloc(
       favoritesRepository: sl<FavoritesRepository>(),
-      authBloc: sl<AuthBloc>(),
     ),
   );
   sl.registerFactory<BookingBloc>(() => BookingBloc(authBloc: sl<AuthBloc>()));

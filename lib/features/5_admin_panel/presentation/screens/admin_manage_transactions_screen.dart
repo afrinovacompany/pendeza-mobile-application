@@ -4,7 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:pendeza/app/config/theme/app_colors.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
-import 'package:pendeza/shared/models/transaction_model.dart';
+import 'package:pendeza/app/utils/formatters.dart';
+import 'package:pendeza/features/0_auth/data/models/user_model.dart';
+import 'package:pendeza/shared/models/appointment_model.dart';
+import 'package:pendeza/shared/models/salon_model.dart';
 
 import '../bloc/admin_bloc.dart';
 import '../bloc/admin_event.dart';
@@ -20,21 +23,17 @@ class AdminManageTransactionsScreen extends StatefulWidget {
 
 class _AdminManageTransactionsScreenState
     extends State<AdminManageTransactionsScreen> {
-  String? _selectedType;
   String? _selectedStatus;
   final _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadTransactions();
+    _loadBookings();
   }
 
-  void _loadTransactions() {
-    context.read<AdminBloc>().add(LoadAllTransactions(
-          filterType: _selectedType,
-          filterStatus: _selectedStatus,
-        ));
+  void _loadBookings() {
+    context.read<AdminBloc>().add(const LoadAllAppointments());
   }
 
   @override
@@ -50,14 +49,14 @@ class _AdminManageTransactionsScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All Transactions'),
+        title: const Text('Bookings'),
         backgroundColor:
             isDark ? AppColors.darkSurfaceVariant : theme.colorScheme.surface,
         elevation: 1,
         actions: [
           IconButton(
             icon: const Icon(CupertinoIcons.refresh),
-            onPressed: _loadTransactions,
+            onPressed: _loadBookings,
             tooltip: 'Refresh',
           ),
         ],
@@ -67,14 +66,11 @@ class _AdminManageTransactionsScreenState
           : theme.scaffoldBackgroundColor.withAlpha(245),
       body: Column(
         children: [
-          // Filters Section
           _buildFiltersSection(theme),
-
-          // Transactions List
           Expanded(
             child: BlocBuilder<AdminBloc, AdminState>(
               builder: (context, state) {
-                if (state is AdminLoading) {
+                if (state is AdminLoading || state is AdminInitial) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
@@ -86,10 +82,13 @@ class _AdminManageTransactionsScreenState
                         const Icon(Icons.error_outline,
                             size: 48, color: AppColors.error),
                         const SizedBox(height: AppConstants.padM),
-                        Text(state.message),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Text(state.message, textAlign: TextAlign.center),
+                        ),
                         const SizedBox(height: AppConstants.padM),
                         ElevatedButton(
-                          onPressed: _loadTransactions,
+                          onPressed: _loadBookings,
                           child: const Text('Retry'),
                         ),
                       ],
@@ -98,38 +97,8 @@ class _AdminManageTransactionsScreenState
                 }
 
                 if (state is AdminLoaded) {
-                  final transactions = _filterTransactions(state.transactions);
-
-                  if (transactions.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            CupertinoIcons.doc_text,
-                            size: 64,
-                            color: Colors.grey.shade400,
-                          ),
-                          const SizedBox(height: AppConstants.padM),
-                          Text(
-                            'No transactions found',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: AppConstants.padS),
-                          Text(
-                            'Transactions will appear here when users make payments',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return _buildTransactionsList(transactions, theme, state);
+                  final filtered = _filterAppointments(state);
+                  return _buildLoadedBody(filtered, theme, state);
                 }
 
                 return const Center(child: Text('Unknown state'));
@@ -152,11 +121,10 @@ class _AdminManageTransactionsScreenState
       ),
       child: Column(
         children: [
-          // Search Bar
           TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search by transaction ID or user...',
+              hintText: 'Search client, salon, or service...',
               prefixIcon: const Icon(CupertinoIcons.search),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -178,61 +146,32 @@ class _AdminManageTransactionsScreenState
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: AppConstants.padM),
-
-          // Filter Chips Row
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                // Type Filter
-                _buildFilterDropdown(
-                  label: 'Type',
-                  value: _selectedType,
-                  items: const [
-                    DropdownMenuItem(value: null, child: Text('All Types')),
-                    DropdownMenuItem(value: 'deposit', child: Text('Deposits')),
-                    DropdownMenuItem(value: 'payment', child: Text('Payments')),
-                    DropdownMenuItem(value: 'payout', child: Text('Payouts')),
-                    DropdownMenuItem(value: 'refund', child: Text('Refunds')),
-                    DropdownMenuItem(
-                        value: 'commission', child: Text('Commissions')),
-                  ],
-                  onChanged: (value) {
-                    setState(() => _selectedType = value);
-                    _loadTransactions();
-                  },
-                ),
-                const SizedBox(width: AppConstants.padM),
-
-                // Status Filter
                 _buildFilterDropdown(
                   label: 'Status',
                   value: _selectedStatus,
-                  items: const [
-                    DropdownMenuItem(value: null, child: Text('All Status')),
-                    DropdownMenuItem(
-                        value: 'completed', child: Text('Completed')),
-                    DropdownMenuItem(value: 'pending', child: Text('Pending')),
-                    DropdownMenuItem(
-                        value: 'processing', child: Text('Processing')),
-                    DropdownMenuItem(value: 'failed', child: Text('Failed')),
+                  items: [
+                    const DropdownMenuItem(
+                        value: null, child: Text('All statuses')),
+                    ...AppointmentStatus.all.map(
+                      (status) => DropdownMenuItem(
+                        value: status,
+                        child: Text(status),
+                      ),
+                    ),
                   ],
                   onChanged: (value) {
                     setState(() => _selectedStatus = value);
-                    _loadTransactions();
                   },
                 ),
-
-                // Clear Filters Button
-                if (_selectedType != null || _selectedStatus != null) ...[
+                if (_selectedStatus != null) ...[
                   const SizedBox(width: AppConstants.padM),
                   TextButton.icon(
                     onPressed: () {
-                      setState(() {
-                        _selectedType = null;
-                        _selectedStatus = null;
-                      });
-                      _loadTransactions();
+                      setState(() => _selectedStatus = null);
                     },
                     icon: const Icon(Icons.clear_all, size: 18),
                     label: const Text('Clear'),
@@ -269,225 +208,230 @@ class _AdminManageTransactionsScreenState
     );
   }
 
-  List<TransactionModel> _filterTransactions(List<TransactionModel> transactions) {
-    final searchTerm = _searchController.text.toLowerCase();
-    if (searchTerm.isEmpty) return transactions;
-
-    return transactions.where((t) {
-      return t.id.toLowerCase().contains(searchTerm) ||
-          t.userId.toLowerCase().contains(searchTerm) ||
-          t.gatewayOrderId.toLowerCase().contains(searchTerm) ||
-          (t.description?.toLowerCase().contains(searchTerm) ?? false);
-    }).toList();
-  }
-
-  Widget _buildTransactionsList(
-    List<TransactionModel> transactions,
+  Widget _buildLoadedBody(
+    List<AppointmentModel> filtered,
     ThemeData theme,
     AdminLoaded state,
   ) {
-    // Calculate summary stats
-    final totalAmount = transactions.fold<double>(
-      0,
-      (sum, t) => sum + (t.isCompleted ? t.amount : 0),
-    );
-    final depositTotal = transactions
-        .where((t) => t.isDeposit && t.isCompleted)
-        .fold<double>(0, (sum, t) => sum + t.amount);
-    final paymentTotal = transactions
-        .where((t) => t.isPayment && t.isCompleted)
-        .fold<double>(0, (sum, t) => sum + t.amount);
-    final pendingCount = transactions.where((t) => t.isPending).length;
-
     return Column(
       children: [
-        // Summary Stats
-        Container(
-          padding: const EdgeInsets.all(AppConstants.padM),
-          child: Row(
-            children: [
-              _buildStatChip(
-                'Total',
-                'TZS ${NumberFormat.compact().format(totalAmount)}',
-                AppColors.primary,
-              ),
-              const SizedBox(width: AppConstants.padS),
-              _buildStatChip(
-                'Deposits',
-                'TZS ${NumberFormat.compact().format(depositTotal)}',
-                AppColors.success,
-              ),
-              const SizedBox(width: AppConstants.padS),
-              _buildStatChip(
-                'Payments',
-                'TZS ${NumberFormat.compact().format(paymentTotal)}',
-                AppColors.accent2,
-              ),
-              const SizedBox(width: AppConstants.padS),
-              _buildStatChip(
-                'Pending',
-                pendingCount.toString(),
-                AppColors.warning,
-              ),
-            ],
-          ),
-        ),
-
-        // Count indicator
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppConstants.padM),
-          child: Row(
-            children: [
-              Text(
-                '${transactions.length} transactions',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              const Spacer(),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppConstants.padS),
-
-        // Transactions List
+        _buildSummary(state.appointments, theme),
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: AppConstants.padM),
-            itemCount: transactions.length,
-            itemBuilder: (context, index) {
-              final transaction = transactions[index];
-              return _buildTransactionCard(transaction, theme, state);
-            },
-          ),
+          child: filtered.isEmpty
+              ? _buildEmptyState(theme)
+              : ListView.separated(
+                  padding: const EdgeInsets.all(AppConstants.padM),
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: AppConstants.padS),
+                  itemBuilder: (context, index) {
+                    final appointment = filtered[index];
+                    return _buildBookingCard(appointment, theme, state);
+                  },
+                ),
         ),
       ],
     );
   }
 
-  Widget _buildStatChip(String label, String value, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppConstants.padS,
-          vertical: AppConstants.padS,
-        ),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: color,
-                fontSize: 12,
+  Widget _buildSummary(List<AppointmentModel> appointments, ThemeData theme) {
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final startOfWeek =
+        startOfToday.subtract(Duration(days: now.weekday - 1));
+    final endOfWeek = startOfWeek.add(const Duration(days: 7));
+
+    final todayCount = appointments.where((a) {
+      return !a.startTime.isBefore(startOfToday) &&
+          a.startTime.isBefore(startOfToday.add(const Duration(days: 1)));
+    }).length;
+
+    final weekCount = appointments.where((a) {
+      return !a.startTime.isBefore(startOfWeek) &&
+          a.startTime.isBefore(endOfWeek);
+    }).length;
+
+    final confirmed = appointments
+        .where((a) => a.status == AppointmentStatus.confirmed)
+        .length;
+    final completed = appointments
+        .where((a) => a.status == AppointmentStatus.completed)
+        .length;
+    final cancelled = appointments
+        .where((a) => a.status == AppointmentStatus.cancelled)
+        .length;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppConstants.padM,
+        AppConstants.padM,
+        AppConstants.padM,
+        0,
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _SummaryCard(
+                  label: 'Today',
+                  value: '$todayCount',
+                  icon: CupertinoIcons.today,
+                  color: theme.colorScheme.primary,
+                ),
               ),
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                color: color.withOpacity(0.8),
+              const SizedBox(width: AppConstants.padS),
+              Expanded(
+                child: _SummaryCard(
+                  label: 'This week',
+                  value: '$weekCount',
+                  icon: CupertinoIcons.calendar,
+                  color: AppColors.accent2,
+                ),
               ),
+              const SizedBox(width: AppConstants.padS),
+              Expanded(
+                child: _SummaryCard(
+                  label: 'Loaded',
+                  value: '${appointments.length}',
+                  icon: CupertinoIcons.collections,
+                  color: AppColors.accent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppConstants.padS),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _StatusChip(label: 'Confirmed', count: confirmed),
+                _StatusChip(label: 'Completed', count: completed),
+                _StatusChip(label: 'Cancelled', count: cancelled),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTransactionCard(
-    TransactionModel transaction,
+  Widget _buildEmptyState(ThemeData theme) {
+    final hasFilters =
+        _searchController.text.isNotEmpty || _selectedStatus != null;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            CupertinoIcons.calendar,
+            size: 64,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: AppConstants.padM),
+          Text(
+            hasFilters ? 'No bookings match your filters' : 'No bookings yet',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: AppConstants.padS),
+          Text(
+            hasFilters
+                ? 'Try a different status or search term'
+                : 'Appointments across all salons will appear here',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.grey.shade500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookingCard(
+    AppointmentModel appointment,
     ThemeData theme,
     AdminLoaded state,
   ) {
-    final user = state.users.where((u) => u.uid == transaction.userId).firstOrNull;
-    final userName = user?.fullName ?? 'Unknown User';
+    final clientName = _clientName(appointment, state.users);
+    final salonName = _salonName(appointment, state.salons);
+    final services = _serviceNames(appointment, state.serviceNames);
+    final dateLabel =
+        DateFormat('EEE d MMM').format(appointment.startTime);
+    final timeLabel = DateFormat('h:mm a').format(appointment.startTime);
 
     return Card(
-      margin: const EdgeInsets.only(bottom: AppConstants.padS),
-      child: InkWell(
-        onTap: () => _showTransactionDetails(transaction, userName),
+      elevation: 0,
+      color: theme.colorScheme.surface,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _showBookingDetails(
+          appointment,
+          clientName,
+          salonName,
+          services,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(AppConstants.padM),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Type Icon
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: _getTypeColor(transaction.type).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  _getTypeIcon(transaction.type),
-                  color: _getTypeColor(transaction.type),
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: AppConstants.padM),
-
-              // Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          transaction.typeLabel,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(width: AppConstants.padS),
-                        _buildStatusBadge(transaction.status),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      userName,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    Text(
-                      DateFormat('MMM dd, yyyy • HH:mm')
-                          .format(transaction.createdAt),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade500,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Amount
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              Row(
                 children: [
-                  Text(
-                    '${_isCredit(transaction.type) ? '+' : '-'} ${transaction.formattedAmount}',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: _isCredit(transaction.type)
-                          ? AppColors.success
-                          : AppColors.error,
+                  Expanded(
+                    child: Text(
+                      clientName,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  _buildStatusBadge(appointment.status),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                salonName,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                services,
+                style: theme.textTheme.bodySmall,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    CupertinoIcons.clock,
+                    size: 14,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      '$dateLabel · $timeLabel',
+                      style: theme.textTheme.bodySmall,
                     ),
                   ),
                   Text(
-                    transaction.provider,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade500,
-                      fontSize: 10,
+                    AppFormatters.formatCurrency(appointment.totalPrice),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
@@ -499,228 +443,232 @@ class _AdminManageTransactionsScreenState
     );
   }
 
-  Widget _buildStatusBadge(TransactionStatus status) {
-    Color color;
-    switch (status) {
-      case TransactionStatus.completed:
-        color = AppColors.success;
-        break;
-      case TransactionStatus.pending:
-      case TransactionStatus.processing:
-        color = AppColors.warning;
-        break;
-      case TransactionStatus.failed:
-        color = AppColors.error;
-        break;
-      case TransactionStatus.reversed:
-        color = AppColors.accent2;
-        break;
-    }
-
+  Widget _buildStatusBadge(String status) {
+    final color = _statusColor(status);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(4),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        status.name.toUpperCase(),
+        status,
         style: TextStyle(
-          fontSize: 9,
-          fontWeight: FontWeight.w600,
           color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
 
-  Color _getTypeColor(TransactionType type) {
-    switch (type) {
-      case TransactionType.deposit:
+  Color _statusColor(String status) {
+    switch (status) {
+      case AppointmentStatus.confirmed:
         return AppColors.success;
-      case TransactionType.payment:
+      case AppointmentStatus.completed:
         return AppColors.primary;
-      case TransactionType.payout:
-        return AppColors.accent2;
-      case TransactionType.refund:
-        return Colors.blue;
-      case TransactionType.commission:
-        return AppColors.accent;
-      case TransactionType.promotion:
-        return Colors.purple;
-      case TransactionType.adjustment:
+      case AppointmentStatus.cancelled:
         return Colors.grey;
+      case AppointmentStatus.pendingPayment:
+        return Colors.orange;
+      case AppointmentStatus.noShow:
+      case AppointmentStatus.paymentFailed:
+        return AppColors.error;
+      default:
+        return AppColors.accent2;
     }
   }
 
-  IconData _getTypeIcon(TransactionType type) {
-    switch (type) {
-      case TransactionType.deposit:
-        return CupertinoIcons.arrow_down_circle_fill;
-      case TransactionType.payment:
-        return CupertinoIcons.creditcard_fill;
-      case TransactionType.payout:
-        return CupertinoIcons.arrow_up_circle_fill;
-      case TransactionType.refund:
-        return CupertinoIcons.arrow_uturn_left_circle_fill;
-      case TransactionType.commission:
-        return CupertinoIcons.percent;
-      case TransactionType.promotion:
-        return CupertinoIcons.tag_fill;
-      case TransactionType.adjustment:
-        return CupertinoIcons.slider_horizontal_3;
+  List<AppointmentModel> _filterAppointments(AdminLoaded state) {
+    final searchTerm = _searchController.text.trim().toLowerCase();
+    return state.appointments.where((appointment) {
+      if (_selectedStatus != null && appointment.status != _selectedStatus) {
+        return false;
+      }
+      if (searchTerm.isEmpty) return true;
+      final client = _clientName(appointment, state.users).toLowerCase();
+      final salon = _salonName(appointment, state.salons).toLowerCase();
+      final services =
+          _serviceNames(appointment, state.serviceNames).toLowerCase();
+      return client.contains(searchTerm) ||
+          salon.contains(searchTerm) ||
+          services.contains(searchTerm) ||
+          appointment.status.toLowerCase().contains(searchTerm);
+    }).toList();
+  }
+
+  String _clientName(AppointmentModel appointment, List<UserModel> users) {
+    if (appointment.isWalkIn) {
+      final walkIn = appointment.walkInName?.trim();
+      if (walkIn != null && walkIn.isNotEmpty) return '$walkIn (walk-in)';
+      return 'Walk-in';
     }
+    final user = users.where((u) => u.uid == appointment.clientId).firstOrNull;
+    if (user != null && user.fullName.trim().isNotEmpty) {
+      return user.fullName;
+    }
+    return 'Unknown client';
   }
 
-  bool _isCredit(TransactionType type) {
-    return type == TransactionType.deposit ||
-        type == TransactionType.refund;
+  String _salonName(AppointmentModel appointment, List<SalonModel> salons) {
+    final salon =
+        salons.where((s) => s.id == appointment.salonId).firstOrNull;
+    return salon?.salonName ?? 'Unknown salon';
   }
 
-  void _showTransactionDetails(TransactionModel transaction, String userName) {
-    showModalBottomSheet(
+  String _serviceNames(
+    AppointmentModel appointment,
+    Map<String, String> names,
+  ) {
+    if (appointment.serviceIds.isEmpty) return 'No services';
+    final resolved = appointment.serviceIds
+        .map((id) => names[id])
+        .whereType<String>()
+        .toList();
+    if (resolved.isEmpty) {
+      final count = appointment.serviceIds.length;
+      return count == 1 ? '1 service' : '$count services';
+    }
+    return resolved.join(', ');
+  }
+
+  void _showBookingDetails(
+    AppointmentModel appointment,
+    String clientName,
+    String salonName,
+    String services,
+  ) {
+    final dateLabel =
+        DateFormat('EEEE d MMM y').format(appointment.startTime);
+    final timeLabel = DateFormat('h:mm a').format(appointment.startTime);
+
+    showModalBottomSheet<void>(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) {
-          return SingleChildScrollView(
-            controller: scrollController,
-            padding: const EdgeInsets.all(AppConstants.padL),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Handle
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: AppConstants.padL),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-
-                // Header
-                Row(
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: _getTypeColor(transaction.type).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        _getTypeIcon(transaction.type),
-                        color: _getTypeColor(transaction.type),
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: AppConstants.padM),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            transaction.typeLabel,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          _buildStatusBadge(transaction.status),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      '${_isCredit(transaction.type) ? '+' : '-'} ${transaction.formattedAmount}',
+      showDragHandle: true,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      clientName,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: _isCredit(transaction.type)
-                                ? AppColors.success
-                                : AppColors.error,
                           ),
                     ),
-                  ],
-                ),
-
-                const Divider(height: AppConstants.padXL),
-
-                // Details
-                _buildDetailRow('Transaction ID', transaction.id),
-                _buildDetailRow('Gateway ID', transaction.gatewayOrderId),
-                _buildDetailRow('User', userName),
-                _buildDetailRow('User ID', transaction.userId),
-                if (transaction.relatedUserId != null)
-                  _buildDetailRow('Related User', transaction.relatedUserId!),
-                if (transaction.referenceId != null)
-                  _buildDetailRow('Reference ID', transaction.referenceId!),
-                _buildDetailRow('Provider', transaction.provider),
-                _buildDetailRow(
-                  'Created At',
-                  DateFormat('MMM dd, yyyy • HH:mm:ss')
-                      .format(transaction.createdAt),
-                ),
-                if (transaction.completedAt != null)
-                  _buildDetailRow(
-                    'Completed At',
-                    DateFormat('MMM dd, yyyy • HH:mm:ss')
-                        .format(transaction.completedAt!),
                   ),
-                if (transaction.description != null)
-                  _buildDetailRow('Description', transaction.description!),
-                if (transaction.fee != null)
-                  _buildDetailRow(
-                      'Fee', 'TZS ${transaction.fee!.toStringAsFixed(0)}'),
-                if (transaction.netAmount != null)
-                  _buildDetailRow('Net Amount',
-                      'TZS ${transaction.netAmount!.toStringAsFixed(0)}'),
-
-                const SizedBox(height: AppConstants.padL),
-              ],
-            ),
-          );
-        },
-      ),
+                  _buildStatusBadge(appointment.status),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _detailRow('Salon', salonName),
+              _detailRow('Service', services),
+              _detailRow('Date', dateLabel),
+              _detailRow('Time', timeLabel),
+              _detailRow('Duration', '${appointment.durationMinutes} min'),
+              _detailRow(
+                'Total',
+                AppFormatters.formatCurrency(appointment.totalPrice),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _detailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppConstants.padS),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 80,
             child: Text(
               label,
               style: TextStyle(
                 color: Colors.grey.shade600,
-                fontSize: 13,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
           Expanded(
-            child: SelectableText(
+            child: Text(
               value,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _SummaryCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final int count;
+
+  const _StatusChip({required this.label, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      visualDensity: VisualDensity.compact,
+      label: Text('$label $count'),
+      padding: EdgeInsets.zero,
     );
   }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../app/config/theme/app_colors.dart';
 import '../../app/config/theme/app_constants.dart';
 import '../../app/config/theme/app_text_styles.dart';
 
@@ -50,6 +49,8 @@ class _PrimaryGradientButtonState extends State<PrimaryGradientButton>
   Widget build(BuildContext context) {
     final bool isEnabled = widget.onPressed != null && !widget.isLoading;
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final onPrimary = scheme.onPrimary;
 
     return GestureDetector(
       onTapDown: isEnabled ? (_) => setState(() => _isPressed = true) : null,
@@ -65,22 +66,22 @@ class _PrimaryGradientButtonState extends State<PrimaryGradientButton>
             height: widget.height ?? 50,
             decoration: BoxDecoration(
               gradient: isEnabled
-                  ? const LinearGradient(
-                colors: [AppColors.primary, AppColors.primaryDark],
+                  ? LinearGradient(
+                colors: [scheme.primary, scheme.primaryContainer],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               )
                   : LinearGradient(
                 colors: [
-                  theme.disabledColor.withOpacity(0.3),
-                  theme.disabledColor.withOpacity(0.2),
+                  theme.disabledColor.withValues(alpha: 0.3),
+                  theme.disabledColor.withValues(alpha: 0.2),
                 ],
               ),
-              borderRadius: BorderRadius.circular(AppConstants.radiusValM),
+              borderRadius: BorderRadius.circular(16),
               boxShadow: isEnabled
                   ? [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.3 + (glowIntensity * 0.2)),
+                  color: scheme.primary.withValues(alpha: 0.3 + (glowIntensity * 0.2)),
                   blurRadius: 12 + (glowIntensity * 8),
                   offset: const Offset(0, 4),
                   spreadRadius: glowIntensity * 2,
@@ -92,7 +93,7 @@ class _PrimaryGradientButtonState extends State<PrimaryGradientButton>
               color: Colors.transparent,
               child: InkWell(
                 onTap: isEnabled ? widget.onPressed : null,
-                borderRadius: BorderRadius.circular(AppConstants.radiusValM),
+                borderRadius: BorderRadius.circular(16),
                 child: AnimatedScale(
                   scale: _isPressed ? 0.96 : 1.0,
                   duration: AppConstants.durationFast,
@@ -103,12 +104,12 @@ class _PrimaryGradientButtonState extends State<PrimaryGradientButton>
                           horizontal: AppConstants.padL,
                         ),
                     child: widget.isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                       width: 24,
                       height: 24,
                       child: Center(
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                          color: onPrimary,
                           strokeWidth: 2.5,
                         ),
                       ),
@@ -120,7 +121,7 @@ class _PrimaryGradientButtonState extends State<PrimaryGradientButton>
                         if (widget.iconData != null) ...[
                           Icon(
                             widget.iconData,
-                            color: Colors.white,
+                            color: onPrimary,
                             size: 20,
                           ),
                           const SizedBox(width: AppConstants.padXS),
@@ -130,7 +131,7 @@ class _PrimaryGradientButtonState extends State<PrimaryGradientButton>
                             widget.text,
                             textAlign: TextAlign.center,
                             style: AppTextStyles.button.copyWith(
-                              color: Colors.white,
+                              color: onPrimary,
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.3,

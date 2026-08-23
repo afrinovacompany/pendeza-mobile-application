@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -54,7 +55,7 @@ class _ClientSearchBarState extends State<ClientSearchBar> {
             CupertinoIcons.search,
             color: _isActive
                 ? theme.colorScheme.primary
-                : theme.colorScheme.onSurface.withOpacity(0.5),
+                : theme.colorScheme.onSurface.withValues(alpha: 0.5),
             size: 20,
           ),
           const SizedBox(width: AppConstants.padS),
@@ -66,9 +67,9 @@ class _ClientSearchBarState extends State<ClientSearchBar> {
                 _onSearchChanged(value);
               },
               decoration: InputDecoration(
-                hintText: 'Search by name or phone...',
+                hintText: 'owner.clients.search_hint'.tr(),
                 hintStyle: TextStyle(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
                 border: InputBorder.none,
                 isDense: true,
@@ -83,7 +84,7 @@ class _ClientSearchBarState extends State<ClientSearchBar> {
               onTap: _clearSearch,
               child: Icon(
                 CupertinoIcons.xmark_circle_fill,
-                color: theme.colorScheme.onSurface.withOpacity(0.3),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                 size: 20,
               ),
             ),

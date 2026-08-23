@@ -329,9 +329,15 @@ class FirestoreService {
           .collection('services')
           .where('salonId', isEqualTo: salonId)
           .get();
-      return snapshot.docs
-          .map((doc) => ServiceModel.fromFirestore(doc))
-          .toList();
+      final services = <ServiceModel>[];
+      for (final doc in snapshot.docs) {
+        try {
+          services.add(ServiceModel.fromFirestore(doc));
+        } catch (e) {
+          log.w('Skipping unreadable service ${doc.id}: $e');
+        }
+      }
+      return services;
     } catch (e, s) {
       log.e('Error fetching services for salon', error: e, stackTrace: s);
       return [];

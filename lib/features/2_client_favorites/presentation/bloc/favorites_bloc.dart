@@ -1,7 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pendeza/app/utils/logger.dart';
-import 'package:pendeza/features/0_auth/presentation/bloc/auth_bloc.dart';
-import 'package:pendeza/features/0_auth/presentation/bloc/auth_state.dart';
 import '../../domain/repositories/favorites_repository.dart';
 import 'favorites_event.dart';
 import 'favorites_state.dart';
@@ -16,13 +14,10 @@ import 'favorites_state.dart';
 /// - Real-time updates for authenticated users
 class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState> {
   final FavoritesRepository _favoritesRepository;
-  final AuthBloc _authBloc;
 
   FavoritesBloc({
     required FavoritesRepository favoritesRepository,
-    required AuthBloc authBloc,
   })  : _favoritesRepository = favoritesRepository,
-        _authBloc = authBloc,
         super(const FavoritesInitial()) {
     // Register event handlers
     on<LoadFavorites>(_onLoadFavorites);
@@ -373,25 +368,5 @@ class FavoritesBloc extends Bloc<FavoritesEvent, FavoritesState> {
         errorCode: e.toString(),
       ));
     }
-  }
-
-  //============================================================================
-  // HELPER METHODS
-  //============================================================================
-
-  /// Get current user info from AuthBloc
-  String? _getCurrentUserId() {
-    final authState = _authBloc.state;
-    if (authState is Authenticated) {
-      return authState.user.uid;
-    } else if (authState is GuestMode) {
-      return authState.guestUser.uid;
-    }
-    return null;
-  }
-
-  /// Check if current user is guest
-  bool _isCurrentUserGuest() {
-    return _authBloc.state is GuestMode;
   }
 }

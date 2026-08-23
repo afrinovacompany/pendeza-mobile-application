@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "com.bps.pendeza"
-    compileSdk = 36
+    compileSdk = 37
     ndkVersion = "28.2.13676358"
 
     defaultConfig {
@@ -20,10 +20,14 @@ android {
         // Hardcoded for the first Google Play Store release
         // versionCode must start at 1 and increase with every update
         // versionName is the visible version string (can be any format you prefer)
-        versionCode = 6
-        versionName = "1.5"
+        versionCode = 8
+        versionName = "1.7"
 
         multiDexEnabled = true
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     compileOptions {

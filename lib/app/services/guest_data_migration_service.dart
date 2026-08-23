@@ -50,9 +50,4 @@ class GuestDataMigrationService {
       // Don't throw - migration failure shouldn't block user signup
     }
   }
-
-  /// Internal helper (No longer used directly for favorites, but kept for future reference or other lists)
-  Future<void> _migrateFavorites(String userId, List<String> favoriteSalonIds) async {
-    // Logic moved to FavoritesRepository
-  }
 }

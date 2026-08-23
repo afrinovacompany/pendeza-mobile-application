@@ -254,7 +254,7 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                 Text(
                   'Add money to your Pendeza Wallet',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -381,7 +381,7 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     elevation: 0,
-                    disabledBackgroundColor: theme.colorScheme.primary.withOpacity(0.5),
+                    disabledBackgroundColor: theme.colorScheme.primary.withValues(alpha: 0.5),
                   ),
                   child: _isProcessing
                       ? const SizedBox(
@@ -407,7 +407,7 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                 Container(
                   padding: const EdgeInsets.all(AppConstants.padM),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -435,7 +435,7 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
                 Text(
                   'Supports M-Pesa, Airtel Money, Tigo Pesa & Halotel',
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -476,13 +476,13 @@ class _DepositBottomSheetState extends State<DepositBottomSheet> {
           border: Border.all(
             color: isSelected
                 ? Colors.transparent
-                : theme.dividerColor.withOpacity(0.3),
+                : theme.dividerColor.withValues(alpha: 0.3),
             width: 1.5,
           ),
           boxShadow: isSelected
               ? [
             BoxShadow(
-              color: theme.colorScheme.primary.withOpacity(0.3),
+              color: theme.colorScheme.primary.withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),

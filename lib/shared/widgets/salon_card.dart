@@ -27,7 +27,6 @@ class SalonCard extends StatefulWidget {
 
 class _SalonCardState extends State<SalonCard> with SingleTickerProviderStateMixin {
   late AnimationController _scaleController;
-  bool _isPressed = false;
 
   @override
   void initState() {
@@ -46,14 +45,12 @@ class _SalonCardState extends State<SalonCard> with SingleTickerProviderStateMix
 
   void _handleTapDown(TapDownDetails details) {
     if (widget.onTap != null) {
-      setState(() => _isPressed = true);
       _scaleController.forward();
     }
   }
 
   void _handleTapUp(TapUpDetails details) {
     if (widget.onTap != null) {
-      setState(() => _isPressed = false);
       _scaleController.reverse();
       widget.onTap!();
     }
@@ -61,7 +58,6 @@ class _SalonCardState extends State<SalonCard> with SingleTickerProviderStateMix
 
   void _handleTapCancel() {
     if (widget.onTap != null) {
-      setState(() => _isPressed = false);
       _scaleController.reverse();
     }
   }
@@ -85,7 +81,7 @@ class _SalonCardState extends State<SalonCard> with SingleTickerProviderStateMix
         ),
         errorWidget: (context, url, error) => Container(
           color: colorScheme.surfaceContainerHighest,
-          child: const Icon(CupertinoIcons.photo, color: Colors.grey),
+          child: Icon(CupertinoIcons.photo, color: colorScheme.onSurface.withValues(alpha: 0.45)),
         ),
       );
     }
@@ -110,7 +106,7 @@ class _SalonCardState extends State<SalonCard> with SingleTickerProviderStateMix
         ),
         errorWidget: (context, url, error) => Container(
           color: colorScheme.surfaceContainerHighest,
-          child: const Icon(CupertinoIcons.photo, color: Colors.grey),
+          child: Icon(CupertinoIcons.photo, color: colorScheme.onSurface.withValues(alpha: 0.45)),
         ),
       ),
     );
@@ -137,7 +133,7 @@ class _SalonCardState extends State<SalonCard> with SingleTickerProviderStateMix
             borderRadius: AppConstants.radiusL,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -169,7 +165,7 @@ class _SalonCardState extends State<SalonCard> with SingleTickerProviderStateMix
                             end: Alignment.bottomCenter,
                             colors: [
                               Colors.transparent,
-                              Colors.black.withOpacity(0.1),
+                              Colors.black.withValues(alpha: 0.1),
                             ],
                           ),
                         ),
@@ -223,9 +219,9 @@ class _SalonCardState extends State<SalonCard> with SingleTickerProviderStateMix
                           // Location row
                           Row(
                             children: [
-                              const Icon(CupertinoIcons.location_solid,
+                              Icon(CupertinoIcons.location_solid,
                                   size: 10,
-                                  color: Colors.grey
+                                  color: colorScheme.onSurface.withValues(alpha: 0.45),
                               ),
                               const SizedBox(width: 4),
                               Expanded(
@@ -247,8 +243,8 @@ class _SalonCardState extends State<SalonCard> with SingleTickerProviderStateMix
                         children: [
                           Row(
                             children: [
-                              const Icon(CupertinoIcons.star_fill,
-                                  color: Color(0xFFFFB800),
+                              Icon(CupertinoIcons.star_fill,
+                                  color: colorScheme.tertiary,
                                   size: 12
                               ),
                               const SizedBox(width: 4),

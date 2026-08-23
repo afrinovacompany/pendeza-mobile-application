@@ -8,7 +8,10 @@ class AppColors {
   static const Color primaryLight = Color(0xFFA29BFE);
   static const Color primaryDark = Color(0xFF5F3DC4);
 
-  // ACCENT COLORS - More cohesive
+  /// Seed for Material 3 [ColorScheme.fromSeed]. Same as [primary].
+  static const Color seed = primary;
+
+  // ACCENT COLORS - secondary roles, not the main action/button color
   static const Color accent = Color(0xFFFAB1A0);  // Warm coral
   static const Color accent2 = Color(0xFF74B9FF);  // Sky blue
 

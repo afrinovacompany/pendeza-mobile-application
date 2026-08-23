@@ -130,7 +130,7 @@ class RatingWithText extends StatelessWidget {
         Text(
           '($reviewCount)',
           style: style?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],

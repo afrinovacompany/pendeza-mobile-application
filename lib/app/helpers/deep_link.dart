@@ -55,7 +55,8 @@ class DeepLinkService {
       case 'booking':
         if (segments.length >= 2) {
           final bookingId = segments[1];
-          router.push('/client/bookings'); // Show booking details
+          log.i('Booking deep link: $bookingId');
+          router.push('/client/bookings');
         }
         break;
 

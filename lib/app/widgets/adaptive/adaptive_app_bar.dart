@@ -85,7 +85,7 @@ class AdaptiveAppBar extends StatelessWidget implements PreferredSizeWidget {
       trailingActions: effectiveActions.isNotEmpty ? effectiveActions : null,
       automaticallyImplyLeading: automaticallyImplyLeading,
       backgroundColor: bgColor,
-      material: (_, __) => MaterialAppBarData(
+      material: (_, _) => MaterialAppBarData(
         elevation: elevation ?? 1,
         centerTitle: centerTitle,
         foregroundColor: fgColor,
@@ -93,13 +93,12 @@ class AdaptiveAppBar extends StatelessWidget implements PreferredSizeWidget {
           color: fgColor,
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          fontFamily: 'Poppins',
         ),
         iconTheme: IconThemeData(color: fgColor),
         actionsIconTheme: IconThemeData(color: fgColor),
         bottom: bottom,
       ),
-      cupertino: (_, __) => CupertinoNavigationBarData(
+      cupertino: (_, _) => CupertinoNavigationBarData(
         brightness: isDark ? Brightness.dark : Brightness.light,
         border: Border(
           bottom: BorderSide(
@@ -230,10 +229,10 @@ class AdaptiveBackButton extends StatelessWidget {
             : Icons.arrow_back,
         color: iconColor,
       ),
-      material: (_, __) => MaterialIconButtonData(
+      material: (_, _) => MaterialIconButtonData(
         tooltip: 'Back',
       ),
-      cupertino: (_, __) => CupertinoIconButtonData(
+      cupertino: (_, _) => CupertinoIconButtonData(
         padding: EdgeInsets.zero,
       ),
     );
@@ -263,10 +262,10 @@ class AdaptiveCloseButton extends StatelessWidget {
         PlatformConfig.useCupertino ? CupertinoIcons.xmark : Icons.close,
         color: iconColor,
       ),
-      material: (_, __) => MaterialIconButtonData(
+      material: (_, _) => MaterialIconButtonData(
         tooltip: 'Close',
       ),
-      cupertino: (_, __) => CupertinoIconButtonData(
+      cupertino: (_, _) => CupertinoIconButtonData(
         padding: EdgeInsets.zero,
       ),
     );

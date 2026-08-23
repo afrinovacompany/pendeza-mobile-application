@@ -391,7 +391,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF10B981).withOpacity(0.3),
+                    color: const Color(0xFF10B981).withValues(alpha: 0.3),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),
@@ -463,7 +463,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -479,7 +479,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen>
               gradient: LinearGradient(
                 colors: [
                   theme.colorScheme.primary,
-                  theme.colorScheme.primary.withOpacity(0.85),
+                  theme.colorScheme.primary.withValues(alpha: 0.85),
                 ],
               ),
               borderRadius: const BorderRadius.vertical(
@@ -500,7 +500,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen>
                 Text(
                   'PAYMENT RECEIPT',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     letterSpacing: 2,
                     fontSize: 11,
                   ),
@@ -666,7 +666,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen>
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.1),
+                    color: const Color(0xFF10B981).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -806,7 +806,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen>
             style: OutlinedButton.styleFrom(
               foregroundColor: theme.colorScheme.primary,
               side: BorderSide(
-                color: theme.colorScheme.primary.withOpacity(0.3),
+                color: theme.colorScheme.primary.withValues(alpha: 0.3),
                 width: 1.5,
               ),
               shape: RoundedRectangleBorder(

@@ -68,8 +68,8 @@ class _NotificationListItemState extends State<NotificationListItem> {
             color: notification.isRead
                 ? Colors.transparent
                 : (isDark
-                ? theme.colorScheme.primary.withOpacity(0.08)
-                : theme.colorScheme.primary.withOpacity(0.05)),
+                ? theme.colorScheme.primary.withValues(alpha: 0.08)
+                : theme.colorScheme.primary.withValues(alpha: 0.05)),
             border: Border(
               bottom: BorderSide(
                 color: isDark ? AppColors.darkBorder : AppColors.border,
@@ -172,7 +172,7 @@ class _NotificationListItemState extends State<NotificationListItem> {
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: isDark
                                 ? AppColors.darkTextTertiary
-                                : AppColors.textSecondary.withOpacity(0.7),
+                                : AppColors.textSecondary.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -188,7 +188,7 @@ class _NotificationListItemState extends State<NotificationListItem> {
                       size: 16,
                       color: isDark
                           ? AppColors.darkTextTertiary
-                          : AppColors.textSecondary.withOpacity(0.5),
+                          : AppColors.textSecondary.withValues(alpha: 0.5),
                     ),
                   ],
                 ],
@@ -256,7 +256,7 @@ class _NotificationListItemState extends State<NotificationListItem> {
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        color: iconColor.withOpacity(isDark ? 0.2 : 0.1),
+        color: iconColor.withValues(alpha: isDark ? 0.2 : 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Icon(

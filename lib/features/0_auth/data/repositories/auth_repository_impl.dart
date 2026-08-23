@@ -191,6 +191,36 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  @override
+  Future<void> signInWithApple() async {
+    final credential = await _authService.signInWithApple();
+    final user = _authService.currentUser ?? credential.user;
+    if (user == null) return;
+
+    final existingProfile = await getUserProfile(user.uid);
+    if (existingProfile == null) {
+      log.i('Creating new profile for Apple user: ${user.uid}');
+      await _firestoreService.createUser(
+        uid: user.uid,
+        email: user.email ?? '',
+        fullName: user.displayName ?? 'New User',
+        phoneNumber: user.phoneNumber,
+        profilePictureUrl: user.photoURL,
+      );
+      return;
+    }
+
+    if (user.displayName != null &&
+        user.displayName!.isNotEmpty &&
+        (existingProfile.fullName.isEmpty ||
+            existingProfile.fullName == 'New User')) {
+      log.i('Updating name from Apple: ${user.displayName}');
+      await updateUserProfile(uid: user.uid, newName: user.displayName);
+    } else {
+      log.i('No profile updates needed for Apple user ${user.uid}');
+    }
+  }
+
   /// ========================================================================
   /// Helper: Determine if we should use Google's profile photo
   ///
@@ -218,75 +248,45 @@ class AuthRepositoryImpl implements AuthRepository {
     return false;
   }
 
-  /// ========================================================================
-  /// Helper: Check if a URL is a custom uploaded profile picture
-  /// (Not currently used, but useful for more sophisticated logic)
-  /// ========================================================================
-  bool _isCustomProfilePicture(String? photoUrl) {
-    if (photoUrl == null || photoUrl.isEmpty) {
-      return false;
-    }
-
-    // Custom photos are stored in Firebase Storage under these paths:
-    // - profile_pictures/{userId}/...
-    // - users/{userId}/... (old path, might still exist)
-    return photoUrl.contains('profile_pictures') ||
-        photoUrl.contains('firebasestorage.googleapis.com');
-  }
-
-  /// ========================================================================
-  /// Helper: Check if a URL is from Google's servers
-  /// (Not currently used, but useful for debugging)
-  /// ========================================================================
-  bool _isGoogleProfilePicture(String? photoUrl) {
-    if (photoUrl == null || photoUrl.isEmpty) {
-      return false;
-    }
-
-    // Google profile photos come from these domains
-    return photoUrl.contains('googleusercontent.com') ||
-        photoUrl.contains('google.com/');
+  @override
+  Future<String> requestPhoneOtp({required String phoneNumber}) {
+    return _authService.requestPhoneOtp(phoneNumber: phoneNumber);
   }
 
   @override
-  Future<void> signInWithPhone({
-    required String phoneNumber,
-    required void Function(String, int?) codeSent,
-    required void Function(firebase.FirebaseAuthException) verificationFailed,
+  Future<void> verifyOtp({
+    required String sessionId,
+    required String smsCode,
+    String? phoneNumber,
   }) async {
-    await _authService.signInWithPhone(
+    final userCredential = await _authService.verifyPhoneOtp(
+      sessionId: sessionId,
+      smsCode: smsCode,
       phoneNumber: phoneNumber,
-      codeSent: codeSent,
-      verificationFailed: verificationFailed,
-      verificationCompleted: (phoneAuthCredential) async {
-        log.i("Phone verification auto-completed.");
-        final userCredential = await firebase.FirebaseAuth.instance
-            .signInWithCredential(phoneAuthCredential);
-        final user = userCredential.user;
-        if (user != null) {
-          final existingProfile = await getUserProfile(user.uid);
-          if (existingProfile == null) {
-            log.i("Creating profile for auto-verified phone user: ${user.uid}");
-            await createUserProfile(user);
-          }
-        }
-      },
-      codeAutoRetrievalTimeout: (id) {},
     );
-  }
+    final user = userCredential.user;
+    if (user == null) {
+      throw const PhoneAuthException(
+        code: 'unknown',
+        message: 'Sign-in failed. Please try again.',
+      );
+    }
 
-  @override
-  Future<void> verifyOtp(
-      {required String verificationId, required String smsCode}) async {
-    final userCredential = await _authService.verifyOtp(
-        verificationId: verificationId, smsCode: smsCode);
-    if (userCredential?.user != null) {
-      final user = userCredential!.user!;
-      final existingProfile = await getUserProfile(user.uid);
-      if (existingProfile == null) {
-        log.i("Creating profile for manually verified phone user: ${user.uid}");
-        await createUserProfile(user);
-      }
+    final existingProfile = await getUserProfile(user.uid);
+    if (existingProfile == null) {
+      log.i('Creating profile for Briq-verified phone user: ${user.uid}');
+      await _firestoreService.createUser(
+        uid: user.uid,
+        email: user.email ?? '',
+        fullName: user.displayName ?? 'New User',
+        phoneNumber: user.phoneNumber ?? phoneNumber,
+        profilePictureUrl: user.photoURL,
+      );
+    } else if ((existingProfile.phoneNumber == null ||
+            existingProfile.phoneNumber!.isEmpty) &&
+        phoneNumber != null &&
+        phoneNumber.isNotEmpty) {
+      await updateUserProfile(uid: user.uid, phoneNumber: phoneNumber);
     }
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/config/app_config.dart';
 import '../../../../app/config/theme/app_constants.dart';
 import '../../../../app/config/app_router.dart';
 import '../../../../app/services/service_locator.dart';
@@ -69,134 +70,148 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (context) => sl<AppointmentsBloc>()..add(FetchAppointmentsRequested()),
+          create:
+              (context) =>
+                  sl<AppointmentsBloc>()..add(FetchAppointmentsRequested()),
         ),
         BlocProvider(
-          create: (context) => sl<PromotionsBloc>()..add(LoadDashboardPromotions()),
+          create:
+              (context) => sl<PromotionsBloc>()..add(LoadDashboardPromotions()),
         ),
         // 🆕 Add VideoShortsBloc
         BlocProvider(
-          create: (context) => sl<VideoShortsBloc>()..add(const LoadVideoShorts()),
+          create:
+              (context) => sl<VideoShortsBloc>()..add(const LoadVideoShorts()),
         ),
       ],
-      child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: _handleRefresh,
-            color: theme.colorScheme.primary,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                // ════════════════════════════════════════════════════════
-                // 1. CLEAN HEADER (No Overlay - Handles Guest Mode Inside)
-                // ════════════════════════════════════════════════════════
-                const SliverToBoxAdapter(
-                  child: DashboardHeader(),
-                ),
+      child: Builder(
+        builder: (context) {
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            body: SafeArea(
+              child: RefreshIndicator(
+                onRefresh: () => _handleRefresh(context),
+                color: theme.colorScheme.primary,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    // ════════════════════════════════════════════════════════
+                    // 1. CLEAN HEADER (No Overlay - Handles Guest Mode Inside)
+                    // ════════════════════════════════════════════════════════
+                    const SliverToBoxAdapter(child: DashboardHeader()),
 
-                // Spacing after header
-                const SliverToBoxAdapter(child: SizedBox(height: AppConstants.padM)),
-
-                // ════════════════════════════════════════════════════════
-                // 🆕 2. VIDEO STORIES WIDGET (NEW!)
-                // ════════════════════════════════════════════════════════
-                const SliverToBoxAdapter(
-                  child: VideoStoryWidget(),
-                ),
-
-                const SliverToBoxAdapter(child: SizedBox(height: AppConstants.padL)),
-
-                // ════════════════════════════════════════════════════════
-                // 3. WALLET BALANCE CARD
-                // ════════════════════════════════════════════════════════
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppConstants.padL),
-                    child: WalletBalanceCard(),
-                  ),
-                ),
-
-                // Spacing after wallet card
-                const SliverToBoxAdapter(child: SizedBox(height: AppConstants.padL)),
-
-                // ════════════════════════════════════════════════════════
-                // 4. UPCOMING APPOINTMENT (Priority Visibility)
-                // ════════════════════════════════════════════════════════
-                SliverToBoxAdapter(
-                  child: _buildUpcomingAppointment(context, theme),
-                ),
-
-                // ════════════════════════════════════════════════════════
-                // 5. QUICK ACTIONS BAR
-                // ════════════════════════════════════════════════════════
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppConstants.padL,
+                    // Spacing after header
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: AppConstants.padM),
                     ),
-                    child: QuickActionsBar(
-                      onActionTap: (action) {
-                        if (action == 'favorites') context.go(AppRoutes.clientFavorites);
-                        if (action == 'near_me') context.go(AppRoutes.clientDiscover);
-                        if (action == 'offers') {
-                          // Could scroll to promotions section
-                        }
-                      },
+
+                    // ════════════════════════════════════════════════════════
+                    // 🆕 2. VIDEO STORIES WIDGET (NEW!)
+                    // ════════════════════════════════════════════════════════
+                    const SliverToBoxAdapter(child: VideoStoryWidget()),
+
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: AppConstants.padL),
                     ),
-                  ),
+
+                    // TEMPORARILY DISABLED - Payments turned off for App Store submission
+                    if (AppConfig.paymentsEnabled) ...[
+                      const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppConstants.padL,
+                          ),
+                          child: WalletBalanceCard(),
+                        ),
+                      ),
+                      const SliverToBoxAdapter(
+                        child: SizedBox(height: AppConstants.padL),
+                      ),
+                    ],
+
+                    // ════════════════════════════════════════════════════════
+                    // 4. UPCOMING APPOINTMENT (Priority Visibility)
+                    // ════════════════════════════════════════════════════════
+                    SliverToBoxAdapter(
+                      child: _buildUpcomingAppointment(context, theme),
+                    ),
+
+                    // ════════════════════════════════════════════════════════
+                    // 5. QUICK ACTIONS BAR
+                    // ════════════════════════════════════════════════════════
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppConstants.padL,
+                        ),
+                        child: QuickActionsBar(
+                          onActionTap: (action) {
+                            if (action == 'favorites')
+                              context.go(AppRoutes.clientFavorites);
+                            if (action == 'near_me')
+                              context.go(AppRoutes.clientDiscover);
+                            if (action == 'offers') {
+                              // Could scroll to promotions section
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+
+                    // ════════════════════════════════════════════════════════
+                    // 6. PROMOTIONS CAROUSEL (Hero Section)
+                    // ════════════════════════════════════════════════════════
+                    SliverToBoxAdapter(
+                      child: _buildPromotionsSection(context, theme),
+                    ),
+
+                    // Spacing before categories
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: AppConstants.padXL),
+                    ),
+
+                    // ════════════════════════════════════════════════════════
+                    // 7. CATEGORIES GRID WITH SECTION HEADER
+                    // ════════════════════════════════════════════════════════
+                    SliverToBoxAdapter(
+                      child: _buildCategoriesSection(context, theme),
+                    ),
+
+                    // Large spacing before salons
+                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+                    // ════════════════════════════════════════════════════════
+                    // 8. RECOMMENDED SALONS WITH SECTION HEADER
+                    // ════════════════════════════════════════════════════════
+                    SliverToBoxAdapter(
+                      child: _buildSectionHeader(
+                        context,
+                        theme,
+                        // Key: "client.dashboard.recommended"
+                        title: 'client.dashboard.recommended'.tr(),
+                        // Key: "client.dashboard.see_all"
+                        actionLabel: 'client.dashboard.see_all'.tr(),
+                        onActionTap: () => context.go(AppRoutes.clientDiscover),
+                      ),
+                    ),
+
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: AppConstants.padM),
+                    ),
+
+                    // ════════════════════════════════════════════════════════
+                    // 9. SALONS HORIZONTAL LIST
+                    // ════════════════════════════════════════════════════════
+                    SliverToBoxAdapter(child: _buildSalonsCarousel(context)),
+
+                    // Bottom padding for navigation bar
+                    const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                  ],
                 ),
-
-                // ════════════════════════════════════════════════════════
-                // 6. PROMOTIONS CAROUSEL (Hero Section)
-                // ════════════════════════════════════════════════════════
-                SliverToBoxAdapter(
-                  child: _buildPromotionsSection(context, theme),
-                ),
-
-                // Spacing before categories
-                const SliverToBoxAdapter(child: SizedBox(height: AppConstants.padXL)),
-
-                // ════════════════════════════════════════════════════════
-                // 7. CATEGORIES GRID WITH SECTION HEADER
-                // ════════════════════════════════════════════════════════
-                SliverToBoxAdapter(
-                  child: _buildCategoriesSection(context, theme),
-                ),
-
-                // Large spacing before salons
-                const SliverToBoxAdapter(child: SizedBox(height: 32)),
-
-                // ════════════════════════════════════════════════════════
-                // 8. RECOMMENDED SALONS WITH SECTION HEADER
-                // ════════════════════════════════════════════════════════
-                SliverToBoxAdapter(
-                  child: _buildSectionHeader(
-                    context,
-                    theme,
-                    // Key: "client.dashboard.recommended"
-                    title: 'client.dashboard.recommended'.tr(),
-                    // Key: "client.dashboard.see_all"
-                    actionLabel: 'client.dashboard.see_all'.tr(),
-                    onActionTap: () => context.go(AppRoutes.clientDiscover),
-                  ),
-                ),
-
-                const SliverToBoxAdapter(child: SizedBox(height: AppConstants.padM)),
-
-                // ════════════════════════════════════════════════════════
-                // 9. SALONS HORIZONTAL LIST
-                // ════════════════════════════════════════════════════════
-                SliverToBoxAdapter(
-                  child: _buildSalonsCarousel(context),
-                ),
-
-                // Bottom padding for navigation bar
-                const SliverToBoxAdapter(child: SizedBox(height: 100)),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -212,13 +227,16 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
       builder: (context, state) {
         if (state is AppointmentsLoaded) {
           // Combine pending payment + confirmed upcoming, sorted by start time
+          // TEMPORARILY DISABLED - Payments turned off for App Store submission
           final allUpcoming = [
-            ...state.pendingPaymentAppointments,
+            if (AppConfig.paymentsEnabled) ...state.pendingPaymentAppointments,
             ...state.upcomingAppointments,
           ];
           // Sort by nearest first
-          allUpcoming.sort((a, b) =>
-              a.appointment.startTime.compareTo(b.appointment.startTime));
+          allUpcoming.sort(
+            (a, b) =>
+                a.appointment.startTime.compareTo(b.appointment.startTime),
+          );
 
           if (allUpcoming.isEmpty) return const SizedBox.shrink();
 
@@ -230,7 +248,9 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
             children: [
               // Section label
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.padL,
+                ),
                 child: Row(
                   children: [
                     Container(
@@ -248,7 +268,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (isPending) ...[
+                    if (AppConfig.paymentsEnabled && isPending) ...[
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -256,16 +276,16 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.15),
+                          color: theme.colorScheme.error.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: Colors.orange.withValues(alpha: 0.4),
+                            color: theme.colorScheme.error.withValues(alpha: 0.4),
                           ),
                         ),
                         child: Text(
                           'Pending Payment',
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: Colors.orange.shade700,
+                            color: theme.colorScheme.error,
                             fontWeight: FontWeight.bold,
                             fontSize: 10,
                           ),
@@ -323,7 +343,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
           theme,
           title: 'client.dashboard.browse_categories'.tr(),
           actionLabel: 'client.dashboard.see_all'.tr(),
-          onActionTap: () => context.go(AppRoutes.clientCategories),
+          onActionTap: () => context.push(AppRoutes.clientCategories),
         ),
         const SizedBox(height: AppConstants.padM),
         Padding(
@@ -338,35 +358,30 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
   }
 
   Widget _buildSectionHeader(
-      BuildContext context,
-      ThemeData theme, {
-        required String title,
-        IconData? icon,
-        String? actionLabel,
-        VoidCallback? onActionTap,
-      }) {
+    BuildContext context,
+    ThemeData theme, {
+    required String title,
+    IconData? icon,
+    String? actionLabel,
+    VoidCallback? onActionTap,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              if (icon != null) ...[
-                Icon(
-                  icon,
-                  color: theme.colorScheme.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                title,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+          if (icon != null) ...[
+            Icon(icon, color: theme.colorScheme.primary, size: 20),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: Text(
+              title,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
-            ],
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           if (actionLabel != null && onActionTap != null)
             TextButton(
@@ -382,10 +397,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                 children: [
                   Text(actionLabel),
                   const SizedBox(width: 4),
-                  Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 16,
-                  ),
+                  Icon(Icons.arrow_forward_rounded, size: 16),
                 ],
               ),
             ),
@@ -419,9 +431,8 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                 horizontal: AppConstants.padL,
               ),
               itemCount: state.allSalons.length,
-              separatorBuilder: (context, index) => const SizedBox(
-                width: AppConstants.padM,
-              ),
+              separatorBuilder:
+                  (context, index) => const SizedBox(width: AppConstants.padM),
               itemBuilder: (context, index) {
                 final salon = state.allSalons[index];
                 return SalonCard(
@@ -450,9 +461,8 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
         itemCount: 3,
-        separatorBuilder: (context, index) => const SizedBox(
-          width: AppConstants.padM,
-        ),
+        separatorBuilder:
+            (context, index) => const SizedBox(width: AppConstants.padM),
         itemBuilder: (context, index) {
           return ShimmerPlaceholder.rectangular(
             width: cardWidth,
@@ -481,14 +491,14 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
             Icon(
               Icons.store_outlined,
               size: 48,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 12),
             // Key: "client.dashboard.no_salons_title"
             Text(
               'client.dashboard.no_salons_title'.tr(),
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 8),
@@ -496,7 +506,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
             Text(
               'client.dashboard.no_salons_msg'.tr(),
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.4),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
             ),
           ],
@@ -520,7 +530,8 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
         break;
 
       case PromotionAction.openCategory:
-        if (promotion.actionValue != null && promotion.actionValue!.isNotEmpty) {
+        if (promotion.actionValue != null &&
+            promotion.actionValue!.isNotEmpty) {
           context.go(AppRoutes.clientDiscover, extra: promotion.actionValue);
         } else {
           context.go(AppRoutes.clientDiscover);
@@ -528,15 +539,19 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
         break;
 
       case PromotionAction.openSalon:
-        if (promotion.actionValue != null && promotion.actionValue!.isNotEmpty) {
+        if (promotion.actionValue != null &&
+            promotion.actionValue!.isNotEmpty) {
           context.push(
-            AppRoutes.salonDetail.replaceFirst(':salonId', promotion.actionValue!),
+            AppRoutes.salonDetail.replaceFirst(
+              ':salonId',
+              promotion.actionValue!,
+            ),
           );
         }
         break;
 
       case PromotionAction.openUrl:
-      // TODO: Implement url_launcher if needed
+        // TODO: Implement url_launcher if needed
         break;
 
       case PromotionAction.none:
@@ -556,15 +571,13 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
       _sessionTracker.trackSalonView(salon.id);
       sl<LocalStorageService>().addToBrowsingHistory(salon.id);
     }
-    context.push(
-      AppRoutes.salonDetail.replaceFirst(':salonId', salon.id),
-    );
+    context.push(AppRoutes.salonDetail.replaceFirst(':salonId', salon.id));
   }
 
-  Future<void> _handleRefresh() async {
+  Future<void> _handleRefresh(BuildContext context) async {
     context.read<DiscoveryBloc>().add(const RefreshSalons());
     context.read<PromotionsBloc>().add(RefreshPromotions());
-    // 🆕 Refresh video shorts
     context.read<VideoShortsBloc>().add(const RefreshVideoShorts());
+    context.read<AppointmentsBloc>().add(FetchAppointmentsRequested());
   }
 }

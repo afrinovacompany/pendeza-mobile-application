@@ -33,7 +33,7 @@ class NotificationPreviewWidget extends StatelessWidget {
         borderRadius: AppConstants.radiusL,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -86,8 +86,8 @@ class NotificationPreviewWidget extends StatelessWidget {
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                               color: isDark
-                                  ? Colors.white.withOpacity(0.7)
-                                  : Colors.black.withOpacity(0.6),
+                                  ? Colors.white.withValues(alpha: 0.7)
+                                  : Colors.black.withValues(alpha: 0.6),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -96,8 +96,8 @@ class NotificationPreviewWidget extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 11,
                               color: isDark
-                                  ? Colors.white.withOpacity(0.5)
-                                  : Colors.black.withOpacity(0.4),
+                                  ? Colors.white.withValues(alpha: 0.5)
+                                  : Colors.black.withValues(alpha: 0.4),
                             ),
                           ),
                         ],
@@ -126,8 +126,8 @@ class NotificationPreviewWidget extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     color: isDark
-                        ? Colors.white.withOpacity(0.8)
-                        : Colors.black.withOpacity(0.7),
+                        ? Colors.white.withValues(alpha: 0.8)
+                        : Colors.black.withValues(alpha: 0.7),
                     height: 1.4,
                   ),
                   maxLines: 3,
@@ -193,16 +193,16 @@ class NotificationPreviewWidget extends StatelessWidget {
               fontWeight: FontWeight.w600,
               letterSpacing: 1,
               color: isDark
-                  ? Colors.white.withOpacity(0.6)
-                  : Colors.black.withOpacity(0.5),
+                  ? Colors.white.withValues(alpha: 0.6)
+                  : Colors.black.withValues(alpha: 0.5),
             ),
           ),
           Icon(
             CupertinoIcons.chevron_down,
             size: 14,
             color: isDark
-                ? Colors.white.withOpacity(0.6)
-                : Colors.black.withOpacity(0.5),
+                ? Colors.white.withValues(alpha: 0.6)
+                : Colors.black.withValues(alpha: 0.5),
           ),
         ],
       ),
@@ -226,8 +226,8 @@ class NotificationPreviewWidget extends StatelessWidget {
             CupertinoIcons.photo_on_rectangle,
             size: 40,
             color: isDark
-                ? Colors.white.withOpacity(0.3)
-                : Colors.black.withOpacity(0.3),
+                ? Colors.white.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 8),
           Text(
@@ -235,8 +235,8 @@ class NotificationPreviewWidget extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               color: isDark
-                  ? Colors.white.withOpacity(0.5)
-                  : Colors.black.withOpacity(0.5),
+                  ? Colors.white.withValues(alpha: 0.5)
+                  : Colors.black.withValues(alpha: 0.5),
             ),
           ),
         ],
@@ -270,7 +270,7 @@ class AndroidNotificationPreview extends StatelessWidget {
         borderRadius: AppConstants.radiusM,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),

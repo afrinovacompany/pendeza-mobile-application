@@ -36,9 +36,43 @@ class AdminManagePromotionsScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (state is AdminError) {
-            return Center(child: Text(state.message));
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  const SizedBox(height: AppConstants.padM),
+                  Text(state.message),
+                  const SizedBox(height: AppConstants.padM),
+                  ElevatedButton(
+                    onPressed: () => context.read<AdminBloc>().add(LoadAdminData()),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
           }
           if (state is AdminLoaded) {
+            if (state.promotions.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.local_offer_outlined, size: 64, color: Colors.grey.shade400),
+                    const SizedBox(height: AppConstants.padM),
+                    Text(
+                      'No promotions yet',
+                      style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey.shade600),
+                    ),
+                    const SizedBox(height: AppConstants.padS),
+                    Text(
+                      'Create a promotion to engage users',
+                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade500),
+                    ),
+                  ],
+                ),
+              );
+            }
             return _PromotionsList(promotions: state.promotions, adminBloc: context.read<AdminBloc>());
           }
           return const Center(child: Text('Unknown state.'));
@@ -98,7 +132,7 @@ class _PromotionsList extends StatelessWidget {
                       children: [
                         Chip(
                           label: Text(promo.isActive ? 'Active' : 'Inactive'),
-                          backgroundColor: promo.isActive ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                          backgroundColor: promo.isActive ? Colors.green.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
                           labelStyle: TextStyle(color: promo.isActive ? Colors.green : Colors.grey, fontSize: 10),
                           padding: EdgeInsets.zero,
                           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -106,41 +140,52 @@ class _PromotionsList extends StatelessWidget {
                         if (promo.promoCode != null)
                           Chip(
                             label: Text('Code: ${promo.promoCode}'),
-                            backgroundColor: Colors.blue.withOpacity(0.1),
+                            backgroundColor: Colors.blue.withValues(alpha: 0.1),
                             labelStyle: const TextStyle(color: Colors.blue, fontSize: 10),
                           ),
                         if (promo.action != PromotionAction.none)
                           Chip(
                             label: Text('Action: ${promo.action.name.split('.').last}'),
-                            backgroundColor: Colors.orange.withOpacity(0.1),
+                            backgroundColor: Colors.orange.withValues(alpha: 0.1),
                             labelStyle: const TextStyle(color: Colors.orange, fontSize: 10),
                           ),
                       ],
                     ),
                   ],
                 ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: () {
-                    // Confirm delete
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Delete Promotion?'),
-                        content: const Text('This cannot be undone.'),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              adminBloc.add(DeletePlatformPromotion(promo.id));
-                            },
-                            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () {
+                        _showAddPromotionDialog(context, adminBloc, promotion: promo);
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      onPressed: () {
+                        // Confirm delete
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Delete Promotion?'),
+                            content: const Text('This cannot be undone.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  adminBloc.add(DeletePlatformPromotion(promo.id));
+                                },
+                                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    );
-                  },
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -151,18 +196,19 @@ class _PromotionsList extends StatelessWidget {
   }
 }
 
-void _showAddPromotionDialog(BuildContext context, AdminBloc adminBloc) {
+void _showAddPromotionDialog(BuildContext context, AdminBloc adminBloc, {PromotionModel? promotion}) {
   showDialog(
     context: context,
     builder: (_) => BlocProvider.value(
       value: adminBloc,
-      child: const _AddPromotionDialog(),
+      child: _AddPromotionDialog(promotion: promotion),
     ),
   );
 }
 
 class _AddPromotionDialog extends StatefulWidget {
-  const _AddPromotionDialog();
+  final PromotionModel? promotion;
+  const _AddPromotionDialog({this.promotion});
 
   @override
   State<_AddPromotionDialog> createState() => _AddPromotionDialogState();
@@ -187,6 +233,21 @@ class _AddPromotionDialogState extends State<_AddPromotionDialog> {
   XFile? _image;
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.promotion != null) {
+      final p = widget.promotion!;
+      _titleController.text = p.title;
+      _descController.text = p.description;
+      _codeController.text = p.promoCode ?? '';
+      _discountType = p.discountType;
+      _discountValueController.text = p.discountValue?.toString() ?? '';
+      _action = p.action;
+      _actionValueController.text = p.actionValue ?? '';
+    }
+  }
+
   Future<void> _pickImage() async {
     final image = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (image != null) {
@@ -195,7 +256,8 @@ class _AddPromotionDialogState extends State<_AddPromotionDialog> {
   }
 
   void _submit() {
-    if (_formKey.currentState!.validate() && _image != null) {
+    // If editing, image is optional (can use existing). If new, image is required.
+    if (_formKey.currentState!.validate() && (_image != null || widget.promotion != null)) {
       setState(() => _isLoading = true);
 
       // Parse discount value safely
@@ -206,11 +268,11 @@ class _AddPromotionDialogState extends State<_AddPromotionDialog> {
 
       // Create new PromotionModel
       final promo = PromotionModel(
-        id: '', // Placeholder, generated by repo
+        id: widget.promotion?.id ?? '', // Placeholder if new
         type: PromotionType.platform,
         title: _titleController.text,
         description: _descController.text,
-        imageUrl: '', // Will be set in Bloc after upload
+        imageUrl: widget.promotion?.imageUrl ?? '',
         promoCode: _codeController.text.isNotEmpty ? _codeController.text : null,
 
         // Advanced Discount Logic
@@ -221,17 +283,24 @@ class _AddPromotionDialogState extends State<_AddPromotionDialog> {
         action: _action,
         actionValue: _actionValueController.text.isNotEmpty ? _actionValueController.text : null,
 
-        startDate: DateTime.now(),
-        endDate: DateTime.now().add(const Duration(days: 30)),
-        createdAt: DateTime.now(),
-        isActive: true,
+        startDate: widget.promotion?.startDate ?? DateTime.now(),
+        endDate: widget.promotion?.endDate ?? DateTime.now().add(const Duration(days: 30)),
+        createdAt: widget.promotion?.createdAt ?? DateTime.now(),
+        isActive: widget.promotion?.isActive ?? true,
       );
 
-      context.read<AdminBloc>().add(AddPlatformPromotion(
-        promotion: promo,
-        imagePath: _image!.path,
-      ));
-    } else if (_image == null) {
+      if (widget.promotion == null) {
+        context.read<AdminBloc>().add(AddPlatformPromotion(
+          promotion: promo,
+          imagePath: _image!.path,
+        ));
+      } else {
+        context.read<AdminBloc>().add(UpdatePlatformPromotion(
+          promotion: promo,
+          imagePath: _image?.path,
+        ));
+      }
+    } else if (_image == null && widget.promotion == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select an image')),
       );
@@ -251,7 +320,7 @@ class _AddPromotionDialogState extends State<_AddPromotionDialog> {
         }
       },
       child: AlertDialog(
-        title: const Text('New Promotion'),
+        title: Text(widget.promotion == null ? 'New Promotion' : 'Edit Promotion'),
         content: SingleChildScrollView(
           child: Form(
             key: _formKey,
@@ -270,9 +339,11 @@ class _AddPromotionDialogState extends State<_AddPromotionDialog> {
                       borderRadius: BorderRadius.circular(8),
                       image: _image != null
                           ? DecorationImage(image: FileImage(File(_image!.path)), fit: BoxFit.cover)
-                          : null,
+                          : (widget.promotion?.imageUrl.isNotEmpty == true
+                              ? DecorationImage(image: NetworkImage(widget.promotion!.imageUrl), fit: BoxFit.cover)
+                              : null),
                     ),
-                    child: _image == null
+                    child: (_image == null && (widget.promotion?.imageUrl.isEmpty ?? true))
                         ? const Center(child: Icon(Icons.add_a_photo, size: 40, color: Colors.grey))
                         : null,
                   ),
@@ -361,7 +432,7 @@ class _AddPromotionDialogState extends State<_AddPromotionDialog> {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           PrimaryGradientButton(
             onPressed: _submit,
-            text: 'Create Promotion',
+            text: widget.promotion == null ? 'Create Promotion' : 'Save Changes',
             isLoading: _isLoading,
           ),
         ],

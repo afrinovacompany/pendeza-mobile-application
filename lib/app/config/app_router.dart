@@ -10,6 +10,7 @@ import 'package:pendeza/features/5_admin_panel/presentation/screens/admin_dashbo
 import 'package:pendeza/screens/main_screen.dart';
 import 'package:pendeza/screens/splash_screen.dart';
 
+import '../../features/0_auth/presentation/auth_return_store.dart';
 import '../../features/0_auth/presentation/bloc/auth_bloc.dart';
 import '../../features/0_auth/presentation/bloc/auth_state.dart';
 import '../../features/0_auth/presentation/screens/forgot_password.dart';
@@ -52,7 +53,6 @@ import '../../features/4_payments/presentation/screens/payment_receipt_screen.da
 import '../../features/5_admin_panel/presentation/screens/admin_manage_notification_screen.dart';
 import '../../features/5_admin_panel/presentation/screens/admin_manage_salon_screen.dart';
 import '../../features/5_admin_panel/presentation/screens/admin_manage_user_screen.dart';
-import '../../features/5_admin_panel/presentation/screens/admin_manage_inspiration_screen.dart';
 import '../../features/5_admin_panel/presentation/screens/admin_manage_promotion_screen.dart';
 import '../../features/5_admin_panel/presentation/screens/admin_manage_transactions_screen.dart';
 import '../../features/5_admin_panel/presentation/widgets/admin_shell_route.dart';
@@ -68,11 +68,13 @@ import '../../features/2_client_booking/presentation/screens/booking_confirmatio
 
 
 import '../../shared/models/service_model.dart';
+import 'app_config.dart';
 import 'package:pendeza/features/3_owner_management/services/presentation/screens/add_edit_service_screen.dart';
 import 'package:pendeza/features/3_owner_management/services/presentation/bloc/services_bloc.dart';
 import 'package:pendeza/features/3_owner_inspiration/presentation/screens/inspiration_screen.dart';
 
 import 'package:pendeza/features/3_reviews/presentation/screens/write_review_screen.dart';
+import 'package:pendeza/features/3_reviews/presentation/screens/reviews_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -118,6 +120,7 @@ class AppRoutes {
 
   // Review Route
   static const String writeReview = '/salon/:salonId/review';
+  static const String salonReviews = '/salon/:salonId/reviews';
 
   // Owner Routes
   static const String ownerHome = '/owner/home';
@@ -186,6 +189,8 @@ class AppRouter {
       if (isGuestMode) {
         if (splashing) return AppRoutes.clientHome;
         if (loggingIn || onboarding) return null;
+        // Left auth without converting — drop a stale booking return path.
+        AuthReturnStore.clear();
         if (isClientArea || isSalonArea || currentLocation == AppRoutes.splash) {
           return null;
         }
@@ -220,6 +225,7 @@ class AppRouter {
         // ADMIN REDIRECT LOGIC
         if (authState.user.isAdmin) {
           if (loggingIn || onboarding || splashing) {
+            AuthReturnStore.clear();
             return AppRoutes.adminHome;
           }
           // Only redirect admin if they try to leave admin area
@@ -239,10 +245,14 @@ class AppRouter {
 
         // INITIAL REDIRECT AFTER LOGIN/ONBOARDING/SPLASH
         if (loggingIn || onboarding || splashing) {
-          return userRole == 'owner'
-              ? AppRoutes.ownerHome
-              : AppRoutes.clientHome;
+          if (userRole == 'owner') {
+            AuthReturnStore.clear();
+            return AppRoutes.ownerHome;
+          }
+          return AuthReturnStore.consume() ?? AppRoutes.clientHome;
         }
+
+        AuthReturnStore.complete();
 
         // ✅ CRITICAL: Allow authenticated users to navigate freely in their areas
         // No redirect needed for:
@@ -284,10 +294,10 @@ class AppRouter {
         path: AppRoutes.otp,
         pageBuilder: (context, state) {
           final extra = state.extra as Map<String, dynamic>? ?? {};
-          final verificationId = extra['verificationId'] as String? ?? '';
+          final sessionId = extra['sessionId'] as String? ?? '';
           final phoneNumber = extra['phoneNumber'] as String? ?? '';
 
-          if (verificationId.isEmpty) {
+          if (sessionId.isEmpty) {
             return _buildPage(context, state, const PhoneAuthScreen());
           }
 
@@ -295,7 +305,7 @@ class AppRouter {
             context,
             state,
             OtpScreen(
-              verificationId: verificationId,
+              sessionId: sessionId,
               phoneNumber: phoneNumber,
             ),
           );
@@ -384,6 +394,23 @@ class AppRouter {
           );
         },
       ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: AppRoutes.salonReviews,
+        pageBuilder: (context, state) {
+          final salonId = state.pathParameters['salonId'] ?? '';
+          final salon = state.extra as SalonModel?;
+          return _buildPage(
+            context,
+            state,
+            _SalonFetchWrapper(
+              salonId: salonId,
+              initialSalon: salon,
+              builder: (fetchedSalon) => ReviewsScreen(salon: fetchedSalon),
+            ),
+          );
+        },
+      ),
 
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
@@ -436,6 +463,9 @@ class AppRouter {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.paymentSelection,
+        // TEMPORARILY DISABLED - Payments turned off for App Store submission
+        redirect: (context, state) =>
+            AppConfig.paymentsEnabled ? null : AppRoutes.clientBookings,
         pageBuilder: (context, state) {
           final args = state.extra as PaymentArguments?;
           if (args == null) {
@@ -453,6 +483,9 @@ class AppRouter {
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: AppRoutes.paymentReceipt,
+        // TEMPORARILY DISABLED - Payments turned off for App Store submission
+        redirect: (context, state) =>
+            AppConfig.paymentsEnabled ? null : AppRoutes.clientBookings,
         pageBuilder: (context, state) {
           final args = state.extra as Map<String, dynamic>?;
           if (args == null) {
@@ -506,12 +539,6 @@ class AppRouter {
                 _buildPage(context, state, const AdminManageSalonsScreen()),
           ),
           GoRoute(
-            path: AppRoutes.adminManageInspiration,
-            name: AppRoutes.adminManageInspiration,
-            pageBuilder: (context, state) =>
-                _buildPage(context, state, const AdminManageInspirationScreen()),
-          ),
-          GoRoute(
             path: AppRoutes.adminManagePromotions,
             name: AppRoutes.adminManagePromotions,
             pageBuilder: (context, state) =>
@@ -524,7 +551,7 @@ class AppRouter {
             pageBuilder: (context, state) =>
                 _buildPage(context, state, const AdminManageNotificationsScreen()),
           ),
-          // Transactions Management
+          // Bookings overview (reuses the former transactions slot)
           GoRoute(
             path: AppRoutes.adminManageTransactions,
             name: AppRoutes.adminManageTransactions,
@@ -606,12 +633,18 @@ class AppRouter {
           GoRoute(
             path: AppRoutes.clientWallet,
             name: 'wallet',
+            // TEMPORARILY DISABLED - Payments turned off for App Store submission
+            redirect: (context, state) =>
+                AppConfig.paymentsEnabled ? null : AppRoutes.clientHome,
             pageBuilder: (context, state) =>
                 _buildPage(context, state, const WalletScreen()),
           ),
           GoRoute(
             path: AppRoutes.walletHistory,
             name: 'wallet-history',
+            // TEMPORARILY DISABLED - Payments turned off for App Store submission
+            redirect: (context, state) =>
+                AppConfig.paymentsEnabled ? null : AppRoutes.clientHome,
             pageBuilder: (context, state) =>
                 _buildPage(context, state, const TransactionHistoryScreen()),
           ),
@@ -800,7 +833,7 @@ class _SalonDeepLinkResolverState extends State<SalonDeepLinkResolver> {
               Text(
                 'Loading salon details...',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -833,7 +866,7 @@ class _SalonDeepLinkResolverState extends State<SalonDeepLinkResolver> {
                 Icon(
                   Icons.store_outlined,
                   size: 64,
-                  color: theme.colorScheme.onSurface.withOpacity(0.3),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -843,9 +876,10 @@ class _SalonDeepLinkResolverState extends State<SalonDeepLinkResolver> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'The salon may have been removed or is temporarily unavailable.',
+                  _errorMessage ??
+                      'The salon may have been removed or is temporarily unavailable.',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   textAlign: TextAlign.center,
                 ),

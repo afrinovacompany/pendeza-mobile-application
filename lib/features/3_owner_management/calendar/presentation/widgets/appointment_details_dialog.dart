@@ -1,5 +1,6 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import '../../../presentation/owner_chrome.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/app/utils/formatters.dart';
 import 'package:pendeza/shared/models/appointment_model.dart';
@@ -38,15 +39,34 @@ class _AppointmentDetailsDialogState extends State<AppointmentDetailsDialog> {
 
   Future<void> _loadAppointmentDetails() async {
     try {
-      // Fetch client details
-      final clientFuture = _firestoreService.getUserDetails(widget.appointment.clientId);
-
-      // Fetch all service details
       final serviceFutures = widget.appointment.serviceIds
           .map((id) => _firestoreService.getServiceDetails(id))
           .toList();
 
-      // Wait for all data
+      if (widget.appointment.isWalkIn) {
+        final services = await Future.wait(serviceFutures);
+        if (mounted) {
+          setState(() {
+            _client = UserModel(
+              uid: AppointmentModel.walkInClientId,
+              email: '',
+              fullName: widget.appointment.walkInName?.trim().isNotEmpty == true
+                  ? widget.appointment.walkInName!.trim()
+                  : 'owner.calendar.walk_in_client'.tr(),
+              fcmTokens: const [],
+              createdAt: widget.appointment.createdAt,
+              role: 'client',
+            );
+            _services = services;
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      final clientFuture =
+          _firestoreService.getUserDetails(widget.appointment.clientId);
+
       final results = await Future.wait([
         clientFuture,
         ...serviceFutures,
@@ -92,7 +112,7 @@ class _AppointmentDetailsDialogState extends State<AppointmentDetailsDialog> {
         children: [
           const Icon(Icons.event_note_rounded),
           const SizedBox(width: AppConstants.padS),
-          const Text('Appointment Details'),
+          Text('owner.calendar.appointment_details'.tr()),
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.close),
@@ -182,7 +202,7 @@ class _AppointmentDetailsDialogState extends State<AppointmentDetailsDialog> {
                 'No services found',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontStyle: FontStyle.italic,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               )
             else
@@ -240,17 +260,17 @@ class _AppointmentDetailsDialogState extends State<AppointmentDetailsDialog> {
           TextButton(
             onPressed: () => _handleMarkComplete(context),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.green,
+              foregroundColor: theme.colorScheme.primary,
             ),
-            child: const Text('Mark Complete'),
+            child: Text('owner.calendar.mark_complete'.tr()),
           ),
         if (widget.appointment.status.toLowerCase() != 'cancelled')
           TextButton(
             onPressed: () => _handleCancel(context),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+              foregroundColor: theme.colorScheme.error,
             ),
-            child: const Text('Cancel'),
+            child: Text('common.cancel'.tr()),
           ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -286,30 +306,8 @@ class _AppointmentDetailsDialogState extends State<AppointmentDetailsDialog> {
   }
 
   Widget _buildStatusChip(ThemeData theme, String status) {
-    Color statusColor;
-    Color backgroundColor;
-
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-        statusColor = Colors.blue;
-        backgroundColor = Colors.blue.withOpacity(0.1);
-        break;
-      case 'completed':
-        statusColor = Colors.green;
-        backgroundColor = Colors.green.withOpacity(0.1);
-        break;
-      case 'cancelled':
-        statusColor = Colors.red;
-        backgroundColor = Colors.red.withOpacity(0.1);
-        break;
-      case 'noshow':
-        statusColor = Colors.orange;
-        backgroundColor = Colors.orange.withOpacity(0.1);
-        break;
-      default:
-        statusColor = theme.colorScheme.primary;
-        backgroundColor = theme.colorScheme.primary.withOpacity(0.1);
-    }
+    final statusColor = ownerAppointmentStatusColor(theme, status);
+    final backgroundColor = statusColor.withValues(alpha: 0.12);
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -343,19 +341,19 @@ class _AppointmentDetailsDialogState extends State<AppointmentDetailsDialog> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Mark as Complete'),
-        content: const Text(
-          'Are you sure you want to mark this appointment as completed?',
-        ),
+        title: Text('owner.calendar.mark_complete_title'.tr()),
+        content: Text('owner.calendar.mark_complete_confirm'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text('common.cancel'.tr()),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.green),
-            child: const Text('Mark Complete'),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(dialogContext).colorScheme.primary,
+            ),
+            child: Text('owner.calendar.mark_complete'.tr()),
           ),
         ],
       ),
@@ -370,9 +368,9 @@ class _AppointmentDetailsDialogState extends State<AppointmentDetailsDialog> {
         if (mounted) {
           Navigator.of(context).pop(); // Close dialog
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Appointment marked as completed'),
-              backgroundColor: Colors.green,
+            SnackBar(
+              content: Text('owner.calendar.mark_complete_success'.tr()),
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
           );
         }
@@ -380,8 +378,8 @@ class _AppointmentDetailsDialogState extends State<AppointmentDetailsDialog> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: ${e.toString()}'),
-              backgroundColor: Colors.red,
+              content: Text(e.toString()),
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }
@@ -394,19 +392,19 @@ class _AppointmentDetailsDialogState extends State<AppointmentDetailsDialog> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Cancel Appointment'),
-        content: const Text(
-          'Are you sure you want to cancel this appointment? This action cannot be undone.',
-        ),
+        title: Text('owner.calendar.cancel_title'.tr()),
+        content: Text('owner.calendar.cancel_confirm'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('No, Keep It'),
+            child: Text('owner.calendar.cancel_keep'.tr()),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Yes, Cancel'),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            child: Text('owner.calendar.cancel_yes'.tr()),
           ),
         ],
       ),
@@ -421,9 +419,9 @@ class _AppointmentDetailsDialogState extends State<AppointmentDetailsDialog> {
         if (mounted) {
           Navigator.of(context).pop(); // Close dialog
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Appointment cancelled'),
-              backgroundColor: Colors.orange,
+            SnackBar(
+              content: Text('owner.calendar.cancel_success'.tr()),
+              backgroundColor: Theme.of(context).colorScheme.secondary,
             ),
           );
         }
@@ -431,8 +429,8 @@ class _AppointmentDetailsDialogState extends State<AppointmentDetailsDialog> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: ${e.toString()}'),
-              backgroundColor: Colors.red,
+              content: Text(e.toString()),
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }

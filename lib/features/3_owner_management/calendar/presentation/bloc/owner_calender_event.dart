@@ -16,3 +16,23 @@ class LoadAppointmentsForDate extends OwnerCalendarEvent {
   @override
   List<Object> get props => [date];
 }
+
+class CreateWalkInAppointment extends OwnerCalendarEvent {
+  final String clientName;
+  final String serviceId;
+  final int durationMinutes;
+  final double totalPrice;
+  final DateTime startTime;
+
+  const CreateWalkInAppointment({
+    required this.clientName,
+    required this.serviceId,
+    required this.durationMinutes,
+    required this.totalPrice,
+    required this.startTime,
+  });
+
+  @override
+  List<Object> get props =>
+      [clientName, serviceId, durationMinutes, totalPrice, startTime];
+}

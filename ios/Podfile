@@ -40,6 +40,14 @@ target 'Runner' do
       # Ensure all pods also use iOS 15.0 to match the platform
       target.build_configurations.each do |config|
         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
+          '$(inherited)',
+          'PERMISSION_CAMERA=1',
+          'PERMISSION_PHOTOS=1',
+          'PERMISSION_LOCATION=1',
+          'PERMISSION_NOTIFICATIONS=1',
+          'PERMISSION_MICROPHONE=1',
+        ]
       end
     end
   end

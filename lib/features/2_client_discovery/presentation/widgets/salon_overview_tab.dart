@@ -75,7 +75,6 @@ class _EnhancedQuickInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
@@ -127,13 +126,16 @@ class _EnhancedQuickInfoCard extends StatelessWidget {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFFA726), Color(0xFFFF9800)],
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.colorScheme.tertiary,
+                          theme.colorScheme.tertiary.withValues(alpha: 0.85),
+                        ],
                       ),
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFFFA726).withValues(alpha: 0.3),
+                          color: theme.colorScheme.tertiary.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
@@ -142,25 +144,25 @@ class _EnhancedQuickInfoCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           CupertinoIcons.star_fill,
                           size: 18,
-                          color: Colors.white,
+                          color: theme.colorScheme.onTertiary,
                         ),
                         const SizedBox(width: 6),
                         Text(
                           averageRating.toStringAsFixed(1),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
-                            color: Colors.white,
+                            color: theme.colorScheme.onTertiary,
                           ),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '($totalReviews)',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color: theme.colorScheme.onTertiary.withValues(alpha: 0.9),
                             fontSize: 12,
                           ),
                         ),
@@ -217,8 +219,11 @@ class _EnhancedQuickInfoCard extends StatelessWidget {
                       context: context,
                       label: 'Call',
                       icon: CupertinoIcons.phone_fill,
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF4CAF50), Color(0xFF45A049)],
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.colorScheme.primary,
+                          theme.colorScheme.primary.withValues(alpha: 0.8),
+                        ],
                       ),
                       onTap: () => _makePhoneCall(salon.phoneNumber!),
                     ),
@@ -232,23 +237,19 @@ class _EnhancedQuickInfoCard extends StatelessWidget {
                       ),
                       onTap: () => _openWhatsApp(salon.whatsappNumber!),
                     ),
-                  _buildModernActionButton(
-                    context: context,
-                    label: 'Map',
-                    icon: CupertinoIcons.map_fill,
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.secondary,
-                        theme.colorScheme.secondary.withValues(alpha: 0.8),
-                      ],
+                  if (_hasMapQuery(salon))
+                    _buildModernActionButton(
+                      context: context,
+                      label: 'Map',
+                      icon: CupertinoIcons.map_fill,
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.colorScheme.primary,
+                          theme.colorScheme.primary.withValues(alpha: 0.8),
+                        ],
+                      ),
+                      onTap: () => _openMap(salon),
                     ),
-                    onTap: () {
-                      // TODO: Implement Map
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Map coming soon!')),
-                      );
-                    },
-                  ),
                   _buildModernActionButton(
                     context: context,
                     label: 'Hours',
@@ -324,6 +325,27 @@ class _EnhancedQuickInfoCard extends StatelessWidget {
   Future<void> _openWhatsApp(String phoneNumber) async {
     final cleanNumber = phoneNumber.replaceAll(RegExp(r'\D'), '');
     final uri = Uri.parse('https://wa.me/$cleanNumber');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  bool _hasMapQuery(SalonModel salon) {
+    return salon.address.trim().isNotEmpty ||
+        (salon.district?.trim().isNotEmpty ?? false) ||
+        (salon.region?.trim().isNotEmpty ?? false);
+  }
+
+  Future<void> _openMap(SalonModel salon) async {
+    final query = [
+      salon.salonName,
+      if (salon.address.trim().isNotEmpty) salon.address.trim(),
+      if (salon.district?.trim().isNotEmpty ?? false) salon.district!.trim(),
+      if (salon.region?.trim().isNotEmpty ?? false) salon.region!.trim(),
+    ].join(', ');
+    final uri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(query)}',
+    );
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }

@@ -2,9 +2,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pendeza/app/services/service_locator.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_bloc.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_state.dart';
-import 'package:pendeza/features/2_client_appointments/domain/repositories/appoitments_repository.dart'; // Use the updated repo
+import 'package:pendeza/features/2_client_appointments/domain/repositories/appoitments_repository.dart';
+import 'package:pendeza/features/2_client_booking/domain/repositories/booking_repository.dart';
 import 'package:pendeza/app/utils/logger.dart';
-import 'package:table_calendar/table_calendar.dart'; // <-- 1. IMPORT THIS
+import 'package:pendeza/shared/models/appointment_model.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 import 'owner_calender_event.dart';
 import 'owner_calender_state.dart';
@@ -13,6 +15,7 @@ class OwnerCalendarBloc extends Bloc<OwnerCalendarEvent, OwnerCalendarState> {
   // Use AppointmentsRepository as it now has the needed methods
   final AppointmentsRepository _appointmentsRepository =
   sl<AppointmentsRepository>();
+  final BookingRepository _bookingRepository = sl<BookingRepository>();
   final AuthBloc _authBloc;
 
   String? _cachedSalonId; // Cache salon ID to avoid repeated lookups
@@ -21,6 +24,7 @@ class OwnerCalendarBloc extends Bloc<OwnerCalendarEvent, OwnerCalendarState> {
       : _authBloc = authBloc,
         super(OwnerCalendarInitial()) {
     on<LoadAppointmentsForDate>(_onLoadAppointmentsForDate);
+    on<CreateWalkInAppointment>(_onCreateWalkIn);
   }
 
   Future<void> _onLoadAppointmentsForDate(
@@ -80,6 +84,47 @@ class OwnerCalendarBloc extends Bloc<OwnerCalendarEvent, OwnerCalendarState> {
           error: e, stackTrace: s);
       emit(OwnerCalendarError(
           'Failed to load appointments: ${e.toString()}', event.date));
+    }
+  }
+
+  Future<void> _ensureSalonId() async {
+    if (_cachedSalonId != null) return;
+    final authState = _authBloc.state;
+    if (authState is Authenticated && authState.user.role == 'owner') {
+      final salon =
+          await _appointmentsRepository.getSalonForOwner(authState.user.uid);
+      if (salon == null) {
+        throw Exception('Salon not found for owner.');
+      }
+      _cachedSalonId = salon.id;
+      return;
+    }
+    throw Exception('User is not an authenticated owner.');
+  }
+
+  Future<void> _onCreateWalkIn(
+    CreateWalkInAppointment event,
+    Emitter<OwnerCalendarState> emit,
+  ) async {
+    try {
+      await _ensureSalonId();
+      final appointment = AppointmentModel(
+        id: '',
+        clientId: AppointmentModel.walkInClientId,
+        salonId: _cachedSalonId!,
+        serviceIds: [event.serviceId],
+        startTime: event.startTime,
+        durationMinutes: event.durationMinutes,
+        totalPrice: event.totalPrice,
+        status: AppointmentStatus.confirmed,
+        createdAt: DateTime.now(),
+        walkInName: event.clientName,
+      );
+      await _bookingRepository.createAppointment(appointment);
+      add(LoadAppointmentsForDate(event.startTime));
+    } catch (e, s) {
+      log.e('OwnerCalendarBloc: Walk-in create failed', error: e, stackTrace: s);
+      rethrow;
     }
   }
 }

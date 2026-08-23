@@ -3,7 +3,6 @@
 import 'dart:async';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pinput/pinput.dart';
 import 'package:go_router/go_router.dart';
@@ -11,17 +10,19 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/config/app_router.dart';
 import '../../../../app/config/theme/app_constants.dart';
 import '../../../../shared/widgets/primary_gradient_button.dart';
+import '../auth_navigation.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../widgets/auth_chrome.dart';
 
 class OtpScreen extends StatefulWidget {
-  final String verificationId;
+  final String sessionId;
   final String phoneNumber;
 
   const OtpScreen({
     super.key,
-    required this.verificationId,
+    required this.sessionId,
     required this.phoneNumber,
   });
 
@@ -43,6 +44,9 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
   int _resendCooldown = 0;
   Timer? _resendTimer;
 
+  /// Latest Briq session id. Updated when a new code is sent (including resend).
+  late String _sessionId;
+
   // Animation controller for shake effect on error
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
@@ -50,6 +54,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _sessionId = widget.sessionId;
     _startCountdown();
     _setupShakeAnimation();
 
@@ -142,7 +147,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
                 error.recoveryHint!,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.white.withOpacity(0.8),
+                  color: Theme.of(context).colorScheme.onError.withValues(alpha: 0.85),
                 ),
               ),
             ],
@@ -172,7 +177,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
 
     // Dispatch event to BLoC
     context.read<AuthBloc>().add(OtpVerificationRequested(
-      verificationId: widget.verificationId,
+      sessionId: _sessionId,
       smsCode: _otpController.text,
     ));
   }
@@ -185,21 +190,7 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
     if (_resendCooldown > 0) return;
 
     context.read<AuthBloc>().add(PhoneSignInRequested(widget.phoneNumber));
-
-    _startResendCooldown();
-    _startCountdown();
     _otpController.clear();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('New verification code sent!'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
   }
 
   String _formatTime(int seconds) {
@@ -211,224 +202,107 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-
-    SystemChrome.setSystemUIOverlayStyle(
-        isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark);
-
-    final defaultPinTheme = PinTheme(
-      width: 56,
-      height: 60,
-      textStyle: theme.textTheme.headlineMedium,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: AppConstants.radiusM,
-        border: Border.all(color: theme.dividerColor),
-      ),
-    );
 
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state is Authenticated) {
-          if (state.user.role == 'owner') {
-            context.go(AppRoutes.ownerHome);
-          } else {
-            context.go(AppRoutes.clientHome);
-          }
-        } else if (state is RoleSelectionRequired) {
+        if (state is RoleSelectionRequired) {
           context.go(AppRoutes.roleSelection);
         } else if (state is ClientProfileSetupRequired) {
           context.go(AppRoutes.clientSetup);
+        } else if (state is OwnerProfileSetupRequired) {
+          context.go(AppRoutes.ownerSetup);
         } else if (state is AuthError) {
           _showErrorSnackBar(state);
           // Clear OTP field on error
           _otpController.clear();
           _pinputFocusNode.requestFocus();
         } else if (state is PhoneVerificationCodeSent) {
-          // New code sent (resend) - restart timer
+          setState(() => _sessionId = state.sessionId);
           _startCountdown();
+          _startResendCooldown();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('auth.otp.code_sent'.tr()),
+              backgroundColor: theme.colorScheme.primary,
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        } else if (state is Authenticated) {
+          goAfterAuthenticated(context, state);
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           final isLoading = state is AuthLoading;
 
-          return Scaffold(
-            appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              leading: BackButton(
-                color: theme.colorScheme.onSurface,
-                onPressed: isLoading ? null : () => context.pop(),
-              ),
-            ),
-            body: SafeArea(
-              child: Stack(
-                children: [
-                  Center(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(AppConstants.padL),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // Icon
-                            Icon(
-                              Icons.shield_outlined,
-                              size: 80,
-                              color: _isExpired
-                                  ? theme.colorScheme.error
-                                  : theme.colorScheme.primary,
-                            ),
-                            const SizedBox(height: AppConstants.padL),
+          return AuthScaffold(
+            isLoading: isLoading,
+            loadingMessage: 'auth.otp.verifying'.tr(),
+            body: AuthPageBody(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AuthHeader(
+                      title: 'auth.otp.title'.tr(),
+                      subtitle: 'auth.otp.description'.tr(args: [widget.phoneNumber]),
+                      leading: Icon(
+                        Icons.shield_outlined,
+                        size: AuthChrome.iconSize,
+                        color: _isExpired
+                            ? theme.colorScheme.error
+                            : theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: AuthChrome.fieldGap),
 
-                            // Title
-                            Text(
-                              'auth.otp.title'.tr(),
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.displayMedium,
-                            ),
-                            const SizedBox(height: AppConstants.padS),
+                    _buildCountdownTimer(theme),
 
-                            // Description
-                            Text(
-                              'auth.otp.description'.tr(args: [widget.phoneNumber]),
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(0.7),
-                              ),
-                            ),
-                            const SizedBox(height: AppConstants.padL),
+                    const SizedBox(height: AuthChrome.headerGap),
 
-                            // IMPROVED: Countdown timer display
-                            _buildCountdownTimer(theme),
+                    AnimatedBuilder(
+                      animation: _shakeAnimation,
+                      builder: (context, child) {
+                        return Transform.translate(
+                          offset: Offset(_shakeAnimation.value, 0),
+                          child: child,
+                        );
+                      },
+                      child: _buildPinInput(theme, isLoading),
+                    ),
+                    const SizedBox(height: AuthChrome.headerGap),
 
-                            const SizedBox(height: AppConstants.padXL),
+                    PrimaryGradientButton(
+                      text: _isExpired
+                          ? 'auth.otp.expired'.tr()
+                          : 'auth.otp.button'.tr(),
+                      onPressed: (isLoading || _isExpired) ? null : _verifyOtp,
+                      isLoading: isLoading,
+                      height: AuthChrome.ctaHeight,
+                    ),
 
-                            // IMPROVED: Animated PIN input
-                            AnimatedBuilder(
-                              animation: _shakeAnimation,
-                              builder: (context, child) {
-                                return Transform.translate(
-                                  offset: Offset(_shakeAnimation.value, 0),
-                                  child: child,
-                                );
-                              },
-                              child: Pinput(
-                                controller: _otpController,
-                                focusNode: _pinputFocusNode,
-                                length: 6,
-                                defaultPinTheme: defaultPinTheme,
-                                focusedPinTheme: defaultPinTheme.copyWith(
-                                  decoration: defaultPinTheme.decoration!.copyWith(
-                                    border: Border.all(
-                                      color: _isExpired
-                                          ? theme.colorScheme.error
-                                          : theme.colorScheme.primary,
-                                      width: 2,
-                                    ),
-                                  ),
-                                ),
-                                submittedPinTheme: defaultPinTheme.copyWith(
-                                  decoration: defaultPinTheme.decoration!.copyWith(
-                                    color: theme.colorScheme.primaryContainer,
-                                    border: Border.all(
-                                      color: theme.colorScheme.primary,
-                                      width: 1,
-                                    ),
-                                  ),
-                                ),
-                                errorPinTheme: defaultPinTheme.copyWith(
-                                  decoration: defaultPinTheme.decoration!.copyWith(
-                                    border: Border.all(
-                                      color: theme.colorScheme.error,
-                                      width: 2,
-                                    ),
-                                  ),
-                                ),
-                                pinputAutovalidateMode: PinputAutovalidateMode.onSubmit,
-                                showCursor: true,
-                                enabled: !isLoading && !_isExpired,
-                                onCompleted: (pin) => _verifyOtp(),
-                                validator: (s) {
-                                  if (_isExpired) return 'Code expired';
-                                  return s?.length == 6 ? null : 'auth.otp.incomplete'.tr();
-                                },
-                                hapticFeedbackType: HapticFeedbackType.lightImpact,
-                                cursor: Container(
-                                  width: 2,
-                                  height: 24,
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary,
-                                    borderRadius: BorderRadius.circular(1),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: AppConstants.padXL),
+                    const SizedBox(height: AuthChrome.actionGap),
 
-                            // Verify Button
-                            PrimaryGradientButton(
-                              text: _isExpired ? 'Code Expired' : 'auth.otp.button'.tr(),
-                              onPressed: (isLoading || _isExpired) ? null : _verifyOtp,
-                              isLoading: isLoading,
-                            ),
+                    _buildResendSection(theme, isLoading),
 
-                            const SizedBox(height: AppConstants.padL),
+                    const SizedBox(height: AuthChrome.titleGap),
 
-                            // IMPROVED: Resend section with cooldown
-                            _buildResendSection(theme, isLoading),
-
-                            const SizedBox(height: AppConstants.padS),
-
-                            // Helper text
-                            Text(
-                              'Enter the 6-digit code we sent to your phone',
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(0.6),
-                              ),
-                            ),
-                          ],
+                    Text(
+                      'auth.otp.helper'.tr(),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: AuthChrome.subtitleOpacity,
                         ),
                       ),
                     ),
-                  ),
-
-                  // Loading overlay
-                  if (isLoading)
-                    Container(
-                      color: Colors.black26,
-                      child: Center(
-                        child: Card(
-                          elevation: 8,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    theme.colorScheme.primary,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Verifying code...',
-                                  style: theme.textTheme.titleMedium,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           );
@@ -441,67 +315,150 @@ class _OtpScreenState extends State<OtpScreen> with TickerProviderStateMixin {
   // IMPROVED: Countdown timer widget
   // ============================================================================
 
+  Widget _buildPinInput(ThemeData theme, bool isLoading) {
+    const pinCount = 6;
+    const pinGap = 8.0;
+    const preferredWidth = 56.0;
+    const preferredHeight = 60.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxPinWidth =
+            (constraints.maxWidth - pinGap * (pinCount - 1)) / pinCount;
+        final pinWidth = maxPinWidth.clamp(32.0, preferredWidth);
+        final pinHeight = pinWidth * (preferredHeight / preferredWidth);
+
+        final defaultPinTheme = PinTheme(
+          width: pinWidth,
+          height: pinHeight,
+          textStyle: theme.textTheme.headlineMedium?.copyWith(
+            fontSize: pinWidth < 44 ? 18 : null,
+          ),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: AppConstants.radiusM,
+            border: Border.all(color: theme.dividerColor),
+          ),
+        );
+
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Pinput(
+            controller: _otpController,
+            focusNode: _pinputFocusNode,
+            length: pinCount,
+            defaultPinTheme: defaultPinTheme,
+            focusedPinTheme: defaultPinTheme.copyWith(
+              decoration: defaultPinTheme.decoration!.copyWith(
+                border: Border.all(
+                  color: _isExpired
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.primary,
+                  width: 2,
+                ),
+              ),
+            ),
+            submittedPinTheme: defaultPinTheme.copyWith(
+              decoration: defaultPinTheme.decoration!.copyWith(
+                color: theme.colorScheme.primaryContainer,
+                border: Border.all(
+                  color: theme.colorScheme.primary,
+                  width: 1,
+                ),
+              ),
+            ),
+            errorPinTheme: defaultPinTheme.copyWith(
+              decoration: defaultPinTheme.decoration!.copyWith(
+                border: Border.all(
+                  color: theme.colorScheme.error,
+                  width: 2,
+                ),
+              ),
+            ),
+            separatorBuilder: (_) => const SizedBox(width: pinGap),
+            pinputAutovalidateMode: PinputAutovalidateMode.onSubmit,
+            showCursor: true,
+            enabled: !isLoading && !_isExpired,
+            onCompleted: (pin) => _verifyOtp(),
+            validator: (s) {
+              if (_isExpired) return 'auth.otp.expired'.tr();
+              return s?.length == 6 ? null : 'auth.otp.incomplete'.tr();
+            },
+            hapticFeedbackType: HapticFeedbackType.lightImpact,
+            cursor: Container(
+              width: 2,
+              height: pinHeight * 0.4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildCountdownTimer(ThemeData theme) {
     final color = _isExpired
         ? theme.colorScheme.error
         : (_remainingSeconds <= 30
-        ? Colors.orange
+        ? theme.colorScheme.tertiary
         : theme.colorScheme.primary);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            _isExpired ? Icons.timer_off : Icons.timer_outlined,
-            size: 20,
-            color: color,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            _isExpired
-                ? 'Code expired'
-                : 'Code expires in ${_formatTime(_remainingSeconds)}',
-            style: theme.textTheme.bodyMedium?.copyWith(
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          children: [
+            Icon(
+              _isExpired ? Icons.timer_off : Icons.timer_outlined,
+              size: 20,
               color: color,
-              fontWeight: FontWeight.w600,
             ),
-          ),
-        ],
+            Text(
+              _isExpired
+                  ? 'auth.otp.expired'.tr()
+                  : 'auth.otp.expires_in'.tr(args: [_formatTime(_remainingSeconds)]),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ============================================================================
-  // IMPROVED: Resend section with cooldown
-  // ============================================================================
-
   Widget _buildResendSection(ThemeData theme, bool isLoading) {
     final canResend = _resendCooldown == 0 && !isLoading;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
-          'Didn\'t receive the code?',
+          'auth.otp.didnt_receive'.tr(),
           style: theme.textTheme.bodyMedium,
         ),
         TextButton(
           onPressed: canResend ? _resendOtp : null,
           child: Text(
             _resendCooldown > 0
-                ? 'Resend in ${_resendCooldown}s'
-                : 'Resend',
+                ? 'auth.otp.resend_in'.tr(args: ['$_resendCooldown'])
+                : 'auth.otp.resend_action'.tr(),
             style: theme.textTheme.bodyMedium?.copyWith(
               color: canResend
                   ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface.withOpacity(0.5),
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.5),
               fontWeight: FontWeight.bold,
             ),
           ),

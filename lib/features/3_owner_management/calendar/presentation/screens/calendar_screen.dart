@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../../../../../app/config/app_router.dart';
 import '../../../../../app/config/theme/app_constants.dart';
 import '../../../../../shared/widgets/profile_avatar.dart';
 import '../../../../../shared/widgets/loading_indicator.dart';
@@ -10,13 +11,20 @@ import '../../../../../shared/widgets/empty_state_widget.dart';
 import '../../../../../app/services/service_locator.dart';
 import '../../../../../app/utils/formatters.dart';
 import '../../../../../shared/models/appointment_model.dart';
+import '../../../../../shared/models/service_model.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_bloc.dart';
+import 'package:pendeza/features/0_auth/presentation/bloc/auth_state.dart';
+import 'package:pendeza/features/2_client_booking/domain/repositories/booking_repository.dart';
 import '../../../../0_auth/data/models/user_model.dart';
+import '../../../presentation/owner_chrome.dart';
+import '../../../services/domain/repositories/services_repository.dart';
 import '../bloc/owner_calender_bloc.dart';
 import '../bloc/owner_calender_event.dart';
 import '../bloc/owner_calender_state.dart';
 import '../widgets/appointment_details_dialog.dart';
+import '../widgets/walk_in_sheet.dart';
 import 'package:pendeza/app/services/firestore_service.dart';
+import 'package:go_router/go_router.dart';
 
 class CalendarScreen extends StatelessWidget {
   const CalendarScreen({super.key});
@@ -77,11 +85,26 @@ class _CalendarViewState extends State<_CalendarView> {
         return AppointmentDetailsDialog(appointment: appointment);
       },
     ).then((_) {
+      if (!mounted) return;
       context.read<OwnerCalendarBloc>().add(LoadAppointmentsForDate(_selectedDay));
     });
   }
 
-  Future<UserModel?> _getClientDetails(String clientId) async {
+  Future<UserModel?> _getClientDetails(AppointmentModel appointment) async {
+    if (appointment.isWalkIn) {
+      return UserModel(
+        uid: AppointmentModel.walkInClientId,
+        email: '',
+        fullName: appointment.walkInName?.trim().isNotEmpty == true
+            ? appointment.walkInName!.trim()
+            : 'owner.calendar.walk_in_client'.tr(),
+        fcmTokens: const [],
+        createdAt: appointment.createdAt,
+        role: 'client',
+      );
+    }
+
+    final clientId = appointment.clientId;
     if (_clientCache.containsKey(clientId)) {
       return _clientCache[clientId];
     }
@@ -95,22 +118,75 @@ class _CalendarViewState extends State<_CalendarView> {
     }
   }
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case AppointmentStatus.confirmed:
-        return Colors.green;
-      case AppointmentStatus.completed:
-        return Colors.blue;
-      case AppointmentStatus.pendingPayment:
-        return Colors.orange;
-      case AppointmentStatus.cancelled:
-        return Colors.red;
-      case AppointmentStatus.noShow:
-        return Colors.grey;
-      case AppointmentStatus.paymentFailed:
-        return Colors.red.shade300;
-      default:
-        return Colors.grey;
+  Color _statusColor(BuildContext context, String status) {
+    return ownerAppointmentStatusColor(Theme.of(context), status);
+  }
+
+  Future<void> _openWalkInSheet() async {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! Authenticated) return;
+
+    List<ServiceModel> services = const [];
+    String? salonId;
+    try {
+      final salon = await sl<ServicesRepository>().getSalonForOwner(
+        authState.user.uid,
+      );
+      if (salon != null) {
+        salonId = salon.id;
+        services = await sl<ServicesRepository>().getServices(salon.id);
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    if (salonId == null || services.where((s) => s.isActive).isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('owner.calendar.walk_in_no_services'.tr()),
+          action: SnackBarAction(
+            label: 'owner.services.add_btn'.tr(),
+            onPressed: () => context.go(AppRoutes.ownerServices),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final targetSalonId = salonId;
+    final created = await showWalkInSheet(
+      context,
+      selectedDay: _selectedDay,
+      services: services,
+      onSubmit: ({
+        required String clientName,
+        required ServiceModel service,
+        required DateTime startTime,
+      }) async {
+        await sl<BookingRepository>().createAppointment(
+          AppointmentModel(
+            id: '',
+            clientId: AppointmentModel.walkInClientId,
+            salonId: targetSalonId,
+            serviceIds: [service.id],
+            startTime: startTime,
+            durationMinutes: service.durationMinutes,
+            totalPrice: service.price,
+            status: AppointmentStatus.confirmed,
+            createdAt: DateTime.now(),
+            walkInName: clientName,
+          ),
+        );
+      },
+    );
+
+    if (created == true && mounted) {
+      context
+          .read<OwnerCalendarBloc>()
+          .add(LoadAppointmentsForDate(_selectedDay));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('owner.calendar.walk_in_success'.tr())),
+      );
     }
   }
 
@@ -119,8 +195,9 @@ class _CalendarViewState extends State<_CalendarView> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('owner.calendar.title'.tr()),
+      appBar: ownerTabAppBar(
+        context,
+        title: 'owner.calendar.title'.tr(),
         actions: [
           // Format toggle button
           Container(
@@ -263,8 +340,8 @@ class _CalendarViewState extends State<_CalendarView> {
                     ),
                   ],
                 ),
-                selectedTextStyle: const TextStyle(
-                  color: Colors.white,
+                selectedTextStyle: TextStyle(
+                  color: theme.colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -294,10 +371,16 @@ class _CalendarViewState extends State<_CalendarView> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  'owner.calendar.list_header'.tr(args: [DateFormat.yMMMd().format(_selectedDay)]),
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    'owner.calendar.list_header'.tr(args: [
+                      DateFormat.yMMMd().format(_selectedDay),
+                    ]),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -325,17 +408,15 @@ class _CalendarViewState extends State<_CalendarView> {
                 }
                 if (state is OwnerCalendarLoaded && isSameDay(state.selectedDate, _selectedDay)) {
                   if (state.appointments.isEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-                      child: EmptyStateWidget(
-                        iconData: CupertinoIcons.calendar_badge_minus,
-                        title: 'owner.calendar.no_appointments'.tr(),
-                        message: 'owner.calendar.no_appointments_msg'.tr(),
-                      ),
-                    );
+                    return _buildEmptyAppointments(theme);
                   }
                   return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppConstants.padL,
+                      0,
+                      AppConstants.padL,
+                      96,
+                    ),
                     itemCount: state.appointments.length,
                     itemBuilder: (context, index) {
                       return TweenAnimationBuilder<double>(
@@ -363,6 +444,64 @@ class _CalendarViewState extends State<_CalendarView> {
           )
         ],
       ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: FloatingActionButton.extended(
+          onPressed: _openWalkInSheet,
+          icon: const Icon(CupertinoIcons.person_badge_plus),
+          label: Text('owner.calendar.walk_in'.tr()),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyAppointments(ThemeData theme) {
+    const fabClearance = 96.0;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final minHeight =
+            (constraints.maxHeight - fabClearance).clamp(0.0, double.infinity);
+        final compact = constraints.maxHeight < 180;
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            AppConstants.padL,
+            AppConstants.padS,
+            AppConstants.padL,
+            fabClearance,
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: minHeight),
+            child: Column(
+              mainAxisAlignment: compact
+                  ? MainAxisAlignment.start
+                  : MainAxisAlignment.center,
+              children: [
+                Icon(
+                  CupertinoIcons.calendar_badge_minus,
+                  size: compact ? 36 : 48,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                ),
+                const SizedBox(height: AppConstants.padM),
+                Text(
+                  'owner.calendar.no_appointments'.tr(),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.padS),
+                Text(
+                  'owner.calendar.no_appointments_msg'.tr(),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -379,12 +518,18 @@ class _CalendarViewState extends State<_CalendarView> {
 
   Widget _buildAppointmentItem(BuildContext context, AppointmentModel appointment) {
     final theme = Theme.of(context);
-    final statusColor = _statusColor(appointment.status);
+    final statusColor = _statusColor(context, appointment.status);
+
+    final isMuted = appointment.status == AppointmentStatus.cancelled ||
+        appointment.status == AppointmentStatus.paymentFailed ||
+        appointment.status == AppointmentStatus.noShow;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppConstants.padM),
-      child: FutureBuilder<UserModel?>(
-        future: _getClientDetails(appointment.clientId),
+      child: Opacity(
+        opacity: isMuted ? 0.55 : 1,
+        child: FutureBuilder<UserModel?>(
+        future: _getClientDetails(appointment),
         builder: (context, snapshot) {
           final String displayName = snapshot.hasData && snapshot.data != null
               ? snapshot.data!.fullName
@@ -458,6 +603,8 @@ class _CalendarViewState extends State<_CalendarView> {
                                       style: theme.textTheme.titleMedium?.copyWith(
                                         fontWeight: FontWeight.bold,
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
                                     Row(
@@ -508,7 +655,7 @@ class _CalendarViewState extends State<_CalendarView> {
                                       DateFormat.jm().format(appointment.startTime),
                                       style: theme.textTheme.labelMedium?.copyWith(
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                        color: theme.colorScheme.onPrimary,
                                       ),
                                     ),
                                   ),
@@ -534,6 +681,7 @@ class _CalendarViewState extends State<_CalendarView> {
             ),
           );
         },
+      ),
       ),
     );
   }

@@ -14,6 +14,7 @@ import 'package:pendeza/features/2_client_booking/presentation/bloc/booking_stat
 import 'package:pendeza/shared/models/service_model.dart';
 import 'package:pendeza/shared/widgets/custom_card.dart';
 import 'package:pendeza/shared/widgets/primary_gradient_button.dart';
+import 'package:pendeza/app/config/app_config.dart';
 import 'package:pendeza/app/config/app_router.dart';
 import 'package:pendeza/app/config/theme/app_colors.dart';
 import '../../../../shared/widgets/custom_snackbar.dart';
@@ -79,6 +80,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
         featureName: 'booking',
         customMessage: 'client.booking.guest_prompt'.tr(),
         icon: Icons.calendar_month_rounded,
+        returnRoute: GoRouterState.of(context).uri.path,
       );
       return;
     }
@@ -98,6 +100,10 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
       body: BlocConsumer<BookingBloc, BookingState>(
         listener: (context, state) {
           if (state is BookingPaymentRequired) {
+            // TEMPORARILY DISABLED - Payments turned off for App Store submission
+            // BookingBloc now emits BookingSuccess instead; this path is kept for re-enable.
+            if (!AppConfig.paymentsEnabled) return;
+
             // Prevent double navigation if state emits multiple times
             guardedNavigate(() {
               final authState = context.read<AuthBloc>().state;
@@ -254,7 +260,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            theme.colorScheme.primary.withOpacity(0.05),
+            theme.colorScheme.primary.withValues(alpha: 0.05),
             theme.scaffoldBackgroundColor,
           ],
           stops: const [0.0, 0.3],
@@ -280,8 +286,8 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
           shape: BoxShape.circle,
           gradient: LinearGradient(
             colors: [
-              theme.colorScheme.primary.withOpacity(0.2),
-              theme.colorScheme.primary.withOpacity(0.05),
+              theme.colorScheme.primary.withValues(alpha: 0.2),
+              theme.colorScheme.primary.withValues(alpha: 0.05),
             ],
           ),
         ),
@@ -320,7 +326,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
       },
       child: CustomCard(
         padding: const EdgeInsets.all(AppConstants.padL),
-        color: theme.colorScheme.primary.withOpacity(0.08),
+        color: theme.colorScheme.primary.withValues(alpha: 0.08),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -329,7 +335,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
                 Container(
                   padding: const EdgeInsets.all(AppConstants.padS),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.2),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(AppConstants.radiusValM),
                   ),
                   child: Icon(
@@ -379,7 +385,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
         Container(
           padding: const EdgeInsets.all(AppConstants.padXS),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withOpacity(0.1),
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppConstants.radiusValS),
           ),
           child: Icon(icon, size: 18, color: theme.colorScheme.primary),
@@ -390,7 +396,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
             value,
             style: theme.textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w500,
-              color: theme.colorScheme.onSurface.withOpacity(0.9),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
             ),
           ),
         ),
@@ -412,7 +418,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
                   width: 4,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.3),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -451,7 +457,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
           Text(
             title,
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           Text(
@@ -492,7 +498,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen>
                     Text(
                       'common.total_label'.tr(),
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                     const SizedBox(height: 2),

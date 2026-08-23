@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_platform_widgets/flutter_platform_widgets.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'package:material_ui/material_ui.dart' as material_ui;
 import 'package:pendeza/app/config/theme/app_theme.dart';
 import 'package:pendeza/app/config/app_router.dart';
 import 'package:pendeza/app/bloc/theme_cubit.dart';
@@ -134,6 +135,7 @@ class App extends StatelessWidget {
                   GlobalWidgetsLocalizations.delegate,
                   GlobalCupertinoLocalizations.delegate,
                   FlutterQuillLocalizations.delegate,
+                  material_ui.GlobalMaterialLocalizations.delegate,
                 ],
                 supportedLocales: context.supportedLocales,
                 locale: context.locale,

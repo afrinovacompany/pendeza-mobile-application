@@ -87,20 +87,21 @@ class GuestMode extends AuthState {
 ///
 /// UI should navigate to OTP input screen when this state is received.
 class PhoneVerificationCodeSent extends AuthState {
-  final String verificationId;
+  /// Briq OTP session id returned by `request_briq_otp`.
+  final String sessionId;
   final String phoneNumber;
 
   /// Timestamp when the code was sent (for countdown timer)
   final DateTime sentAt;
 
   PhoneVerificationCodeSent({
-    required this.verificationId,
+    required this.sessionId,
     required this.phoneNumber,
     DateTime? sentAt,
   }) : sentAt = sentAt ?? DateTime.now();
 
   @override
-  List<Object> get props => [verificationId, phoneNumber, sentAt];
+  List<Object> get props => [sessionId, phoneNumber, sentAt];
 
   /// Check if the verification code is still valid (typically 2 minutes)
   bool get isExpired {

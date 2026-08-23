@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pendeza/app/config/app_config.dart';
 import 'package:pendeza/app/config/app_router.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/app/services/service_locator.dart';
@@ -28,8 +29,9 @@ class AppointmentsScreen extends StatelessWidget {
 
     return BlocProvider(
       create: (context) => sl<AppointmentsBloc>()..add(FetchAppointmentsRequested()),
+      // TEMPORARILY DISABLED - Payments turned off for App Store submission
       child: DefaultTabController(
-        length: 3,
+        length: AppConfig.paymentsEnabled ? 3 : 2,
         child: Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
           body: SafeArea(
@@ -40,12 +42,12 @@ class AppointmentsScreen extends StatelessWidget {
                 // Enhanced Tab Bar
                 _buildTabBar(context, theme),
                 // Tab content
-                const Expanded(
+                Expanded(
                   child: TabBarView(
                     children: [
-                      _PendingPaymentListView(),
-                      _AppointmentsListView(listType: _ListType.upcoming),
-                      _AppointmentsListView(listType: _ListType.past),
+                      if (AppConfig.paymentsEnabled) const _PendingPaymentListView(),
+                      const _AppointmentsListView(listType: _ListType.upcoming),
+                      const _AppointmentsListView(listType: _ListType.past),
                     ],
                   ),
                 ),
@@ -96,7 +98,9 @@ class AppointmentsScreen extends StatelessWidget {
           BlocBuilder<AppointmentsBloc, AppointmentsState>(
             builder: (context, state) {
               if (state is AppointmentsLoaded) {
-                final totalActive = state.pendingPaymentAppointments.length +
+                final totalActive = (AppConfig.paymentsEnabled
+                        ? state.pendingPaymentAppointments.length
+                        : 0) +
                     state.upcomingAppointments.length;
                 if (totalActive > 0) {
                   return TweenAnimationBuilder<double>(
@@ -184,58 +188,60 @@ class AppointmentsScreen extends StatelessWidget {
         splashBorderRadius: BorderRadius.circular(10),
         labelPadding: EdgeInsets.zero,
         tabs: [
-          BlocBuilder<AppointmentsBloc, AppointmentsState>(
-            builder: (context, state) {
-              final pendingCount = state is AppointmentsLoaded
-                  ? state.pendingPaymentAppointments.length
-                  : 0;
-              return Tab(
-                height: 40,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('client.appointments.tab_pending'.tr()),
-                    if (pendingCount > 0) ...[
-                      const SizedBox(width: 6),
-                      TweenAnimationBuilder<double>(
-                        tween: Tween(begin: 0.0, end: 1.0),
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.elasticOut,
-                        builder: (context, value, child) {
-                          return Transform.scale(
-                            scale: value,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.orange.shade600,
-                                    Colors.orange.shade500,
-                                  ],
+          // TEMPORARILY DISABLED - Payments turned off for App Store submission
+          if (AppConfig.paymentsEnabled)
+            BlocBuilder<AppointmentsBloc, AppointmentsState>(
+              builder: (context, state) {
+                final pendingCount = state is AppointmentsLoaded
+                    ? state.pendingPaymentAppointments.length
+                    : 0;
+                return Tab(
+                  height: 40,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('client.appointments.tab_pending'.tr()),
+                      if (pendingCount > 0) ...[
+                        const SizedBox(width: 6),
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.elasticOut,
+                          builder: (context, value, child) {
+                            return Transform.scale(
+                              scale: value,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
                                 ),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                '$pendingCount',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.orange.shade600,
+                                      Colors.orange.shade500,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '$pendingCount',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
+                            );
+                          },
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-              );
-            },
-          ),
+                  ),
+                );
+              },
+            ),
           Tab(
             height: 40,
             child: Text('client.appointments.tab_upcoming'.tr()),
@@ -424,6 +430,9 @@ class _PendingPaymentListView extends StatelessWidget {
   }
 
   void _navigateToPayment(BuildContext context, AppointmentWithDetails details) {
+    // TEMPORARILY DISABLED - Payments turned off for App Store submission
+    if (!AppConfig.paymentsEnabled) return;
+
     final authState = context.read<AuthBloc>().state;
 
     String name = "Client";

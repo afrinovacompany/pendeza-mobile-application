@@ -86,7 +86,7 @@ class SalonGalleryPreview extends StatelessWidget {
                         Container(
                           decoration: BoxDecoration(
                             borderRadius: AppConstants.radiusM,
-                            color: Colors.black.withOpacity(0.6),
+                            color: Colors.black.withValues(alpha: 0.6),
                           ),
                           child: Center(
                             child: Text(

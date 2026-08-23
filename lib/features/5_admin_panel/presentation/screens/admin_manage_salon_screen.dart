@@ -43,7 +43,21 @@ class _AdminManageSalonsScreenState extends State<AdminManageSalonsScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (state is AdminError) {
-            return Center(child: Text(state.message));
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  const SizedBox(height: AppConstants.padM),
+                  Text(state.message),
+                  const SizedBox(height: AppConstants.padM),
+                  ElevatedButton(
+                    onPressed: () => context.read<AdminBloc>().add(LoadAdminData()),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
           }
           if (state is AdminLoaded) {
             return _buildBody(context, state);
@@ -172,14 +186,14 @@ class _AdminManageSalonsScreenState extends State<AdminManageSalonsScreen> {
                       Icon(
                         CupertinoIcons.building_2_fill,
                         size: 48,
-                        color: theme.colorScheme.onSurface.withOpacity(0.3),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: AppConstants.padM),
                       Text(
                         'No salons found',
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color:
-                              theme.colorScheme.onSurface.withOpacity(0.5),
+                              theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                       ),
                     ],
@@ -223,7 +237,7 @@ class _AdminManageSalonsScreenState extends State<AdminManageSalonsScreen> {
           ),
           decoration: BoxDecoration(
             color: isSelected
-                ? color.withOpacity(0.15)
+                ? color.withValues(alpha: 0.15)
                 : theme.colorScheme.surface,
             borderRadius:
                 BorderRadius.circular(AppConstants.radiusValM),
@@ -247,7 +261,7 @@ class _AdminManageSalonsScreenState extends State<AdminManageSalonsScreen> {
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: isSelected
                       ? color
-                      : theme.colorScheme.onSurface.withOpacity(0.6),
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -376,7 +390,7 @@ class _SalonCardState extends State<_SalonCard> {
                           salon.address,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurface
-                                .withOpacity(0.6),
+                                .withValues(alpha: 0.6),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -395,7 +409,7 @@ class _SalonCardState extends State<_SalonCard> {
                 padding: const EdgeInsets.all(AppConstants.padS),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surfaceContainerHighest
-                      .withOpacity(0.4),
+                      .withValues(alpha: 0.4),
                   borderRadius:
                       BorderRadius.circular(AppConstants.radiusValS),
                 ),
@@ -405,14 +419,14 @@ class _SalonCardState extends State<_SalonCard> {
                       CupertinoIcons.person_fill,
                       size: 14,
                       color:
-                          theme.colorScheme.onSurface.withOpacity(0.5),
+                          theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                     const SizedBox(width: AppConstants.padXS),
                     Text(
                       'Owner: ',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.colorScheme.onSurface
-                            .withOpacity(0.5),
+                            .withValues(alpha: 0.5),
                       ),
                     ),
                     if (_ownerLoaded) ...[
@@ -442,7 +456,7 @@ class _SalonCardState extends State<_SalonCard> {
                           _ownerEmail!,
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: theme.colorScheme.onSurface
-                                .withOpacity(0.5),
+                                .withValues(alpha: 0.5),
                             fontSize: 10,
                           ),
                         ),
@@ -472,7 +486,7 @@ class _SalonCardState extends State<_SalonCard> {
                             ),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.primaryContainer
-                                  .withOpacity(0.4),
+                                  .withValues(alpha: 0.4),
                               borderRadius: BorderRadius.circular(
                                   AppConstants.radiusValCircular),
                             ),
@@ -497,7 +511,7 @@ class _SalonCardState extends State<_SalonCard> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(AppConstants.padS),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.08),
+                    color: Colors.red.withValues(alpha: 0.08),
                     borderRadius:
                         BorderRadius.circular(AppConstants.radiusValS),
                   ),
@@ -586,7 +600,7 @@ class _SalonCardState extends State<_SalonCard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius:
             BorderRadius.circular(AppConstants.radiusValCircular),
       ),
@@ -834,7 +848,7 @@ class _SalonCardState extends State<_SalonCard> {
                             _ownerEmail!,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurface
-                                  .withOpacity(0.6),
+                                  .withValues(alpha: 0.6),
                             ),
                           ),
                       ],
@@ -899,14 +913,14 @@ class _SalonCardState extends State<_SalonCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 16,
-              color: theme.colorScheme.onSurface.withOpacity(0.5)),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
           const SizedBox(width: AppConstants.padS),
           SizedBox(
             width: 80,
             child: Text(
               label,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ),

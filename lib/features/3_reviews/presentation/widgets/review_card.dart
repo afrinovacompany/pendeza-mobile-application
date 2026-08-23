@@ -48,11 +48,11 @@ class ReviewCard extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: AppConstants.radiusL,
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.1),
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -114,7 +114,7 @@ class ReviewCard extends StatelessWidget {
         // Profile picture
         CircleAvatar(
           radius: 20,
-          backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
           backgroundImage: review.userProfilePicture != null
               ? CachedNetworkImageProvider(review.userProfilePicture!)
               : null,
@@ -155,10 +155,10 @@ class ReviewCard extends StatelessWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                         border: Border.all(
-                          color: Colors.green.withOpacity(0.3),
+                          color: Colors.green.withValues(alpha: 0.3),
                           width: 1,
                         ),
                       ),
@@ -251,7 +251,7 @@ class ReviewCard extends StatelessWidget {
           Text(
             '(edited)',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -268,10 +268,10 @@ class ReviewCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppConstants.padM),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.05),
+        color: theme.colorScheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.1),
+          color: theme.colorScheme.primary.withValues(alpha: 0.1),
         ),
       ),
       child: Column(

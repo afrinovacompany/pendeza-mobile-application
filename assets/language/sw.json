@@ -37,21 +37,33 @@
     "date_weeks_ago": "wiki {} zimepita",
     "retry": "Jaribu tena",
     "delete": "Futa",
-    "undo": "Rejesha"
+    "undo": "Rejesha",
+    "phone_required": "Namba ya simu inahitajika",
+    "phone_error_length": "Namba ya simu lazima iwe na tarakimu 9",
+    "phone_error_prefix": "Namba ya simu lazima ianze na 6 au 7"
+  },
+  "splash": {
+    "app_name": "Pendeza",
+    "tagline": "Mtindo Wako, Ratiba Yako"
   },
   "auth": {
     "login": {
       "title": "Karibu Tena!",
+      "subtitle": "Chagua njia unayopendelea kuingia",
       "email_label": "Barua Pepe",
       "password_label": "Nenosiri",
       "button": "INGIA",
       "forgot_password": "Umesahau Nenosiri?",
       "no_account": "Huna akaunti?",
       "signup_link": "Jisajili",
-      "signing_in": "Inaingia..."
+      "signing_in": "Inaingia...",
+      "continue_email": "Endelea na Barua Pepe",
+      "continue_phone": "Endelea na Simu",
+      "email_sheet_title": "Ingia kwa Barua Pepe"
     },
     "signup": {
       "title": "Fungua Akaunti",
+      "subtitle": "Tuanze sasa!",
       "name_label": "Jina Kamili",
       "name_hint": "Jina Lako",
       "email_label": "Barua Pepe",
@@ -61,7 +73,8 @@
       "confirm_password_hint": "Rudia nenosiri lako",
       "button": "JISAJILI",
       "have_account": "Una akaunti tayari?",
-      "signin_link": "Ingia"
+      "signin_link": "Ingia",
+      "creating": "Inaunda akaunti yako..."
     },
     "forgot_password": {
       "title": "Umesahau Nenosiri?",
@@ -72,14 +85,23 @@
     "phone": {
       "title": "Weka Namba ya Simu",
       "description": "Tutakutumia koodi ya uthibitisho ya tarakimu 6.",
-      "button": "TUMA KOODI"
+      "button": "TUMA KOODI",
+      "sending": "Inatuma koodi ya uthibitisho..."
     },
     "otp": {
       "title": "Uthibitisho",
       "description": "Weka koodi iliyotumwa kwenda {}",
       "button": "THIBITISHA",
       "resend": "Hujapata koodi? Tuma tena",
-      "incomplete": "Namba haijakamilika"
+      "incomplete": "Namba haijakamilika",
+      "expired": "Koodi imeisha muda",
+      "expires_in": "Koodi inaisha muda baada ya {}",
+      "didnt_receive": "Hujapata koodi?",
+      "resend_action": "Tuma tena",
+      "resend_in": "Tuma tena baada ya {}s",
+      "verifying": "Inathibitisha koodi...",
+      "code_sent": "Koodi mpya imetumwa!",
+      "helper": "Weka koodi ya tarakimu 6 tuliyotuma kwenye simu yako"
     },
     "role": {
       "title": "Utatumiaje app hii?",
@@ -117,6 +139,10 @@
       "gender_female": "Mwanamke",
       "gender_other": "Nyingine",
       "gender_prefer_not_say": "Pendelea kutosema",
+      "gender_error": "Tafadhali chagua jinsia yako",
+      "photo_error": "Imeshindikana kuchagua picha. Jaribu tena.",
+      "upload_error": "Imeshindikana kupakia picha. Jaribu tena.",
+      "saving": "Inahifadhi wasifu wako...",
       "button": "KAMILISHA"
     },
     "owner": {
@@ -235,6 +261,8 @@
         "saved": "Zilizohifadhiwa"
       },
       "no_promotions": "Hakuna OFA kwa sasa",
+      "no_stories": "Hakuna hadithi bado",
+      "stories_error": "Imeshindwa kupakia hadithi",
       "categories_title": "Aina Zote"
     },
     "profile": {
@@ -260,6 +288,11 @@
       "section_preferences": "Mapendeleo",
       "wallet_balance": "Salio: {}",
       "wallet_error": "Imeshindwa kupakia pochi",
+      "stats": {
+        "bookings": "Miadi",
+        "reviews": "Tathmini",
+        "saved": "Zilizohifadhiwa"
+      },
       "edit_profile_subtitle": "Badili taarifa zako binafsi",
       "logout_title": "Ondoka",
       "logout_confirm": "Una uhakika unataka kuondoka?"
@@ -334,7 +367,19 @@
       "greeting_evening": "Habari ya Jioni",
       "notifications_coming_soon": "Arifa zinakuja hivi karibuni!",
       "services_count": "Huduma {}",
-      "view_schedule": "Angalia Ratiba Kamili"
+      "view_schedule": "Angalia Ratiba Kamili",
+      "golive_pending_title": "Bado haijaorodheshwa",
+      "golive_pending_body": "Saluni yako inakaguliwa. Wateja hawawezi kukuona au kuweka miadi hadi iidhinishwe.",
+      "golive_rejected_title": "Orodha haijaidhinishwa",
+      "golive_approved_incomplete_title": "Umeorodheshwa — kamilisha wasifu",
+      "golive_approved_incomplete_body": "Wateja wanaweza kukuona. Kamilisha hivi ili orodha iwe tayari.",
+      "golive_live_title": "Saluni yako inaonekana",
+      "golive_live_body": "Wateja wanaweza kukuona na kuweka miadi.",
+      "golive_checklist_title": "Kamilisha hivi ili uonekane tayari",
+      "golive_photo": "Ongeza picha ya saluni",
+      "golive_hours": "Weka saa za kufungua",
+      "golive_phone": "Ongeza namba ya simu",
+      "golive_service": "Ongeza angalau huduma moja"
     },
     "calendar": {
       "title": "Ratiba Yangu",
@@ -367,7 +412,18 @@
       "status_cancelled": "Imeghairiwa",
       "status_pending_payment": "Inasubiri Malipo",
       "status_no_show": "Hakuja",
-      "status_payment_failed": "Malipo Yameshindwa"
+      "status_payment_failed": "Malipo Yameshindwa",
+      "walk_in": "Mteja wa moja kwa moja",
+      "walk_in_title": "Ongeza mteja wa moja kwa moja",
+      "walk_in_name_label": "Jina la mteja",
+      "walk_in_name_hint": "mfano, Amina",
+      "walk_in_service_label": "Huduma",
+      "walk_in_time_label": "Muda",
+      "walk_in_save": "Ongeza kwenye ratiba",
+      "walk_in_no_services": "Ongeza huduma kwanza, kisha unaweza kuingiza wateja wa moja kwa moja.",
+      "walk_in_success": "Mteja ameongezwa",
+      "walk_in_error": "Imeshindwa kuongeza. Jaribu tena.",
+      "walk_in_client": "Mteja wa moja kwa moja"
     },
     "services": {
       "title": "Simamia Huduma",
@@ -384,7 +440,23 @@
       "duration_label": "Muda (kwa dakika)",
       "duration_hint": "mfano, 45",
       "desc_label": "Maelezo (Si lazima)",
-      "desc_hint": "Maelezo mafupi ya huduma..."
+      "desc_hint": "Maelezo mafupi ya huduma...",
+      "add_action": "Ongeza Huduma",
+      "sort": "Panga",
+      "sort_name": "Jina (A-Z)",
+      "sort_price_asc": "Bei (Chini-Juu)",
+      "sort_price_desc": "Bei (Juu-Chini)",
+      "sort_popular": "Maarufu Zaidi",
+      "search_hint": "Tafuta huduma...",
+      "active_count": "{} Zinazotumika",
+      "inactive_count": "{} Zilizosimamishwa",
+      "shown_count": "{} zinaonyeshwa",
+      "all": "Zote",
+      "featured": "Maalum",
+      "activate": "Washa",
+      "pause": "Simamisha",
+      "bookings_count": "miadi {}",
+      "no_match": "Hakuna huduma zinazolingana na utafutaji"
     },
     "clients": {
       "title": "Wateja",
@@ -406,7 +478,13 @@
       "no_results_title": "Hakuna wateja walipatikana",
       "no_results_msg": "Hakuna wateja wanaofanana na \"{}\"",
       "clear_search": "Futa Utafutaji",
-      "add_client": "Ongeza Mteja"
+      "add_client": "Ongeza Mteja",
+      "search_hint": "Tafuta kwa jina au simu...",
+      "regulars_title": "Wateja Wako wa Kawaida",
+      "recent_bookings": "Miadi ya Hivi Karibuni",
+      "no_bookings_title": "Hakuna miadi bado",
+      "no_bookings_msg": "Miadi yako ya hivi karibuni itaonekana hapa",
+      "no_results_hint": "Jaribu jina au namba nyingine"
     },
     "client_details": {
       "title": "Maelezo ya Mteja",

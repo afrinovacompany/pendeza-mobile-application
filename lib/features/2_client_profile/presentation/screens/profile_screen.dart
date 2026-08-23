@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
+import 'package:pendeza/app/config/app_config.dart';
 import 'package:pendeza/app/config/app_router.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/app/widgets/adaptive/adaptive_dialog.dart';
@@ -71,9 +72,7 @@ class ClientProfileScreen extends StatelessWidget {
         }
 
         // --- CASE C: LOADING / UNKNOWN ---
-        return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        );
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
       },
     );
   }
@@ -89,11 +88,11 @@ class _AuthenticatedProfileView extends StatefulWidget {
   const _AuthenticatedProfileView({required this.userId});
 
   @override
-  State<_AuthenticatedProfileView> createState() => _AuthenticatedProfileViewState();
+  State<_AuthenticatedProfileView> createState() =>
+      _AuthenticatedProfileViewState();
 }
 
 class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
-
   @override
   void initState() {
     super.initState();
@@ -114,13 +113,15 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
 
   Future<void> _pickAndUploadImage(BuildContext context, String userId) async {
     final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
 
     if (image != null && context.mounted) {
-      context.read<ProfileBloc>().add(UpdateProfileImage(
-        userId: userId,
-        imageFile: File(image.path),
-      ));
+      context.read<ProfileBloc>().add(
+        UpdateProfileImage(userId: userId, imageFile: File(image.path)),
+      );
     }
   }
 
@@ -133,145 +134,185 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
     return BlocConsumer<ProfileBloc, ProfileState>(
       listener: (context, state) {
         if (state is ProfileUpdateSuccess) {
-          CustomSnackBar.show(context, message: state.message, type: SnackBarType.success);
+          CustomSnackBar.show(
+            context,
+            message: state.message,
+            type: SnackBarType.success,
+          );
         } else if (state is ProfileError) {
-          CustomSnackBar.show(context, message: state.message, type: SnackBarType.error);
+          CustomSnackBar.show(
+            context,
+            message: state.message,
+            type: SnackBarType.error,
+          );
         }
       },
       builder: (context, profileState) {
         // Calculate stats safely
-        final stats = (profileState is ProfileLoaded)
-            ? profileState.stats
-            : (profileState is ProfileImageUploading)
-            ? profileState.previousStats ?? const ProfileStats()
-            : const ProfileStats();
+        final stats =
+            (profileState is ProfileLoaded)
+                ? profileState.stats
+                : (profileState is ProfileImageUploading)
+                ? profileState.previousStats ?? const ProfileStats()
+                : const ProfileStats();
 
         return Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
-          body: RefreshIndicator(
-            onRefresh: () async {
-              context.read<ProfileBloc>().add(LoadProfile(userId: user.uid, forceRefresh: true));
-              context.read<WalletBloc>().add(RefreshWallet(user.uid));
-            },
-            child: CustomScrollView(
-              slivers: [
-                // Header
-                SliverToBoxAdapter(
-                  child: ProfileHeaderWidget(
-                    user: user,
-                    stats: stats,
-                    isImageUploading: profileState is ProfileImageUploading,
-                    onAvatarTap: () => _pickAndUploadImage(context, user.uid),
+          body: SafeArea(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                context.read<ProfileBloc>().add(
+                  LoadProfile(userId: user.uid, forceRefresh: true),
+                );
+                context.read<WalletBloc>().add(RefreshWallet(user.uid));
+              },
+              child: CustomScrollView(
+                slivers: [
+                  // Header
+                  SliverToBoxAdapter(
+                    child: ProfileHeaderWidget(
+                      user: user,
+                      stats: stats,
+                      isImageUploading: profileState is ProfileImageUploading,
+                      onAvatarTap: () => _pickAndUploadImage(context, user.uid),
+                      onBookingsTap: () => context.go(AppRoutes.clientBookings),
+                      onSavedTap: () => context.push(AppRoutes.clientFavorites),
+                    ),
                   ),
-                ),
 
-                // Grouped Menu Sections
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppConstants.padL,
-                    vertical: AppConstants.padL,
-                  ),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      // 🆕 WALLET SECTION
-                      _buildSectionHeader(context, 'client.profile.section_wallet'.tr()),
-                      BlocBuilder<WalletBloc, WalletState>(
-                        builder: (context, walletState) {
-                          String subtitle = 'common.loading'.tr();
-
-                          if (walletState is WalletLoaded) {
-                            final balance = "TZS ${walletState.wallet.balance.toStringAsFixed(0)}";
-                            subtitle = 'client.profile.wallet_balance'.tr(args: [balance]);
-                          } else if (walletState is WalletError) {
-                            subtitle = 'client.profile.wallet_error'.tr();
-                          }
-
-                          return ProfileSectionCard(
-                            children: [
-                              ProfileMenuTile(
-                                icon: CupertinoIcons.creditcard_fill,
-                                iconColor: Colors.blueAccent,
-                                title: 'client.profile.menu.wallet'.tr(),
-                                subtitle: subtitle,
-                                onTap: () => context.push(AppRoutes.clientWallet),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-
-                      const SizedBox(height: AppConstants.padL),
-
-                      _buildSectionHeader(context, 'client.profile.section_account'.tr()),
-                      ProfileSectionCard(
-                        children: [
-                          ProfileMenuTile(
-                            icon: CupertinoIcons.person_crop_circle_fill,
-                            title: 'client.profile.menu.edit_profile'.tr(),
-                            subtitle: 'client.profile.edit_profile_subtitle'.tr(),
-                            onTap: () => context.push(AppRoutes.editProfile),
+                  // Grouped Menu Sections
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppConstants.padL,
+                      vertical: AppConstants.padL,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        // TEMPORARILY DISABLED - Payments turned off for App Store submission
+                        if (AppConfig.paymentsEnabled) ...[
+                          _buildSectionHeader(
+                            context,
+                            'client.profile.section_wallet'.tr(),
                           ),
-                          ProfileMenuTile(
-                            icon: CupertinoIcons.heart_fill,
-                            title: 'client.profile.menu.favorites'.tr(),
-                            onTap: () => context.push(AppRoutes.clientFavorites),
+                          BlocBuilder<WalletBloc, WalletState>(
+                            builder: (context, walletState) {
+                              String subtitle = 'common.loading'.tr();
+
+                              if (walletState is WalletLoaded) {
+                                final balance =
+                                    "TZS ${walletState.wallet.balance.toStringAsFixed(0)}";
+                                subtitle = 'client.profile.wallet_balance'.tr(
+                                  args: [balance],
+                                );
+                              } else if (walletState is WalletError) {
+                                subtitle = 'client.profile.wallet_error'.tr();
+                              }
+
+                              return ProfileSectionCard(
+                                children: [
+                                  ProfileMenuTile(
+                                    icon: CupertinoIcons.creditcard_fill,
+                                    title: 'client.profile.menu.wallet'.tr(),
+                                    subtitle: subtitle,
+                                    onTap:
+                                        () => context.push(
+                                          AppRoutes.clientWallet,
+                                        ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
+                          const SizedBox(height: AppConstants.padL),
                         ],
-                      ),
 
-                      const SizedBox(height: AppConstants.padL),
-
-                      ProfileMenuTile(
-                        icon: CupertinoIcons.question_circle_fill,
-                        title: 'client.profile.menu.help'.tr(),
-                        onTap: () {
-                          // Navigate with showFAQ=false
-                          context.push(
-                              Uri(
-                                  path: '/help-support',
-                                  queryParameters: {'showFAQ': 'false'}
-                              ).toString()
-                          );
-                        },
-                      ),
-
-                      const SizedBox(height: AppConstants.padL),
-
-                      _buildSectionHeader(context, 'client.profile.section_preferences'.tr()),
-                      ProfileSectionCard(
-                        children: [
-                          ProfileMenuTile(
-                            icon: CupertinoIcons.globe,
-                            title: 'client.profile.menu.language'.tr(),
-                            trailing: Text(
-                              context.locale.languageCode == 'sw'
-                                  ? 'client.profile.language_selector.swahili'.tr()
-                                  : 'client.profile.language_selector.english'.tr(),
-                              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),
+                        _buildSectionHeader(
+                          context,
+                          'client.profile.section_account'.tr(),
+                        ),
+                        ProfileSectionCard(
+                          children: [
+                            ProfileMenuTile(
+                              icon: CupertinoIcons.person_crop_circle_fill,
+                              title: 'client.profile.menu.edit_profile'.tr(),
+                              subtitle:
+                                  'client.profile.edit_profile_subtitle'.tr(),
+                              onTap: () => context.push(AppRoutes.editProfile),
                             ),
-                            onTap: () => _showLanguagePicker(context),
-                          ),
-                        ],
-                      ),
+                            ProfileMenuTile(
+                              icon: CupertinoIcons.heart_fill,
+                              title: 'client.profile.menu.favorites'.tr(),
+                              onTap:
+                                  () => context.push(AppRoutes.clientFavorites),
+                            ),
+                            ProfileMenuTile(
+                              icon: CupertinoIcons.bell_fill,
+                              title: 'client.profile.menu.notifications'.tr(),
+                              onTap:
+                                  () => context.push(
+                                    AppRoutes.clientNotifications,
+                                  ),
+                            ),
+                          ],
+                        ),
 
-                      const SizedBox(height: AppConstants.padXL),
+                        const SizedBox(height: AppConstants.padL),
 
-                      ProfileSectionCard(
-                        children: [
-                          ProfileMenuTile(
-                            icon: CupertinoIcons.square_arrow_right,
-                            title: 'client.profile.menu.logout'.tr(),
-                            isDestructive: true,
-                            showChevron: false,
-                            onTap: () => _showLogoutDialog(context),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppConstants.padXL * 2),
-                    ]),
+                        _buildSectionHeader(
+                          context,
+                          'client.profile.section_preferences'.tr(),
+                        ),
+                        ProfileSectionCard(
+                          children: [
+                            ProfileMenuTile(
+                              icon: CupertinoIcons.globe,
+                              title: 'client.profile.menu.language'.tr(),
+                              trailing: Text(
+                                context.locale.languageCode == 'sw'
+                                    ? 'client.profile.language_selector.swahili'
+                                        .tr()
+                                    : 'client.profile.language_selector.english'
+                                        .tr(),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              onTap: () => _showLanguagePicker(context),
+                            ),
+                            ProfileMenuTile(
+                              icon: CupertinoIcons.question_circle_fill,
+                              title: 'client.profile.menu.help'.tr(),
+                              onTap: () {
+                                context.push(
+                                  Uri(
+                                    path: '/help-support',
+                                    queryParameters: {'showFAQ': 'false'},
+                                  ).toString(),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: AppConstants.padXL),
+
+                        ProfileSectionCard(
+                          children: [
+                            ProfileMenuTile(
+                              icon: CupertinoIcons.square_arrow_right,
+                              title: 'client.profile.menu.logout'.tr(),
+                              isDestructive: true,
+                              showChevron: false,
+                              onTap: () => _showLogoutDialog(context),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppConstants.padXL * 2),
+                      ]),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -287,7 +328,7 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
           letterSpacing: 1.2,
           fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
         ),
       ),
     );
