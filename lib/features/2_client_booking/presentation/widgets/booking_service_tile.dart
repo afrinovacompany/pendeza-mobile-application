@@ -1,10 +1,12 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../app/config/theme/app_constants.dart';
-import '../../../../app/utils/formatters.dart';
 import '../../../../shared/models/service_model.dart';
+import '../../../../shared/widgets/client_ui.dart';
+import '../../../../shared/widgets/service_category_icon.dart';
+import 'service_price.dart';
 
-/// A simple tile to display service name and price in the booking summary.
+/// One service line of the booking summary: icon, name, duration and price.
 class BookingServiceTile extends StatelessWidget {
   final ServiceModel service;
 
@@ -12,30 +14,39 @@ class BookingServiceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppConstants.padXS / 2), // Reduced vertical padding
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Service Name (allow wrapping)
+          ClientIconTile(
+            icon: serviceCategoryIcon(service.category),
+            color: ClientPalette.forKey(service.category),
+            size: 40,
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              service.name,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.85), // Slightly softer text
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  service.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: ClientTheme.body(context).copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: ClientTheme.textPrimary(context),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${service.durationMinutes} ${'common.min'.tr()}',
+                  style: ClientTheme.caption(context),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: AppConstants.padM),
-          // Price
-          Text(
-            AppFormatters.formatCurrency(service.price),
-            style: theme.textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w500, // Make price slightly bolder
-              color: theme.colorScheme.onSurface, // Standard text color
-            ),
-          ),
+          const SizedBox(width: 10),
+          ServicePrice(service: service, fontSize: 14.5),
         ],
       ),
     );

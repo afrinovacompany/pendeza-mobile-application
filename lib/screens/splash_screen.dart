@@ -6,14 +6,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../app/config/app_router.dart';
-import '../app/config/theme/app_constants.dart';
 import '../features/0_auth/presentation/bloc/auth_bloc.dart';
 import '../features/0_auth/presentation/bloc/auth_event.dart';
 import '../features/0_auth/presentation/bloc/auth_state.dart';
+import 'splash_view.dart';
 
 /// The very first screen shown to the user.
 ///
-/// - Shows app branding and waits for AuthBloc to determine state
+/// - Shows the animated wordmark ([SplashView]) and waits for AuthBloc
 /// - If no auth state: navigates to CLIENT DASHBOARD (guest mode)
 /// - If authenticated: navigates to appropriate dashboard
 class SplashScreen extends StatefulWidget {
@@ -23,17 +23,22 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
-  static const _minimumDisplay = Duration(milliseconds: 1500);
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  // Long enough for the intro animation to land before we move on.
+  static const _minimumDisplay = Duration(milliseconds: 1900);
   static const _safetyTimeout = Duration(seconds: 8);
+  static const _exitDuration = Duration(milliseconds: 350);
 
   bool _hasNavigated = false;
   Timer? _minimumDisplayTimer;
   Timer? _safetyTimer;
+  late final AnimationController _exit;
 
   @override
   void initState() {
     super.initState();
+    _exit = AnimationController(vsync: this, duration: _exitDuration);
     _minimumDisplayTimer = Timer(_minimumDisplay, _checkAndNavigate);
     _safetyTimer = Timer(_safetyTimeout, _onSafetyTimeout);
   }
@@ -42,7 +47,20 @@ class _SplashScreenState extends State<SplashScreen> {
   void dispose() {
     _minimumDisplayTimer?.cancel();
     _safetyTimer?.cancel();
+    _exit.dispose();
     super.dispose();
+  }
+
+  /// Fades the content out, then navigates.
+  Future<void> _leave(AuthState state) async {
+    if (!MediaQuery.disableAnimationsOf(context)) {
+      try {
+        await _exit.forward().orCancel;
+      } on TickerCanceled {
+        return; // disposed mid-animation
+      }
+    }
+    _navigateBasedOnState(state);
   }
 
   void _checkAndNavigate() {
@@ -53,7 +71,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (authState is! AuthInitial && authState is! AuthLoading) {
       _hasNavigated = true;
       _safetyTimer?.cancel();
-      _navigateBasedOnState(authState);
+      _leave(authState);
     }
   }
 
@@ -109,9 +127,6 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final onSurface = theme.colorScheme.onSurface;
-
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (_minimumDisplayTimer?.isActive == false) {
@@ -119,78 +134,12 @@ class _SplashScreenState extends State<SplashScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.primary,
-                        theme.colorScheme.secondary,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.28),
-                        blurRadius: 24,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Container(
-                    width: 128,
-                    height: 128,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: theme.colorScheme.surface,
-                    ),
-                    child: Image.asset(
-                      'assets/images/icons/App_Icon.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(
-                          Icons.cut_sharp,
-                          size: 72,
-                          color: theme.colorScheme.primary,
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppConstants.padL),
-                Text(
-                  'splash.app_name'.tr(),
-                  style: theme.textTheme.displayLarge?.copyWith(
-                    color: onSurface,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: AppConstants.padXS),
-                Text(
-                  'splash.tagline'.tr(),
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: onSurface.withValues(alpha: 0.65),
-                  ),
-                ),
-                const SizedBox(height: 80),
-                CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    theme.colorScheme.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        // Same colour as the native launch screen, so there is no flash.
+        backgroundColor: SplashView.launchColor,
+        body: SplashView(
+          title: 'splash.app_name'.tr(),
+          tagline: 'splash.tagline'.tr(),
+          exit: _exit,
         ),
       ),
     );

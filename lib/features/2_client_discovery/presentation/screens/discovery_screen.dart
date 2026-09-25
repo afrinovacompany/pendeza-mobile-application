@@ -1,15 +1,16 @@
 import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pendeza/app/config/app_router.dart';
+import 'package:pendeza/app/config/theme/app_colors.dart';
+import 'package:pendeza/app/config/theme/app_text_styles.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
-import 'package:pendeza/shared/widgets/empty_state_widget.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
 import 'package:pendeza/shared/widgets/loading_indicator.dart';
 import 'package:pendeza/shared/widgets/salon_card.dart';
 
-import '../../../../app/config/theme/app_constants.dart';
 import '../../../../app/services/service_locator.dart';
 
 import '../../../../shared/models/category_data.dart';
@@ -120,21 +121,30 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
     );
   }
 
+  /// Clears the search text and every filter.
+  void _clearEverything() {
+    _searchController.clear();
+    _handleSearch('');
+    context.read<DiscoveryBloc>().add(
+          const ApplyFilters(
+            categoryId: null,
+            minRating: null,
+            sortType: SortType.popularity,
+          ),
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: ClientTheme.background(context),
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
-            // Enhanced header
-            _buildHeader(theme),
-            // Category chips
-            _buildCategoryChips(theme),
-            const SizedBox(height: AppConstants.padM),
-            // Grid view
+            _buildHeader(context),
+            _buildCategoryChips(context),
+            const SizedBox(height: 8),
             Expanded(
               child: BlocBuilder<DiscoveryBloc, DiscoveryState>(
                 builder: (context, state) {
@@ -143,9 +153,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
                   }
 
                   if (state is DiscoveryError) {
-                    return EmptyStateWidget.error(
+                    return ClientEmptyState(
+                      icon: CupertinoIcons.wifi_exclamationmark,
+                      color: Theme.of(context).colorScheme.error,
+                      title: 'common.oops'.tr(),
                       message: state.message,
-                      onActionPressed: () {
+                      actionLabel: 'common.retry'.tr(),
+                      onAction: () {
                         context.read<DiscoveryBloc>().add(const LoadSalons());
                       },
                     );
@@ -153,8 +167,12 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
 
                   if (state is DiscoveryLoaded) {
                     if (state.filteredSalons.isEmpty) {
-                      return EmptyStateWidget.notFound(
+                      return ClientEmptyState(
+                        icon: CupertinoIcons.search,
+                        title: 'client.discover.no_results_title'.tr(),
                         message: 'client.discover.no_results'.tr(),
+                        actionLabel: 'client.discover.clear_filters'.tr(),
+                        onAction: _clearEverything,
                       );
                     }
 
@@ -163,24 +181,27 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
                         context.read<DiscoveryBloc>().add(const RefreshSalons());
                       },
                       child: GridView.builder(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppConstants.padL,
-                          vertical: AppConstants.padS,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(
+                          ClientTheme.gutter,
+                          8,
+                          ClientTheme.gutter,
+                          110,
                         ),
-
-                        // ... inside GridView.builder in discovery_screen.dart
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: AppConstants.padM,
-                          mainAxisSpacing: AppConstants.padM,
-                          // INCREASING the ratio to 0.68 - 0.7 gives more vertical room
-                          childAspectRatio: 0.68,
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 260,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          childAspectRatio: 0.72,
                         ),
                         itemCount: state.filteredSalons.length,
                         itemBuilder: (context, index) {
                           final salon = state.filteredSalons[index];
                           return TweenAnimationBuilder<double>(
-                            duration: Duration(milliseconds: 200 + (index * 50)),
+                            duration: Duration(
+                              milliseconds: 200 + ((index % 8) * 50),
+                            ),
                             tween: Tween(begin: 0.0, end: 1.0),
                             builder: (context, value, child) {
                               return Transform.translate(
@@ -211,163 +232,107 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
     );
   }
 
-  Widget _buildHeader(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(AppConstants.padL),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.surface,
-            theme.colorScheme.surface.withValues(alpha: 0.95),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+  // ── header ────────────────────────────────────────────────────────────────
+
+  Widget _buildHeader(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        ClientTheme.gutter,
+        18,
+        ClientTheme.gutter,
+        14,
       ),
       child: Column(
         children: [
-          // Title row with count badge
+          // Title + result count
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'client.discover.title'.tr(),
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
+              Expanded(
+                child: Text(
+                  'client.discover.title'.tr(),
+                  style: ClientTheme.display(context),
                 ),
               ),
               BlocBuilder<DiscoveryBloc, DiscoveryState>(
                 builder: (context, state) {
-                  if (state is DiscoveryLoaded) {
-                    return TweenAnimationBuilder<double>(
-                      duration: AppConstants.durationMedium,
-                      tween: Tween(begin: 0.0, end: 1.0),
-                      builder: (context, value, child) {
-                        return Transform.scale(
-                          scale: value,
-                          child: child,
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              theme.colorScheme.primary,
-                              theme.colorScheme.primary.withValues(alpha: 0.8),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          '${state.filteredSalons.length}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
+                  if (state is! DiscoveryLoaded) return const SizedBox.shrink();
+                  return TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 350),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    curve: Curves.easeOutBack,
+                    builder: (context, value, child) =>
+                        Transform.scale(scale: value, child: child),
+                    child: ClientPill(
+                      label: '${state.filteredSalons.length}',
+                      color: cs.primary,
+                      icon: CupertinoIcons.building_2_fill,
+                    ),
+                  );
                 },
               ),
             ],
           ),
+          const SizedBox(height: 14),
 
-          const SizedBox(height: AppConstants.padM),
-
-          // Search bar with filter button
+          // Search + filter button
           Row(
             children: [
               Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                child: ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _searchController,
+                  builder: (context, value, _) => DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: ClientTheme.card(context),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: ClientTheme.border(context)),
+                      boxShadow: ClientTheme.shadow(context),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _handleSearch,
+                      textInputAction: TextInputAction.search,
+                      cursorColor: cs.primary,
+                      style: ClientTheme.body(context),
+                      decoration: InputDecoration(
+                        hintText: 'client.discover.search_hint'.tr(),
+                        hintStyle: ClientTheme.body(context).copyWith(
+                          color: ClientTheme.textSecondary(context)
+                              .withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w400,
+                        ),
+                        prefixIcon: Icon(
+                          CupertinoIcons.search,
+                          color: ClientTheme.textSecondary(context),
+                          size: 20,
+                        ),
+                        suffixIcon: value.text.isEmpty
+                            ? null
+                            : IconButton(
+                                icon: Icon(
+                                  CupertinoIcons.xmark_circle_fill,
+                                  size: 18,
+                                  color: ClientTheme.textSecondary(context),
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _handleSearch('');
+                                },
+                              ),
+                        filled: false,
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 16),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
                       ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: _handleSearch,
-                    decoration: InputDecoration(
-                      hintText: 'client.discover.search_hint'.tr(),
-                      hintStyle: TextStyle(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                      ),
-                      prefixIcon: Icon(
-                        CupertinoIcons.search,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                        size: 20,
-                      ),
-                      filled: false,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppConstants.padM,
-                        vertical: AppConstants.padM,
-                      ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
                     ),
                   ),
                 ),
               ),
-
-              const SizedBox(width: AppConstants.padS),
-
-              // Enhanced filter button
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary,
-                      theme.colorScheme.primary.withValues(alpha: 0.8),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: IconButton(
-                  onPressed: _openFilterPanel,
-                  icon: const Icon(CupertinoIcons.slider_horizontal_3),
-                  color: Colors.white,
-                  iconSize: 20,
-                  padding: const EdgeInsets.all(AppConstants.padM),
-                ),
-              ),
+              const SizedBox(width: 10),
+              _FilterButton(onTap: _openFilterPanel),
             ],
           ),
         ],
@@ -375,9 +340,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
     );
   }
 
-  Widget _buildCategoryChips(ThemeData theme) {
+  Widget _buildCategoryChips(BuildContext context) {
     return SizedBox(
-      height: 44,
+      height: 46,
       child: BlocBuilder<DiscoveryBloc, DiscoveryState>(
         buildWhen: (previous, current) {
           final prevId = previous is DiscoveryLoaded ? previous.filters.categoryId : null;
@@ -388,32 +353,25 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
           final selectedId =
               state is DiscoveryLoaded ? state.filters.categoryId : null;
 
-          return ListView.builder(
+          return ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
+            padding: const EdgeInsets.symmetric(horizontal: ClientTheme.gutter),
             itemCount: CategoriesData.allCategories.length + 1,
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               if (index == 0) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: AppConstants.padS),
-                  child: _buildCategoryChip(
-                    theme: theme,
-                    label: 'client.discover.all'.tr(),
-                    isSelected: selectedId == null,
-                    onTap: () => _handleCategoryFilter(null),
-                  ),
+                return _CategoryChip(
+                  label: 'client.discover.all'.tr(),
+                  isSelected: selectedId == null,
+                  onTap: () => _handleCategoryFilter(null),
                 );
               }
 
               final category = CategoriesData.allCategories[index - 1];
-              return Padding(
-                padding: const EdgeInsets.only(right: AppConstants.padS),
-                child: _buildCategoryChip(
-                  theme: theme,
-                  label: 'categories.${category.name}'.tr(),
-                  isSelected: selectedId == category.id,
-                  onTap: () => _handleCategoryFilter(category.id),
-                ),
+              return _CategoryChip(
+                label: 'categories.${category.name}'.tr(),
+                isSelected: selectedId == category.id,
+                onTap: () => _handleCategoryFilter(category.id),
               );
             },
           );
@@ -422,72 +380,31 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
     );
   }
 
-  Widget _buildCategoryChip({
-    required ThemeData theme,
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final colorScheme = theme.colorScheme;
-
-    return AnimatedContainer(
-      duration: AppConstants.durationFast,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppConstants.padL,
-            vertical: AppConstants.padS,
-          ),
-          decoration: BoxDecoration(
-            color: isSelected ? colorScheme.primary : colorScheme.surface,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: isSelected
-                  ? colorScheme.primary
-                  : colorScheme.outline.withValues(alpha: 0.2),
-              width: isSelected ? 2 : 1,
-            ),
-          ),
-          child: Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              fontSize: 13,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildLoadingGrid() {
     return GridView.builder(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppConstants.padL,
-        vertical: AppConstants.padS,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(
+        ClientTheme.gutter,
+        8,
+        ClientTheme.gutter,
+        0,
       ),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: AppConstants.padM,
-        mainAxisSpacing: AppConstants.padM,
-        childAspectRatio: 0.75,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 260,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+        childAspectRatio: 0.72,
       ),
       itemCount: 6,
       itemBuilder: (context, index) {
         return TweenAnimationBuilder<double>(
           duration: Duration(milliseconds: 200 + (index * 50)),
           tween: Tween(begin: 0.0, end: 1.0),
-          builder: (context, value, child) {
-            return Opacity(
-              opacity: value,
-              child: child,
-            );
-          },
-          child: const ShimmerPlaceholder.rectangular(
+          builder: (context, value, child) =>
+              Opacity(opacity: value, child: child),
+          child: ShimmerPlaceholder.rectangular(
             height: 200,
+            borderRadius: BorderRadius.circular(26),
           ),
         );
       },
@@ -505,5 +422,144 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with NavigationGuard 
         AppRoutes.salonDetail.replaceFirst(':salonId', salon.id),
       );
     });
+  }
+}
+
+/// Filter button with a badge showing how many filters are active.
+class _FilterButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _FilterButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<DiscoveryBloc, DiscoveryState>(
+      builder: (context, state) {
+        final active = state is DiscoveryLoaded ? state.activeFilterCount : 0;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.35),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                    spreadRadius: -3,
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: onTap,
+                  child: const SizedBox(
+                    width: 54,
+                    height: 54,
+                    child: Icon(
+                      CupertinoIcons.slider_horizontal_3,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (active > 0)
+              Positioned(
+                top: -4,
+                right: -4,
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF6B6B),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: ClientTheme.background(context),
+                      width: 2,
+                    ),
+                  ),
+                  child: Text(
+                    '$active',
+                    style: const TextStyle(
+                      fontFamily: AppTextStyles.fontFamily,
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      height: 1,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _CategoryChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CategoryChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        gradient: isSelected ? AppColors.primaryGradient : null,
+        color: isSelected ? null : ClientTheme.card(context),
+        borderRadius: BorderRadius.circular(100),
+        border: isSelected
+            ? null
+            : Border.all(color: ClientTheme.border(context)),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 5),
+                  spreadRadius: -3,
+                ),
+              ]
+            : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(100),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: AppTextStyles.fontFamily,
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected
+                      ? Colors.white
+                      : ClientTheme.textPrimary(context),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

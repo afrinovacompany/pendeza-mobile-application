@@ -32,11 +32,36 @@ class MarkAllNotificationsAsRead extends NotificationEvent {
   const MarkAllNotificationsAsRead();
 }
 
-/// Delete a single notification
+/// Delete a single notification.
+///
+/// It disappears from the list straight away but is only removed for good
+/// once the undo window ([NotificationBloc.undoWindow]) has passed; until then
+/// [UndoDeleteNotification] brings it back.
 class DeleteNotification extends NotificationEvent {
   final String notificationId;
 
   const DeleteNotification(this.notificationId);
+
+  @override
+  List<Object?> get props => [notificationId];
+}
+
+/// Put back a notification that was just deleted (only works while the undo
+/// window is still open).
+class UndoDeleteNotification extends NotificationEvent {
+  final String notificationId;
+
+  const UndoDeleteNotification(this.notificationId);
+
+  @override
+  List<Object?> get props => [notificationId];
+}
+
+/// Internal: the undo window closed, so delete the notification for real.
+class CommitNotificationDelete extends NotificationEvent {
+  final String notificationId;
+
+  const CommitNotificationDelete(this.notificationId);
 
   @override
   List<Object?> get props => [notificationId];

@@ -1,8 +1,11 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:pendeza/app/config/theme/app_colors.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
+import 'package:pendeza/app/config/theme/app_text_styles.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
 
-/// Enhanced horizontally scrollable date picker with animations
+/// Horizontally scrollable strip of the next 30 days.
 class HorizontalDayPicker extends StatefulWidget {
   final DateTime selectedDate;
   final ValueChanged<DateTime> onDateSelected;
@@ -19,6 +22,9 @@ class HorizontalDayPicker extends StatefulWidget {
 }
 
 class _HorizontalDayPickerState extends State<HorizontalDayPicker> {
+  static const double _itemWidth = 62;
+  static const double _itemGap = 10;
+
   late ScrollController _scrollController;
 
   @override
@@ -28,10 +34,15 @@ class _HorizontalDayPickerState extends State<HorizontalDayPicker> {
 
     // Auto-scroll to selected date
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final daysDifference = widget.selectedDate.difference(widget.firstDate).inDays;
+      if (!mounted || !_scrollController.hasClients) return;
+      final daysDifference =
+          widget.selectedDate.difference(widget.firstDate).inDays;
       if (daysDifference > 0) {
         _scrollController.animateTo(
-          daysDifference * 76.0, // 60 width + 16 margin
+          (daysDifference * (_itemWidth + _itemGap)).clamp(
+            0.0,
+            _scrollController.position.maxScrollExtent,
+          ),
           duration: AppConstants.durationMedium,
           curve: Curves.easeOutCubic,
         );
@@ -45,196 +56,155 @@ class _HorizontalDayPickerState extends State<HorizontalDayPicker> {
     super.dispose();
   }
 
+  bool _sameDay(DateTime a, DateTime b) =>
+      a.day == b.day && a.month == b.month && a.year == b.year;
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 90,
-      child: ListView.builder(
-        controller: _scrollController,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-        itemCount: 30,
-        itemBuilder: (context, index) {
-          final date = widget.firstDate.add(Duration(days: index));
-          final isSelected = date.day == widget.selectedDate.day &&
-              date.month == widget.selectedDate.month &&
-              date.year == widget.selectedDate.year;
-          final isToday = date.day == DateTime.now().day &&
-              date.month == DateTime.now().month &&
-              date.year == DateTime.now().year;
+    final now = DateTime.now();
 
-          return TweenAnimationBuilder<double>(
-            duration: Duration(milliseconds: 200 + (index * 30)),
-            tween: Tween(begin: 0.0, end: 1.0),
-            builder: (context, value, child) {
-              return Transform.translate(
-                offset: Offset(0, 20 * (1 - value)),
-                child: Opacity(
-                  opacity: value,
-                  child: child,
-                ),
-              );
-            },
-            child: _EnhancedDateItem(
-              date: date,
-              isSelected: isSelected,
-              isToday: isToday,
-              onTap: () => widget.onDateSelected(date),
-            ),
-          );
-        },
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.1,
+      child: SizedBox(
+        height: 100,
+        child: ListView.builder(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(
+            horizontal: ClientTheme.gutter,
+            vertical: 8,
+          ),
+          itemCount: 30,
+          itemBuilder: (context, index) {
+            final date = widget.firstDate.add(Duration(days: index));
+            return Padding(
+              padding: EdgeInsets.only(right: index == 29 ? 0 : _itemGap),
+              child: _DayItem(
+                date: date,
+                width: _itemWidth,
+                isSelected: _sameDay(date, widget.selectedDate),
+                isToday: _sameDay(date, now),
+                onTap: () => widget.onDateSelected(date),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 }
 
-class _EnhancedDateItem extends StatefulWidget {
+class _DayItem extends StatelessWidget {
   final DateTime date;
+  final double width;
   final bool isSelected;
   final bool isToday;
   final VoidCallback onTap;
 
-  const _EnhancedDateItem({
+  const _DayItem({
     required this.date,
+    required this.width,
     required this.isSelected,
     required this.isToday,
     required this.onTap,
   });
 
   @override
-  State<_EnhancedDateItem> createState() => _EnhancedDateItemState();
-}
-
-class _EnhancedDateItemState extends State<_EnhancedDateItem>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _scaleController;
-  bool _isPressed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _scaleController = AnimationController(
-      vsync: this,
-      duration: AppConstants.durationFast,
-      value: widget.isSelected ? 1.0 : 0.0,
-    );
-  }
-
-  @override
-  void didUpdateWidget(_EnhancedDateItem oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isSelected != oldWidget.isSelected) {
-      if (widget.isSelected) {
-        _scaleController.forward();
-      } else {
-        _scaleController.reverse();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _scaleController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final isDark = ClientTheme.isDark(context);
+    final cs = Theme.of(context).colorScheme;
+    final accent = isDark ? cs.primary : AppColors.primaryDark;
+    final radius = BorderRadius.circular(20);
 
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) {
-        setState(() => _isPressed = false);
-        widget.onTap();
-      },
-      onTapCancel: () => setState(() => _isPressed = false),
-      child: AnimatedBuilder(
-        animation: _scaleController,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _isPressed
-                ? 0.92
-                : 1.0 + (_scaleController.value * 0.05),
-            child: child,
-          );
-        },
-        child: AnimatedContainer(
-          duration: AppConstants.durationFast,
-          width: 60,
-          margin: const EdgeInsets.symmetric(horizontal: AppConstants.padXS),
-          decoration: BoxDecoration(
-            gradient: widget.isSelected
-                ? LinearGradient(
-              colors: [colorScheme.primary, colorScheme.primary],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            )
-                : null,
-            color: widget.isSelected
-                ? null
-                : widget.isToday
-                ? colorScheme.primary.withValues(alpha: 0.1)
-                : Colors.transparent,
-            borderRadius: AppConstants.radiusL,
-            border: Border.all(
-              color: widget.isSelected
-                  ? colorScheme.primary
-                  : widget.isToday
-                  ? colorScheme.primary.withValues(alpha: 0.5)
-                  : theme.dividerColor.withValues(alpha: 0.3),
-              width: widget.isSelected ? 2.0 : 1.0,
-            ),
-            boxShadow: widget.isSelected
-                ? [
-              BoxShadow(
-                color: colorScheme.primary.withValues(alpha: 0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ]
-                : [],
+    final topLabel =
+        isToday ? 'client.dashboard.today'.tr() : DateFormat.E().format(date);
+    final topColor =
+        isSelected
+            ? Colors.white.withValues(alpha: 0.9)
+            : (isToday ? accent : ClientTheme.textSecondary(context));
+    final numberColor =
+        isSelected ? Colors.white : ClientTheme.textPrimary(context);
+
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: DateFormat.MMMMEEEEd().format(date),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        width: width,
+        decoration: BoxDecoration(
+          gradient: isSelected ? AppColors.primaryGradient : null,
+          color: isSelected ? null : ClientTheme.card(context),
+          borderRadius: radius,
+          border: Border.all(
+            color:
+                isSelected
+                    ? Colors.transparent
+                    : (isToday
+                        ? AppColors.primary.withValues(alpha: 0.55)
+                        : ClientTheme.border(context)),
+            width: isToday && !isSelected ? 1.5 : 1,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                DateFormat.E().format(widget.date),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: widget.isSelected
-                      ? Colors.white
-                      : widget.isToday
-                      ? colorScheme.primary
-                      : colorScheme.onSurface.withValues(alpha: 0.6),
-                  fontWeight:
-                  widget.isToday ? FontWeight.w600 : FontWeight.normal,
+          boxShadow:
+              isSelected
+                  ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.4),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
+                      spreadRadius: -4,
+                    ),
+                  ]
+                  : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: radius,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    topLabel,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontFamily: AppTextStyles.fontFamily,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: topColor,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppConstants.padXXS),
-              Text(
-                widget.date.day.toString(),
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: widget.isSelected
-                      ? Colors.white
-                      : widget.isToday
-                      ? colorScheme.primary
-                      : colorScheme.onSurface,
+                const SizedBox(height: 4),
+                Text(
+                  date.day.toString(),
+                  style: TextStyle(
+                    fontFamily: AppTextStyles.fontFamily,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    height: 1.1,
+                    color: numberColor,
+                  ),
                 ),
-              ),
-              if (widget.isToday && !widget.isSelected) ...[
-                const SizedBox(height: 2),
-                Container(
-                  width: 4,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary,
-                    shape: BoxShape.circle,
+                const SizedBox(height: 4),
+                Text(
+                  DateFormat.MMM().format(date),
+                  style: TextStyle(
+                    fontFamily: AppTextStyles.fontFamily,
+                    fontSize: 10.5,
+                    color:
+                        isSelected
+                            ? Colors.white.withValues(alpha: 0.8)
+                            : ClientTheme.textSecondary(context),
                   ),
                 ),
               ],
-            ],
+            ),
           ),
         ),
       ),

@@ -1,12 +1,17 @@
-import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
-import 'package:pendeza/shared/models/salon_model.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:pendeza/app/config/theme/app_colors.dart';
+import 'package:pendeza/app/config/theme/app_text_styles.dart';
+import 'package:pendeza/app/utils/business_hours_utils.dart';
 import 'package:pendeza/features/2_client_discovery/presentation/widgets/salon_description_widget.dart';
 import 'package:pendeza/features/2_client_discovery/presentation/widgets/saloon_gallery_widget.dart';
-import 'package:pendeza/app/services/service_locator.dart';
-import '../../../3_reviews/data/repositories/reviews_repository_impl.dart';
+import 'package:pendeza/features/3_reviews/presentation/bloc/reviews_bloc.dart';
+import 'package:pendeza/features/3_reviews/presentation/bloc/reviews_state.dart';
+import 'package:pendeza/shared/models/salon_model.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SalonOverviewTab extends StatelessWidget {
   final SalonModel salon;
@@ -16,57 +21,48 @@ class SalonOverviewTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(vertical: AppConstants.padL),
+      padding: const EdgeInsets.only(top: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. PROMOTIONS SECTION (Placeholder)
-          _buildPromotionsSection(context),
-
-          // 2. DESCRIPTION
-          SalonDescriptionSection(salon: salon),
-
-          const SizedBox(height: AppConstants.padXXL),
-
-          // 3. ENHANCED QUICK INFO CARD
-          _SalonRatingAggregator(
-            salonId: salon.id,
-            builder: (context, averageRating, totalReviews) {
-              return _EnhancedQuickInfoCard(
+          // 1. Rating, location and quick actions
+          BlocBuilder<ReviewsBloc, ReviewsState>(
+            builder: (context, state) {
+              final loaded = state is ReviewsLoaded ? state : null;
+              return SalonInfoCard(
                 salon: salon,
-                averageRating: averageRating,
-                totalReviews: totalReviews,
+                averageRating: loaded?.averageRating ?? 0,
+                totalReviews: loaded?.totalReviews ?? 0,
               );
             },
           ),
+          const SizedBox(height: 20),
 
-          const SizedBox(height: AppConstants.padXXL),
+          // 2. About + what the salon offers
+          SalonDescriptionSection(salon: salon),
+          const SizedBox(height: 24),
 
-          // 4. GALLERY PREVIEW
-          if (salon.allImages.isNotEmpty)
-            SalonGalleryPreview(salon: salon),
+          // 3. Gallery
+          if (salon.allImages.isNotEmpty) SalonGalleryPreview(salon: salon),
 
-          const SizedBox(height: 100),
+          const SizedBox(height: 120),
         ],
       ),
     );
   }
-
-  Widget _buildPromotionsSection(BuildContext context) {
-    return const SizedBox.shrink();
-  }
 }
 
-// ============================================================================
-// ENHANCED QUICK INFO CARD - Modern iOS-Inspired Design
-// ============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
+// INFO CARD - rating, location and Call / Chat / Map / Hours actions
+// ═════════════════════════════════════════════════════════════════════════════
 
-class _EnhancedQuickInfoCard extends StatelessWidget {
+class SalonInfoCard extends StatelessWidget {
   final SalonModel salon;
   final double averageRating;
   final int totalReviews;
 
-  const _EnhancedQuickInfoCard({
+  const SalonInfoCard({
+    super.key,
     required this.salon,
     required this.averageRating,
     required this.totalReviews,
@@ -74,243 +70,116 @@ class _EnhancedQuickInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final hasRating = totalReviews > 0 && averageRating > 0;
+    final place = salon.district ?? salon.region ?? 'Tanzania';
+
+    final actions = <Widget>[
+      if (salon.phoneNumber != null)
+        _ActionTile(
+          label: 'client.salon_details.call'.tr(),
+          icon: CupertinoIcons.phone_fill,
+          color: AppColors.primary,
+          onTap: () => _makePhoneCall(salon.phoneNumber!),
+        ),
+      if (salon.whatsappNumber != null)
+        _ActionTile(
+          label: 'client.salon_details.chat'.tr(),
+          icon: CupertinoIcons.chat_bubble_2_fill,
+          color: const Color(0xFF25D366),
+          onTap: () => _openWhatsApp(salon.whatsappNumber!),
+        ),
+      if (_hasMapQuery(salon))
+        _ActionTile(
+          label: 'client.salon_details.map'.tr(),
+          icon: CupertinoIcons.map_fill,
+          color: const Color(0xFF3B82F6),
+          onTap: () => _openMap(salon),
+        ),
+      _ActionTile(
+        label: 'client.salon_details.hours'.tr(),
+        icon: CupertinoIcons.clock_fill,
+        color: const Color(0xFFF5A623),
+        onTap: () => showSalonHoursSheet(context, salon),
+      ),
+    ];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.colorScheme.surface,
-              theme.colorScheme.surfaceContainerHighest,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: theme.colorScheme.outline.withValues(alpha: 0.1),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: theme.colorScheme.primary.withValues(alpha: 0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: ClientTheme.gutter),
+      child: ClientCard(
+        padding: const EdgeInsets.all(16),
+        radius: 24,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Top Section: Rating & Location
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primary.withValues(alpha: 0.05),
-                    theme.colorScheme.secondary.withValues(alpha: 0.03),
-                  ],
+            Row(
+              children: [
+                // Rating
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5A623).withValues(
+                      alpha: ClientTheme.isDark(context) ? 0.2 : 0.14,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        CupertinoIcons.star_fill,
+                        size: 16,
+                        color: Color(0xFFF5A623),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        hasRating
+                            ? averageRating.toStringAsFixed(1)
+                            : 'client.salon_details.new_salon'.tr(),
+                        style: TextStyle(
+                          fontFamily: AppTextStyles.fontFamily,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: ClientTheme.textPrimary(context),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    hasRating
+                        ? 'client.salon_details.reviews_count'
+                            .tr(args: ['$totalReviews'])
+                        : 'client.salon_details.no_reviews_title'.tr(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: ClientTheme.caption(context),
+                  ),
                 ),
-              ),
-              child: Row(
-                children: [
-                  // Rating Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          theme.colorScheme.tertiary,
-                          theme.colorScheme.tertiary.withValues(alpha: 0.85),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: theme.colorScheme.tertiary.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          CupertinoIcons.star_fill,
-                          size: 18,
-                          color: theme.colorScheme.onTertiary,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          averageRating.toStringAsFixed(1),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: theme.colorScheme.onTertiary,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '($totalReviews)',
-                          style: TextStyle(
-                            color: theme.colorScheme.onTertiary.withValues(alpha: 0.9),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: ClientPill(
+                    label: place,
+                    color: AppColors.primary,
+                    icon: CupertinoIcons.location_solid,
                   ),
-
-                  const Spacer(),
-
-                  // Location Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          CupertinoIcons.location_solid,
-                          size: 16,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          salon.district ?? salon.region ?? 'Tanzania',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Action Buttons Grid
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  if (salon.phoneNumber != null)
-                    _buildModernActionButton(
-                      context: context,
-                      label: 'Call',
-                      icon: CupertinoIcons.phone_fill,
-                      gradient: LinearGradient(
-                        colors: [
-                          theme.colorScheme.primary,
-                          theme.colorScheme.primary.withValues(alpha: 0.8),
-                        ],
-                      ),
-                      onTap: () => _makePhoneCall(salon.phoneNumber!),
-                    ),
-                  if (salon.whatsappNumber != null)
-                    _buildModernActionButton(
-                      context: context,
-                      label: 'Chat',
-                      icon: CupertinoIcons.chat_bubble_2_fill,
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF25D366), Color(0xFF20BA5A)],
-                      ),
-                      onTap: () => _openWhatsApp(salon.whatsappNumber!),
-                    ),
-                  if (_hasMapQuery(salon))
-                    _buildModernActionButton(
-                      context: context,
-                      label: 'Map',
-                      icon: CupertinoIcons.map_fill,
-                      gradient: LinearGradient(
-                        colors: [
-                          theme.colorScheme.primary,
-                          theme.colorScheme.primary.withValues(alpha: 0.8),
-                        ],
-                      ),
-                      onTap: () => _openMap(salon),
-                    ),
-                  _buildModernActionButton(
-                    context: context,
-                    label: 'Hours',
-                    icon: CupertinoIcons.clock_fill,
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.tertiary,
-                        theme.colorScheme.tertiary.withValues(alpha: 0.8),
-                      ],
-                    ),
-                    onTap: () => _showHoursDialog(context, salon),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModernActionButton({
-    required BuildContext context,
-    required String label,
-    required IconData icon,
-    required Gradient gradient,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              gradient: gradient,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 24,
+            const SizedBox(height: 16),
+            Divider(height: 1, color: ClientTheme.border(context)),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                for (final tile in actions) Expanded(child: tile),
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -350,82 +219,44 @@ class _EnhancedQuickInfoCard extends StatelessWidget {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
+}
 
-  void _showHoursDialog(BuildContext context, SalonModel salon) {
-    final theme = Theme.of(context);
+class _ActionTile extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
 
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                theme.colorScheme.surface,
-                theme.colorScheme.surfaceContainerHighest,
-              ],
-            ),
-            borderRadius: BorderRadius.circular(24),
-          ),
+  const _ActionTile({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary.withValues(alpha: 0.15),
-                      theme.colorScheme.secondary.withValues(alpha: 0.08),
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  CupertinoIcons.clock_fill,
-                  size: 32,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 16),
+              ClientIconTile(icon: icon, color: color, size: 52, solid: true),
+              const SizedBox(height: 8),
               Text(
-                'Business Hours',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 24),
-              if (salon.hasBusinessHours) ...[
-                _buildTimeRow(context, 'Opens at', salon.openingTime!),
-                const SizedBox(height: 12),
-                Divider(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
-                const SizedBox(height: 12),
-                _buildTimeRow(context, 'Closes at', salon.closingTime!),
-              ] else
-                Text(
-                  'Business hours not set yet',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Got it'),
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: ClientTheme.caption(context).copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: ClientTheme.textPrimary(context),
                 ),
               ),
             ],
@@ -434,68 +265,176 @@ class _EnhancedQuickInfoCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildTimeRow(BuildContext context, String label, String time) {
-    final theme = Theme.of(context);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+// ═════════════════════════════════════════════════════════════════════════════
+// BUSINESS HOURS SHEET
+// ═════════════════════════════════════════════════════════════════════════════
+
+Future<void> showSalonHoursSheet(BuildContext context, SalonModel salon) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    useSafeArea: true,
+    backgroundColor: ClientTheme.card(context),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+    ),
+    constraints: const BoxConstraints(maxWidth: 640),
+    builder: (_) => SalonHoursSheet(salon: salon),
+  );
+}
+
+class SalonHoursSheet extends StatelessWidget {
+  final SalonModel salon;
+
+  const SalonHoursSheet({super.key, required this.salon});
+
+  @override
+  Widget build(BuildContext context) {
+    final status = BusinessHoursUtils.getStatus(
+      openingTime: salon.openingTime,
+      closingTime: salon.closingTime,
+    );
+    final isOpen = status == SalonStatus.open || status == SalonStatus.closing;
+    final statusColor = BusinessHoursUtils.getStatusColor(status);
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        4,
+        20,
+        20 + MediaQuery.paddingOf(context).bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const ClientIconTile(
+                icon: CupertinoIcons.clock_fill,
+                color: Color(0xFFF5A623),
+                size: 48,
+                solid: true,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'client.salon_details.business_hours'.tr(),
+                      style: ClientTheme.title(context),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      salon.salonName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ClientTheme.caption(context),
+                    ),
+                  ],
+                ),
+              ),
+              if (salon.hasBusinessHours)
+                ClientPill(
+                  label: isOpen
+                      ? 'client.salon_details.open'.tr()
+                      : 'client.salon_details.closed'.tr(),
+                  color: statusColor,
+                ),
+            ],
           ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            time,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
+          const SizedBox(height: 20),
+          if (salon.hasBusinessHours)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+              decoration: BoxDecoration(
+                color: ClientTheme.inset(context),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                children: [
+                  _TimeRow(
+                    label: 'client.salon_details.opens_at'.tr(),
+                    time: salon.openingTime!,
+                  ),
+                  Divider(height: 1, color: ClientTheme.border(context)),
+                  _TimeRow(
+                    label: 'client.salon_details.closes_at'.tr(),
+                    time: salon.closingTime!,
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: ClientTheme.inset(context),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                'client.salon_details.hours_not_set'.tr(),
+                textAlign: TextAlign.center,
+                style: ClientTheme.body(context).copyWith(
+                  color: ClientTheme.textSecondary(context),
+                ),
+              ),
             ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(0, 52),
+              elevation: 0,
+              textStyle: const TextStyle(
+                fontFamily: AppTextStyles.fontFamily,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: Text('client.salon_details.got_it'.tr()),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-// Helper to get ratings
-typedef RatingBuilder = Widget Function(BuildContext context, double avg, int count);
+class _TimeRow extends StatelessWidget {
+  final String label;
+  final String time;
 
-class _SalonRatingAggregator extends StatefulWidget {
-  final String salonId;
-  final RatingBuilder builder;
-  const _SalonRatingAggregator({required this.salonId, required this.builder});
+  const _TimeRow({required this.label, required this.time});
 
   @override
-  State<_SalonRatingAggregator> createState() => __SalonRatingAggregatorState();
-}
-
-class __SalonRatingAggregatorState extends State<_SalonRatingAggregator> {
-  double _averageRating = 0.0;
-  int _totalReviews = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchRatings();
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: ClientTheme.body(context))),
+          Text(
+            time,
+            style: TextStyle(
+              fontFamily: AppTextStyles.fontFamily,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: ClientTheme.isDark(context)
+                  ? Theme.of(context).colorScheme.primary
+                  : AppColors.primaryDark,
+            ),
+          ),
+        ],
+      ),
+    );
   }
-
-  Future<void> _fetchRatings() async {
-    try {
-      final reviewsRepo = sl<ReviewsRepository>();
-      final avg = await reviewsRepo.getAverageRating(salonId: widget.salonId);
-      final count = await reviewsRepo.getReviewCount(salonId: widget.salonId);
-      if (mounted) setState(() { _averageRating = avg; _totalReviews = count; });
-    } catch (_) {}
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.builder(context, _averageRating, _totalReviews);
 }

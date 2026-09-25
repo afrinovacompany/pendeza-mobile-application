@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
 import 'package:pendeza/shared/models/service_model.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
 import 'package:pendeza/shared/widgets/loading_indicator.dart';
+import 'package:pendeza/shared/widgets/service_category_icon.dart';
 
 import 'service_card.dart';
 
@@ -60,9 +62,7 @@ class _SalonServicesTabState extends State<SalonServicesTab> {
   }
 
   List<ServiceModel> get _featuredServices {
-    return _services
-        .where((s) => s.isFeatured || s.isPopular)
-        .toList()
+    return _services.where((s) => s.isFeatured || s.isPopular).toList()
       ..sort((a, b) {
         // Featured first, then popular, then by bookings count
         if (a.isFeatured && !b.isFeatured) return -1;
@@ -105,18 +105,20 @@ class _SalonServicesTabState extends State<SalonServicesTab> {
       return _buildEmptyState();
     }
 
+    final featured = _featuredServices;
+
     return RefreshIndicator(
       onRefresh: () async => widget.onRetry?.call(),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 100),
+        padding: const EdgeInsets.only(top: 8, bottom: 120),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Featured Services Carousel
-            if (_featuredServices.isNotEmpty) ...[
-              _buildFeaturedSection(),
-              const SizedBox(height: AppConstants.padL),
+            if (featured.isNotEmpty) ...[
+              _buildFeaturedSection(featured),
+              const SizedBox(height: 22),
             ],
 
             // Categorized Services
@@ -127,43 +129,30 @@ class _SalonServicesTabState extends State<SalonServicesTab> {
     );
   }
 
-  Widget _buildFeaturedSection() {
-    final theme = Theme.of(context);
-
+  Widget _buildFeaturedSection(List<ServiceModel> featured) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-          child: Row(
-            children: [
-              Icon(
-                CupertinoIcons.star_fill,
-                size: 18,
-                color: theme.colorScheme.tertiary,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Featured Services',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
+        ClientSectionHeader(
+          title: 'client.salon_details.featured_services'.tr(),
         ),
-        const SizedBox(height: AppConstants.padS),
+        const SizedBox(height: 12),
         SizedBox(
-          height: 210,
+          height: FeaturedServiceCard.height + 18,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-            itemCount: _featuredServices.length,
-            separatorBuilder: (context, index) =>
-                const SizedBox(width: AppConstants.padS),
+            clipBehavior: Clip.none,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
+              ClientTheme.gutter,
+              0,
+              ClientTheme.gutter,
+              18,
+            ),
+            itemCount: featured.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
-              final service = _featuredServices[index];
+              final service = featured[index];
               return FeaturedServiceCard(
                 service: service,
                 onTap: () => widget.onServiceTap?.call(service),
@@ -203,37 +192,35 @@ class _SalonServicesTabState extends State<SalonServicesTab> {
 
   Widget _buildLoadingState() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppConstants.padL),
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(
+        ClientTheme.gutter,
+        12,
+        ClientTheme.gutter,
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Featured section shimmer
-          const ShimmerPlaceholder(height: 24, width: 150),
-          const SizedBox(height: AppConstants.padS),
+          const ShimmerPlaceholder(height: 22, width: 150),
+          const SizedBox(height: 12),
           SizedBox(
-            height: 210,
+            height: FeaturedServiceCard.height,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: 3,
-              separatorBuilder: (context, index) =>
-                  const SizedBox(width: AppConstants.padS),
+              separatorBuilder: (context, index) => const SizedBox(width: 12),
               itemBuilder: (context, index) => const ShimmerPlaceholder(
-                height: 210,
-                width: 180,
+                height: FeaturedServiceCard.height,
+                width: FeaturedServiceCard.width,
               ),
             ),
           ),
-          const SizedBox(height: AppConstants.padL),
-
-          // Category sections shimmer
-          for (var i = 0; i < 2; i++) ...[
-            const ShimmerPlaceholder(height: 48, width: double.infinity),
-            const SizedBox(height: AppConstants.padS),
-            for (var j = 0; j < 3; j++) ...[
-              const ShimmerPlaceholder(height: 90, width: double.infinity),
-              const SizedBox(height: AppConstants.padS),
-            ],
-            const SizedBox(height: AppConstants.padM),
+          const SizedBox(height: 22),
+          for (var i = 0; i < 3; i++) ...[
+            const ShimmerPlaceholder(height: 88, width: double.infinity),
+            const SizedBox(height: 10),
           ],
         ],
       ),
@@ -241,59 +228,27 @@ class _SalonServicesTabState extends State<SalonServicesTab> {
   }
 
   Widget _buildErrorState() {
-    final theme = Theme.of(context);
-
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.padL),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              CupertinoIcons.exclamationmark_circle,
-              size: 48,
-              color: theme.colorScheme.error,
-            ),
-            const SizedBox(height: AppConstants.padM),
-            Text(
-              'Failed to load services',
-              style: theme.textTheme.titleMedium,
-            ),
-            const SizedBox(height: AppConstants.padS),
-            TextButton.icon(
-              onPressed: widget.onRetry,
-              icon: const Icon(CupertinoIcons.refresh),
-              label: const Text('Try Again'),
-            ),
-          ],
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 80),
+        child: ClientEmptyState(
+          icon: CupertinoIcons.exclamationmark_circle,
+          title: 'client.salon_details.failed_services'.tr(),
+          actionLabel: 'client.salon_details.try_again'.tr(),
+          onAction: widget.onRetry,
+          color: const Color(0xFFEF4444),
         ),
       ),
     );
   }
 
   Widget _buildEmptyState() {
-    final theme = Theme.of(context);
-
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.padL),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              CupertinoIcons.scissors,
-              size: 48,
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: AppConstants.padM),
-            Text(
-              'client.salon_details.no_services'.tr(),
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 80),
+        child: ClientEmptyState(
+          icon: CupertinoIcons.scissors,
+          title: 'client.salon_details.no_services'.tr(),
         ),
       ),
     );
@@ -318,103 +273,85 @@ class _CategorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tone = ClientPalette.forKey(category);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Category Header
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onToggle,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppConstants.padL,
-                vertical: AppConstants.padS,
-              ),
-              child: Row(
-                children: [
-                  // Category Icon
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color:
-                          theme.colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      _getCategoryIcon(category),
-                      size: 18,
-                      color: theme.colorScheme.primary,
+        InkWell(
+          onTap: onToggle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: ClientTheme.gutter,
+              vertical: 10,
+            ),
+            child: Row(
+              children: [
+                ClientIconTile(
+                  icon: serviceCategoryIcon(category),
+                  color: tone,
+                  size: 38,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    category,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: ClientTheme.heading(context),
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: ClientTheme.inset(context),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: Text(
+                    '${services.length}',
+                    style: ClientTheme.caption(context).copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(width: AppConstants.padS),
-
-                  // Category Name
-                  Expanded(
-                    child: Text(
-                      category,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                ),
+                const SizedBox(width: 6),
+                AnimatedRotation(
+                  turns: isExpanded ? 0.5 : 0,
+                  duration: AppConstants.durationFast,
+                  child: Icon(
+                    CupertinoIcons.chevron_down,
+                    size: 16,
+                    color: ClientTheme.textSecondary(context),
                   ),
-
-                  // Service Count
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${services.length}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppConstants.padXS),
-
-                  // Expand/Collapse Chevron
-                  AnimatedRotation(
-                    turns: isExpanded ? 0.5 : 0,
-                    duration: AppConstants.durationFast,
-                    child: Icon(
-                      CupertinoIcons.chevron_down,
-                      size: 18,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
 
         // Services List with Animation
         AnimatedCrossFade(
-          firstChild: const SizedBox.shrink(),
+          firstChild: const SizedBox(width: double.infinity),
           secondChild: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppConstants.padL,
+            padding: const EdgeInsets.fromLTRB(
+              ClientTheme.gutter,
+              2,
+              ClientTheme.gutter,
+              8,
             ),
             child: Column(
-              children: services.map((service) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: AppConstants.padS),
-                  child: ServiceCard(
-                    service: service,
-                    onTap: () => onServiceTap?.call(service),
+              children: [
+                for (final service in services)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: ServiceCard(
+                      service: service,
+                      onTap: () => onServiceTap?.call(service),
+                    ),
                   ),
-                );
-              }).toList(),
+              ],
             ),
           ),
           crossFadeState:
@@ -422,34 +359,7 @@ class _CategorySection extends StatelessWidget {
           duration: AppConstants.durationMedium,
           sizeCurve: Curves.easeInOut,
         ),
-
-        // Divider
-        if (isExpanded)
-          Divider(
-            height: AppConstants.padL,
-            indent: AppConstants.padL,
-            endIndent: AppConstants.padL,
-            color: theme.colorScheme.outline.withValues(alpha: 0.1),
-          ),
       ],
     );
-  }
-
-  IconData _getCategoryIcon(String category) {
-    final cat = category.toLowerCase();
-    if (cat.contains('hair')) return CupertinoIcons.scissors;
-    if (cat.contains('nail')) return Icons.back_hand_outlined;
-    if (cat.contains('massage')) return Icons.spa;
-    if (cat.contains('skin') || cat.contains('facial')) return Icons.face;
-    if (cat.contains('makeup') || cat.contains('beauty')) return Icons.brush;
-    if (cat.contains('braid') || cat.contains('extension')) return Icons.person;
-    if (cat.contains('lash') || cat.contains('brow')) {
-      return Icons.remove_red_eye;
-    }
-    if (cat.contains('men') || cat.contains('groom')) return Icons.content_cut;
-    if (cat.contains('body') || cat.contains('spa')) return Icons.spa;
-    if (cat.contains('tattoo') || cat.contains('piercing')) return Icons.edit;
-    if (cat.contains('medical')) return Icons.medical_services;
-    return CupertinoIcons.scissors;
   }
 }

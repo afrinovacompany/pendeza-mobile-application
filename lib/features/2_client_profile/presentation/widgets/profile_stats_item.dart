@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
+import 'package:pendeza/app/config/theme/app_text_styles.dart';
 
-/// A sleek vertical stat item used in the profile header.
+/// A vertical stat (value over label) shown on the brand profile hero.
 class ProfileStatItem extends StatelessWidget {
   final String label;
   final String value;
@@ -16,33 +16,38 @@ class ProfileStatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppConstants.radiusValM),
+      borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppConstants.padM,
-          vertical: AppConstants.padXS,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              value,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontFamily: AppTextStyles.fontFamily,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  height: 1.15,
+                  color: Colors.white,
+                ),
               ),
             ),
             const SizedBox(height: 2),
             Text(
               label.toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                letterSpacing: 1.1,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: AppTextStyles.fontFamily,
+                fontSize: 10.5,
                 fontWeight: FontWeight.w600,
+                letterSpacing: 0.9,
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
           ],

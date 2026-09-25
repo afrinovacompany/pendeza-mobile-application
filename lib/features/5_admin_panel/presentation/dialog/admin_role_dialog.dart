@@ -1,12 +1,13 @@
 // lib/features/5_admin_panel/presentation/dialog/admin_role_dialog.dart
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:pendeza/app/config/theme/app_colors.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
-import 'package:pendeza/app/config/theme/app_text_styles.dart';
 import 'package:pendeza/features/0_auth/data/models/user_model.dart';
 import 'package:pendeza/features/5_admin_panel/presentation/bloc/admin_bloc.dart';
 import 'package:pendeza/features/5_admin_panel/presentation/bloc/admin_event.dart';
+import 'package:pendeza/features/5_admin_panel/presentation/widgets/admin_ui.dart';
+import 'package:pendeza/shared/widgets/custom_snackbar.dart';
+import 'package:pendeza/shared/widgets/profile_avatar.dart';
 
 class AdminRoleDialog extends StatefulWidget {
   final UserModel user;
@@ -22,33 +23,30 @@ class AdminRoleDialog extends StatefulWidget {
   State<AdminRoleDialog> createState() => _AdminRoleDialogState();
 }
 
-class _AdminRoleDialogState extends State<AdminRoleDialog>
-    with SingleTickerProviderStateMixin {
+class _AdminRoleDialogState extends State<AdminRoleDialog> {
   late String _selectedRole;
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
 
-  final List<_RoleOption> _roles = [
+  static const List<_RoleOption> _roles = [
     _RoleOption(
       role: 'admin',
       title: 'Administrator',
       description: 'Full access to all features and settings',
       icon: CupertinoIcons.shield_lefthalf_fill,
-      color: AppColors.error,
+      tone: AdminTone.danger,
     ),
     _RoleOption(
       role: 'owner',
       title: 'Salon Owner',
       description: 'Manage salon services and bookings',
       icon: CupertinoIcons.building_2_fill,
-      color: AppColors.accent2,
+      tone: AdminTone.info,
     ),
     _RoleOption(
       role: 'client',
       title: 'Client',
       description: 'Book appointments and view services',
       icon: CupertinoIcons.person_fill,
-      color: AppColors.success,
+      tone: AdminTone.success,
     ),
   ];
 
@@ -56,201 +54,117 @@ class _AdminRoleDialogState extends State<AdminRoleDialog>
   void initState() {
     super.initState();
     _selectedRole = widget.user.role ?? 'client';
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _scaleAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutBack,
-    );
-    _animationController.forward();
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
+  bool get _changed => _selectedRole != widget.user.role;
+
+  void _save() {
+    widget.adminBloc.add(UpdateUserRole(
+      userId: widget.user.uid,
+      newRole: _selectedRole,
+    ));
+    CustomSnackBar.show(
+      context,
+      message: 'Role updated successfully',
+      type: SnackBarType.success,
+    );
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final user = widget.user;
 
-    return ScaleTransition(
-      scale: _scaleAnimation,
-      child: Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 480),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurfaceVariant : Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
+    return Dialog(
+      backgroundColor: AdminTheme.card(context),
+      surfaceTintColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: const BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(24),
-                    topRight: Radius.circular(24),
+              Row(
+                children: [
+                  ProfileAvatar(
+                    imageUrl: user.profilePictureUrl,
+                    fullName: user.fullName,
+                    radius: 26,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.fullName.isEmpty ? 'Unnamed user' : user.fullName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AdminTheme.heading(context)
+                              .copyWith(fontSize: 18),
+                        ),
+                        const SizedBox(height: 4),
+                        AdminPill(
+                          label: 'Currently ${adminRoleLabel(user.role)}',
+                          tone: adminRoleTone(user.role),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(CupertinoIcons.xmark, size: 18),
+                    style: IconButton.styleFrom(
+                      backgroundColor: AdminTheme.inset(context),
+                      foregroundColor: AdminTheme.textSecondary(context),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              Text('Change role', style: AdminTheme.heading(context)),
+              const SizedBox(height: 2),
+              Text(
+                'Choose what this person can do in Pendeza.',
+                style: AdminTheme.caption(context),
+              ),
+              const SizedBox(height: 16),
+              for (final option in _roles)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _RoleTile(
+                    option: option,
+                    selected: _selectedRole == option.role,
+                    onTap: () => setState(() => _selectedRole = option.role),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        CupertinoIcons.person_crop_circle_badge_checkmark,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Edit User Role',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            widget.user.fullName,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withValues(alpha: 0.9),
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(CupertinoIcons.xmark, color: Colors.white),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha: 0.2),
-                      ),
+                      style: AdminTheme.textButton(context,
+                          tone: AdminTone.neutral),
+                      child: const Text('Cancel'),
                     ),
-                  ],
-                ),
-              ),
-
-              // Content
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Select Role',
-                      style: AppTextStyles.bodyLarge.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : AppColors.textPrimary,
-                      ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: FilledButton.icon(
+                      onPressed: _changed ? _save : null,
+                      style: AdminTheme.filledButton(context),
+                      icon: const Icon(CupertinoIcons.checkmark_alt, size: 18),
+                      label: const Text('Save changes'),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Choose the appropriate role for this user',
-                      style: AppTextStyles.caption.copyWith(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.6)
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    ..._roles.map((role) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildRoleOption(role, theme, isDark),
-                    )),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _selectedRole != widget.user.role
-                            ? () {
-                          widget.adminBloc.add(UpdateUserRole(
-                            userId: widget.user.uid,
-                            newRole: _selectedRole,
-                          ));
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Row(
-                                children: [
-                                  const Icon(CupertinoIcons.checkmark_circle_fill, color: Colors.white),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    'Role updated successfully',
-                                    style: AppTextStyles.bodySmall.copyWith(color: Colors.white),
-                                  ),
-                                ],
-                              ),
-                              backgroundColor: AppColors.success,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              duration: const Duration(seconds: 3),
-                            ),
-                          );
-                        }
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                          disabledBackgroundColor: isDark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : AppColors.border,
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(CupertinoIcons.checkmark_alt, size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Save Changes',
-                                style: AppTextStyles.button.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -258,81 +172,78 @@ class _AdminRoleDialogState extends State<AdminRoleDialog>
       ),
     );
   }
+}
 
-  Widget _buildRoleOption(_RoleOption roleOption, ThemeData theme, bool isDark) {
-    final isSelected = _selectedRole == roleOption.role;
+class _RoleTile extends StatelessWidget {
+  final _RoleOption option;
+  final bool selected;
+  final VoidCallback onTap;
 
-    return InkWell(
-      onTap: () => setState(() => _selectedRole = roleOption.role),
-      borderRadius: BorderRadius.circular(12),
-      child: AnimatedContainer(
-        duration: AppConstants.durationFast,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? roleOption.color.withValues(alpha: 0.1)
-              : (isDark ? Colors.white.withValues(alpha: 0.03) : AppColors.background),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected
-                ? roleOption.color
-                : (isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.border),
-            width: isSelected ? 2 : 1,
-          ),
+  const _RoleTile({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final base = AdminTheme.toneBase(context, option.tone);
+
+    return Material(
+      color: selected
+          ? AdminTheme.toneTint(context, option.tone, alpha: 0.10)
+          : AdminTheme.card(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: AppConstants.radiusM,
+        side: BorderSide(
+          color: selected ? base : AdminTheme.border(context),
+          width: selected ? 1.6 : 1,
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: roleOption.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(roleOption.icon, color: roleOption.color, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    roleOption.title,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : AppColors.textPrimary,
+      ),
+      child: InkWell(
+        borderRadius: AppConstants.radiusM,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              AdminIconTile(icon: option.icon, tone: option.tone, size: 42),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      option.title,
+                      style: AdminTheme.body(context)
+                          .copyWith(fontWeight: FontWeight.w700),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    roleOption.description,
-                    style: AppTextStyles.caption.copyWith(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.6)
-                          : AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            AnimatedContainer(
-              duration: AppConstants.durationFast,
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isSelected ? roleOption.color : Colors.transparent,
-                border: Border.all(
-                  color: isSelected
-                      ? roleOption.color
-                      : (isDark ? Colors.white.withValues(alpha: 0.3) : AppColors.border),
-                  width: 2,
+                    const SizedBox(height: 2),
+                    Text(option.description,
+                        style: AdminTheme.caption(context)),
+                  ],
                 ),
               ),
-              child: isSelected
-                  ? const Icon(CupertinoIcons.checkmark, size: 14, color: Colors.white)
-                  : null,
-            ),
-          ],
+              const SizedBox(width: 10),
+              AnimatedContainer(
+                duration: AppConstants.durationFast,
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected ? base : Colors.transparent,
+                  border: Border.all(
+                    color: selected ? base : AdminTheme.border(context),
+                    width: 1.6,
+                  ),
+                ),
+                child: selected
+                    ? const Icon(CupertinoIcons.checkmark,
+                        size: 12, color: Colors.white)
+                    : null,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -344,13 +255,13 @@ class _RoleOption {
   final String title;
   final String description;
   final IconData icon;
-  final Color color;
+  final AdminTone tone;
 
-  _RoleOption({
+  const _RoleOption({
     required this.role,
     required this.title,
     required this.description,
     required this.icon,
-    required this.color,
+    required this.tone,
   });
 }

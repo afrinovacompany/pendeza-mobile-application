@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/config/theme/app_constants.dart';
+import '../../../../shared/widgets/client_ui.dart';
 
-/// A simple row to display total duration or similar summary lines.
+/// A label / value line of the booking summary (e.g. total duration).
 class BookingTotalRow extends StatelessWidget {
   final String title;
   final String value;
@@ -11,23 +11,17 @@ class BookingTotalRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppConstants.padXS / 2), // Reduced padding
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7), // Secondary color for title
-            ),
-          ),
+          Expanded(child: Text(title, style: ClientTheme.body(context))),
+          const SizedBox(width: 12),
           Text(
             value,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.bold, // Bold value
-              color: theme.colorScheme.onSurface,
+            style: ClientTheme.body(context).copyWith(
+              fontWeight: FontWeight.w700,
+              color: ClientTheme.textPrimary(context),
             ),
           ),
         ],

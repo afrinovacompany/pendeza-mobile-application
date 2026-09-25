@@ -171,7 +171,7 @@ class _CalendarViewState extends State<_CalendarView> {
             serviceIds: [service.id],
             startTime: startTime,
             durationMinutes: service.durationMinutes,
-            totalPrice: service.price,
+            totalPrice: service.effectivePrice,
             status: AppointmentStatus.confirmed,
             createdAt: DateTime.now(),
             walkInName: clientName,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
@@ -5,23 +6,25 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:pendeza/app/config/theme/app_colors.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/app/services/notification_service.dart';
 import 'package:pendeza/app/services/service_locator.dart';
+import 'package:pendeza/features/5_admin_panel/presentation/widgets/admin_ui.dart';
+import 'package:pendeza/shared/widgets/custom_snackbar.dart';
 
-/// Enhanced Admin Notification Management Screen
+/// Admin Notification Center.
 ///
 /// Features:
-/// - Clean, card-based UI
-/// - Inline notification composer
-/// - 🆕 Image upload support
-/// - 🆕 Call-to-Action button with custom route
+/// - Inline notification composer (audience, type, title, body)
+/// - Image upload support
+/// - Call-to-Action button with custom route
 /// - Real-time notification history
 /// - Success/failure tracking
-/// - Target audience selection
 class AdminManageNotificationsScreen extends StatefulWidget {
-  const AdminManageNotificationsScreen({super.key});
+  /// Replaces the Firestore inbox listener. Tests only.
+  @visibleForTesting
+  final Stream<List<Map<String, dynamic>>>? debugInboxStream;
+
+  const AdminManageNotificationsScreen({super.key, this.debugInboxStream});
 
   @override
   State<AdminManageNotificationsScreen> createState() =>
@@ -44,12 +47,23 @@ class _AdminManageNotificationsScreenState
   bool _isUploadingImage = false;
   late TabController _tabController;
 
-  // 🆕 Image state
+  // Image state
   File? _selectedImage;
   String? _uploadedImageUrl;
 
-  // Streams
-  Stream<QuerySnapshot>? _sentNotificationsStream;
+  // Inbox (notification history).
+  //
+  // A Firestore `snapshots()` stream is a *broadcast* stream: it does not replay
+  // its last event to late listeners. The Compose tab's stat tiles subscribed
+  // first and consumed the initial snapshot, so a StreamBuilder created later
+  // by the History tab waited forever for an event that had already fired.
+  // Instead we listen exactly once here and let every tab read the latest value
+  // from this notifier, which always holds the current state.
+  final ValueNotifier<_InboxState> _inbox =
+      ValueNotifier(const _InboxState.loading());
+  StreamSubscription<List<Map<String, dynamic>>>? _inboxSub;
+  Timer? _inboxSlowTimer;
+  static const _inboxSlowAfter = Duration(seconds: 15);
 
   // Predefined action routes
   final List<Map<String, String>> _predefinedRoutes = [
@@ -67,15 +81,58 @@ class _AdminManageNotificationsScreenState
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _initStreams();
+    _listenInbox();
   }
 
-  void _initStreams() {
-    _sentNotificationsStream = FirebaseFirestore.instance
+  Stream<List<Map<String, dynamic>>> _openInboxStream() {
+    final injected = widget.debugInboxStream;
+    if (injected != null) return injected;
+    return FirebaseFirestore.instance
         .collection('notification_inbox')
         .orderBy('sentAt', descending: true)
         .limit(50)
-        .snapshots();
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => d.data()).toList());
+  }
+
+  void _listenInbox() {
+    _inboxSub?.cancel();
+    _inboxSlowTimer?.cancel();
+    _inbox.value = const _InboxState.loading();
+
+    // If nothing arrives (offline, blocked by App Check, …) say so instead of
+    // showing a skeleton forever. A late event still replaces the error.
+    _inboxSlowTimer = Timer(_inboxSlowAfter, () {
+      if (mounted && _inbox.value.loading) {
+        _inbox.value = const _InboxState.error(
+          'This is taking longer than expected. Check your connection and try again.',
+        );
+      }
+    });
+
+    _inboxSub = _openInboxStream().listen(
+      (items) {
+        _inboxSlowTimer?.cancel();
+        _inbox.value = _InboxState.data(items);
+      },
+      onError: (Object error) {
+        _inboxSlowTimer?.cancel();
+        _inbox.value = _InboxState.error(_friendlyInboxError(error));
+      },
+    );
+  }
+
+  String _friendlyInboxError(Object error) {
+    if (error is FirebaseException) {
+      if (error.code == 'permission-denied') {
+        return 'You don’t have permission to read notification history.';
+      }
+      if (error.code == 'unavailable') {
+        return 'Can’t reach the server right now. Check your connection.';
+      }
+      return error.message ?? error.code;
+    }
+    return error.toString();
   }
 
   @override
@@ -85,97 +142,70 @@ class _AdminManageNotificationsScreenState
     _actionLabelController.dispose();
     _actionRouteController.dispose();
     _tabController.dispose();
+    _inboxSub?.cancel();
+    _inboxSlowTimer?.cancel();
+    _inbox.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notification Center'),
-        backgroundColor:
-        isDark ? AppColors.darkSurfaceVariant : theme.colorScheme.surface,
-        elevation: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Compose', icon: Icon(CupertinoIcons.pencil, size: 20)),
-            Tab(text: 'History', icon: Icon(CupertinoIcons.clock, size: 20)),
-          ],
-        ),
+    return AdminPage(
+      title: 'Notifications',
+      subtitle: 'Send push messages to users',
+      icon: CupertinoIcons.bell_fill,
+      toolbar: AdminSegmentedTabBar(
+        controller: _tabController,
+        tabs: const [
+          (label: 'Compose', icon: CupertinoIcons.pencil),
+          (label: 'History', icon: CupertinoIcons.clock),
+        ],
       ),
-      backgroundColor: isDark
-          ? AppColors.darkBackground
-          : theme.scaffoldBackgroundColor.withAlpha(245),
-      body: TabBarView(
+      child: TabBarView(
         controller: _tabController,
         children: [
-          _buildComposerTab(theme, isDark),
-          _buildHistoryTab(theme, isDark),
+          _CenteredColumn(child: _buildComposerTab(context)),
+          _CenteredColumn(child: _buildHistoryTab(context)),
         ],
       ),
     );
   }
 
   // ==================== COMPOSER TAB ====================
-  Widget _buildComposerTab(ThemeData theme, bool isDark) {
+  Widget _buildComposerTab(BuildContext context) {
+    final gutter = AdminTheme.gutter(MediaQuery.sizeOf(context).width);
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppConstants.padL),
+      padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Quick Stats
-          _buildQuickStats(theme, isDark),
-          const SizedBox(height: AppConstants.padXL),
-
-          // Composer Card
-          Card(
-            elevation: isDark ? 2 : 1,
-            shape: RoundedRectangleBorder(
-              borderRadius: AppConstants.radiusL,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(AppConstants.padL),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  _buildComposerHeader(theme),
-                  const SizedBox(height: AppConstants.padL),
-                  const Divider(),
-                  const SizedBox(height: AppConstants.padL),
-
-                  // Target Audience
-                  _buildAudienceSection(theme, isDark),
-                  const SizedBox(height: AppConstants.padXL),
-
-                  // Notification Type
-                  _buildTypeSection(theme, isDark),
-                  const SizedBox(height: AppConstants.padXL),
-
-                  // Title Input
-                  _buildTitleInput(theme),
-                  const SizedBox(height: AppConstants.padL),
-
-                  // Body Input
-                  _buildBodyInput(theme),
-                  const SizedBox(height: AppConstants.padXL),
-
-                  // 🆕 Image Section
-                  _buildImageSection(theme, isDark),
-                  const SizedBox(height: AppConstants.padXL),
-
-                  // 🆕 Call-to-Action Section
-                  _buildActionSection(theme, isDark),
-                  const SizedBox(height: AppConstants.padXL),
-
-                  // Send Button
-                  _buildSendButton(theme),
-                ],
-              ),
+          _buildQuickStats(context),
+          const SizedBox(height: 16),
+          AdminCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const AdminSectionHeader(
+                  title: 'Compose notification',
+                  subtitle: 'Reach your users instantly',
+                ),
+                const SizedBox(height: 22),
+                _buildAudienceSection(context),
+                const SizedBox(height: 22),
+                _buildTypeSection(context),
+                const SizedBox(height: 22),
+                _buildTitleInput(context),
+                const SizedBox(height: 16),
+                _buildBodyInput(context),
+                const SizedBox(height: 22),
+                _buildImageSection(context),
+                const SizedBox(height: 22),
+                _buildActionSection(context),
+                const SizedBox(height: 26),
+                _buildSendButton(context),
+              ],
             ),
           ),
         ],
@@ -183,344 +213,209 @@ class _AdminManageNotificationsScreenState
     );
   }
 
-  Widget _buildComposerHeader(ThemeData theme) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(AppConstants.padS),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            borderRadius: AppConstants.radiusS,
-          ),
-          child: const Icon(
-            CupertinoIcons.bell_fill,
-            color: AppColors.primary,
-            size: 24,
-          ),
-        ),
-        const SizedBox(width: AppConstants.padM),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Send Push Notification',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              'Reach your users instantly',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAudienceSection(ThemeData theme, bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Target Audience',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: AppConstants.padM),
-        Wrap(
-          spacing: AppConstants.padM,
-          runSpacing: AppConstants.padS,
-          children: [
-            _buildAudienceChip(
-              label: 'Everyone',
-              value: 'all',
-              icon: CupertinoIcons.person_3_fill,
-              color: AppColors.primary,
-              theme: theme,
-              isDark: isDark,
-            ),
-            _buildAudienceChip(
-              label: 'Clients Only',
-              value: 'clients',
-              icon: CupertinoIcons.person_fill,
-              color: AppColors.success,
-              theme: theme,
-              isDark: isDark,
-            ),
-            _buildAudienceChip(
-              label: 'Salon Owners',
-              value: 'owners',
-              icon: CupertinoIcons.briefcase_fill,
-              color: AppColors.accent2,
-              theme: theme,
-              isDark: isDark,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAudienceChip({
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color color,
-    required ThemeData theme,
-    required bool isDark,
+  Widget _fieldLabel(
+    BuildContext context,
+    String text, {
+    String? helper,
+    String? badge,
   }) {
-    final isSelected = _targetAudience == value;
-
-    return FilterChip(
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() => _targetAudience = value);
-      },
-      avatar: Icon(
-        icon,
-        size: 18,
-        color: isSelected ? Colors.white : color,
-      ),
-      label: Text(label),
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.white : theme.colorScheme.onSurface,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      ),
-      backgroundColor: isDark ? AppColors.darkSurface : Colors.grey.shade100,
-      selectedColor: color,
-      checkmarkColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: isSelected ? color : Colors.transparent,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTypeSection(ThemeData theme, bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Notification Type',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: AppConstants.padM),
-        Wrap(
-          spacing: AppConstants.padS,
-          runSpacing: AppConstants.padS,
-          children: [
-            _buildTypeChip('general', 'General', CupertinoIcons.bell, theme),
-            _buildTypeChip(
-                'promotion', 'Promotion', CupertinoIcons.tag, theme),
-            _buildTypeChip(
-                'appointment', 'Appointment', CupertinoIcons.calendar, theme),
-            _buildTypeChip('system', 'System', CupertinoIcons.gear, theme),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTypeChip(
-      String value, String label, IconData icon, ThemeData theme) {
-    final isSelected = _notificationType == value;
-
-    return ChoiceChip(
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() => _notificationType = value);
-      },
-      avatar: Icon(icon, size: 16),
-      label: Text(label),
-      labelStyle: TextStyle(
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      ),
-    );
-  }
-
-  Widget _buildTitleInput(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Notification Title *',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: AppConstants.padS),
-        TextField(
-          controller: _titleController,
-          maxLength: 60,
-          decoration: InputDecoration(
-            hintText: 'e.g., New Feature Available!',
-            prefixIcon: const Icon(CupertinoIcons.textformat),
-            border: OutlineInputBorder(
-              borderRadius: AppConstants.radiusM,
-            ),
-          ),
-          onChanged: (_) => setState(() {}),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBodyInput(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Message Body *',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: AppConstants.padS),
-        TextField(
-          controller: _bodyController,
-          maxLines: 4,
-          maxLength: 500,
-          decoration: InputDecoration(
-            hintText: 'Write your notification message here...',
-            prefixIcon: const Padding(
-              padding: EdgeInsets.only(bottom: 60),
-              child: Icon(CupertinoIcons.text_alignleft),
-            ),
-            border: OutlineInputBorder(
-              borderRadius: AppConstants.radiusM,
-            ),
-          ),
-          onChanged: (_) => setState(() {}),
-        ),
-      ],
-    );
-  }
-
-  // 🆕 Image Section
-  Widget _buildImageSection(ThemeData theme, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Text(
-              'Image (Optional)',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              text,
+              style: AdminTheme.body(context)
+                  .copyWith(fontWeight: FontWeight.w700),
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.info.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'NEW',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.info,
-                ),
-              ),
-            ),
+            if (badge != null) ...[
+              const SizedBox(width: 8),
+              AdminPill(label: badge, tone: AdminTone.info),
+            ],
           ],
         ),
-        const SizedBox(height: AppConstants.padS),
-        Text(
-          'Add an image to make your notification more engaging',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
-        ),
-        const SizedBox(height: AppConstants.padM),
-
-        // Image Preview or Picker
-        if (_selectedImage != null || _uploadedImageUrl != null)
-          _buildImagePreview(theme)
-        else
-          _buildImagePicker(theme, isDark),
+        if (helper != null) ...[
+          const SizedBox(height: 2),
+          Text(helper, style: AdminTheme.caption(context)),
+        ],
+        const SizedBox(height: 10),
       ],
     );
   }
 
-  Widget _buildImagePicker(ThemeData theme, bool isDark) {
+  Widget _buildAudienceSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _fieldLabel(context, 'Target audience'),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            AdminFilterChip(
+              label: 'Everyone',
+              icon: CupertinoIcons.person_3_fill,
+              selected: _targetAudience == 'all',
+              onTap: () => setState(() => _targetAudience = 'all'),
+            ),
+            AdminFilterChip(
+              label: 'Clients only',
+              icon: CupertinoIcons.person_fill,
+              tone: AdminTone.success,
+              selected: _targetAudience == 'clients',
+              onTap: () => setState(() => _targetAudience = 'clients'),
+            ),
+            AdminFilterChip(
+              label: 'Salon owners',
+              icon: CupertinoIcons.briefcase_fill,
+              tone: AdminTone.info,
+              selected: _targetAudience == 'owners',
+              onTap: () => setState(() => _targetAudience = 'owners'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTypeSection(BuildContext context) {
+    Widget chip(String value, String label, IconData icon) => AdminFilterChip(
+          label: label,
+          icon: icon,
+          selected: _notificationType == value,
+          onTap: () => setState(() => _notificationType = value),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _fieldLabel(context, 'Notification type'),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            chip('general', 'General', CupertinoIcons.bell),
+            chip('promotion', 'Promotion', CupertinoIcons.tag),
+            chip('appointment', 'Appointment', CupertinoIcons.calendar),
+            chip('system', 'System', CupertinoIcons.gear),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTitleInput(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _fieldLabel(context, 'Title *'),
+        TextField(
+          controller: _titleController,
+          maxLength: 60,
+          style: AdminTheme.body(context),
+          decoration: const InputDecoration(
+            hintText: 'e.g., New feature available!',
+            prefixIcon: Icon(CupertinoIcons.textformat, size: 20),
+          ),
+          onChanged: (_) => setState(() {}),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBodyInput(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _fieldLabel(context, 'Message *'),
+        TextField(
+          controller: _bodyController,
+          maxLines: 4,
+          maxLength: 500,
+          style: AdminTheme.body(context),
+          decoration: const InputDecoration(
+            hintText: 'Write your notification message here…',
+          ),
+          onChanged: (_) => setState(() {}),
+        ),
+      ],
+    );
+  }
+
+  // Image Section
+  Widget _buildImageSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _fieldLabel(
+          context,
+          'Image',
+          helper: 'Make the notification more engaging',
+          badge: 'Optional',
+        ),
+        if (_selectedImage != null || _uploadedImageUrl != null)
+          _buildImagePreview(context)
+        else
+          _buildImagePicker(context),
+      ],
+    );
+  }
+
+  Widget _buildImagePicker(BuildContext context) {
     return InkWell(
       onTap: _pickImage,
-      borderRadius: AppConstants.radiusM,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        height: 120,
+        height: 124,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.grey.shade100,
-          borderRadius: AppConstants.radiusM,
-          border: Border.all(
-            color: isDark ? AppColors.darkBorder : Colors.grey.shade300,
-            style: BorderStyle.solid,
-          ),
+          color: AdminTheme.inset(context),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AdminTheme.border(context)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              CupertinoIcons.photo_on_rectangle,
-              size: 32,
-              color: theme.colorScheme.primary.withValues(alpha: 0.6),
+            const AdminIconTile(
+              icon: CupertinoIcons.photo_on_rectangle,
+              size: 44,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Tap to add image',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            Text(
-              'JPG, PNG (max 2MB)',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
+            const SizedBox(height: 10),
+            Text('Tap to add an image', style: AdminTheme.body(context)),
+            Text('JPG or PNG, up to 2 MB', style: AdminTheme.caption(context)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildImagePreview(ThemeData theme) {
+  Widget _buildImagePreview(BuildContext context) {
     return Stack(
       children: [
         ClipRRect(
-          borderRadius: AppConstants.radiusM,
+          borderRadius: BorderRadius.circular(16),
           child: _selectedImage != null
               ? Image.file(
-            _selectedImage!,
-            height: 160,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          )
+                  _selectedImage!,
+                  height: 170,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                )
               : Image.network(
-            _uploadedImageUrl!,
-            height: 160,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
+                  _uploadedImageUrl!,
+                  height: 170,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
         ),
         // Upload indicator
         if (_isUploadingImage)
           Positioned.fill(
-            child: Container(
+            child: DecoratedBox(
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.5),
-                borderRadius: AppConstants.radiusM,
+                borderRadius: BorderRadius.circular(16),
               ),
               child: const Center(
                 child: CircularProgressIndicator(color: Colors.white),
@@ -529,21 +424,15 @@ class _AdminManageNotificationsScreenState
           ),
         // Remove button
         Positioned(
-          top: 8,
-          right: 8,
+          top: 10,
+          right: 10,
           child: IconButton(
+            tooltip: 'Remove image',
             onPressed: _removeImage,
-            icon: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                CupertinoIcons.xmark,
-                color: Colors.white,
-                size: 16,
-              ),
+            icon: const Icon(CupertinoIcons.xmark, size: 16),
+            style: IconButton.styleFrom(
+              backgroundColor: AdminTheme.card(context),
+              foregroundColor: AdminTheme.toneInk(context, AdminTone.danger),
             ),
           ),
         ),
@@ -551,73 +440,42 @@ class _AdminManageNotificationsScreenState
     );
   }
 
-  // 🆕 Call-to-Action Section
-  Widget _buildActionSection(ThemeData theme, bool isDark) {
+  // Call-to-Action Section
+  Widget _buildActionSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              'Call-to-Action (Optional)',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'NEW',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.success,
-                ),
-              ),
-            ),
-          ],
+        _fieldLabel(
+          context,
+          'Call-to-action',
+          helper: 'Add a button that opens a specific screen',
+          badge: 'Optional',
         ),
-        const SizedBox(height: AppConstants.padS),
-        Text(
-          'Add a button that takes users to a specific screen',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
-        ),
-        const SizedBox(height: AppConstants.padM),
 
         // Button Label
         TextField(
           controller: _actionLabelController,
-          decoration: InputDecoration(
+          style: AdminTheme.body(context),
+          decoration: const InputDecoration(
             hintText: 'Button text (e.g., "Book Now", "View Offer")',
-            prefixIcon: const Icon(CupertinoIcons.hand_point_right),
-            border: OutlineInputBorder(
-              borderRadius: AppConstants.radiusM,
-            ),
+            prefixIcon: Icon(CupertinoIcons.hand_point_right, size: 20),
           ),
         ),
-        const SizedBox(height: AppConstants.padM),
+        const SizedBox(height: 12),
 
         // Route Dropdown
         DropdownButtonFormField<String>(
           initialValue: _actionRouteController.text.isEmpty
               ? ''
               : (_predefinedRoutes
-              .any((r) => r['route'] == _actionRouteController.text)
-              ? _actionRouteController.text
-              : 'custom'),
-          decoration: InputDecoration(
-            labelText: 'Destination Screen',
-            prefixIcon: const Icon(CupertinoIcons.link),
-            border: OutlineInputBorder(
-              borderRadius: AppConstants.radiusM,
-            ),
+                      .any((r) => r['route'] == _actionRouteController.text)
+                  ? _actionRouteController.text
+                  : 'custom'),
+          isExpanded: true,
+          style: AdminTheme.body(context),
+          decoration: const InputDecoration(
+            labelText: 'Destination screen',
+            prefixIcon: Icon(CupertinoIcons.link, size: 20),
           ),
           items: _predefinedRoutes.map((route) {
             return DropdownMenuItem<String>(
@@ -638,17 +496,16 @@ class _AdminManageNotificationsScreenState
 
         // Custom route input (if custom selected)
         if (_actionRouteController.text.isNotEmpty &&
-            !_predefinedRoutes.any((r) => r['route'] == _actionRouteController.text))
+            !_predefinedRoutes
+                .any((r) => r['route'] == _actionRouteController.text))
           Padding(
-            padding: const EdgeInsets.only(top: AppConstants.padM),
+            padding: const EdgeInsets.only(top: 12),
             child: TextField(
               controller: _actionRouteController,
-              decoration: InputDecoration(
+              style: AdminTheme.body(context),
+              decoration: const InputDecoration(
                 hintText: 'Custom route (e.g., /salon/abc123)',
-                prefixIcon: const Icon(CupertinoIcons.doc_text),
-                border: OutlineInputBorder(
-                  borderRadius: AppConstants.radiusM,
-                ),
+                prefixIcon: Icon(CupertinoIcons.doc_text, size: 20),
               ),
             ),
           ),
@@ -656,125 +513,100 @@ class _AdminManageNotificationsScreenState
     );
   }
 
-  Widget _buildSendButton(ThemeData theme) {
+  Widget _buildSendButton(BuildContext context) {
     final isValid = _titleController.text.trim().isNotEmpty &&
         _bodyController.text.trim().isNotEmpty;
 
     return SizedBox(
       width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
+      child: FilledButton.icon(
         onPressed: isValid && !_isSending ? _sendNotification : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: AppConstants.radiusM,
-          ),
-          elevation: 2,
-        ),
-        child: _isSending
+        style: AdminTheme.filledButton(context)
+            .copyWith(minimumSize: const WidgetStatePropertyAll(Size(0, 52))),
+        icon: _isSending
             ? const SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: Colors.white,
-          ),
-        )
-            : Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(CupertinoIcons.paperplane_fill),
-            const SizedBox(width: 12),
-            Text(
-              'Send Notification',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(CupertinoIcons.paperplane_fill, size: 18),
+        label: Text(_isSending ? 'Sending…' : 'Send notification'),
       ),
     );
   }
 
   // ==================== HISTORY TAB ====================
-  Widget _buildHistoryTab(ThemeData theme, bool isDark) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _sentNotificationsStream,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+  Widget _buildHistoryTab(BuildContext context) {
+    return ValueListenableBuilder<_InboxState>(
+      valueListenable: _inbox,
+      builder: (context, inbox, _) {
+        if (inbox.loading) {
+          return const AdminLoadingState(itemHeight: 120, count: 4);
         }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  CupertinoIcons.bell_slash,
-                  size: 64,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No notifications sent yet',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-              ],
-            ),
+        if (inbox.error != null) {
+          return AdminEmptyState(
+            icon: CupertinoIcons.exclamationmark_triangle_fill,
+            tone: AdminTone.danger,
+            title: 'Couldn’t load history',
+            message: inbox.error,
+            actionLabel: 'Try again',
+            onAction: _listenInbox,
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(AppConstants.padL),
-          itemCount: snapshot.data!.docs.length,
-          itemBuilder: (context, index) {
-            final doc = snapshot.data!.docs[index];
-            final data = doc.data() as Map<String, dynamic>;
-            return _buildNotificationHistoryCard(data, theme, isDark);
-          },
+        if (inbox.items.isEmpty) {
+          return const AdminEmptyState(
+            icon: CupertinoIcons.bell_slash,
+            title: 'No notifications sent yet',
+            message: 'Messages you send will show up here with their status.',
+          );
+        }
+
+        final gutter = AdminTheme.gutter(MediaQuery.sizeOf(context).width);
+        return RefreshIndicator(
+          onRefresh: () async => _listenInbox(),
+          child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 32),
+            itemCount: inbox.items.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            itemBuilder: (context, index) =>
+                _buildNotificationHistoryCard(context, inbox.items[index]),
+          ),
         );
       },
     );
   }
 
-  Widget _buildQuickStats(ThemeData theme, bool isDark) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _sentNotificationsStream,
-      builder: (context, snapshot) {
-        final totalSent = snapshot.data?.docs.length ?? 0;
-        final delivered = snapshot.data?.docs
-            .where((d) => (d.data() as Map)['delivered'] == true)
-            .length ??
-            0;
+  Widget _buildQuickStats(BuildContext context) {
+    return ValueListenableBuilder<_InboxState>(
+      valueListenable: _inbox,
+      builder: (context, inbox, _) {
+        final reached = inbox.items.fold<int>(
+          0,
+          (total, n) => total + _analyticsCount(n, 'sent'),
+        );
 
         return Row(
           children: [
             Expanded(
-              child: _buildStatCard(
-                'Total Sent',
-                totalSent.toString(),
-                CupertinoIcons.paperplane,
-                AppColors.primary,
-                theme,
-                isDark,
+              child: AdminStatTile(
+                icon: CupertinoIcons.paperplane_fill,
+                label: 'Recent broadcasts',
+                value: inbox.loading ? '–' : '${inbox.items.length}',
               ),
             ),
-            const SizedBox(width: AppConstants.padM),
+            const SizedBox(width: 12),
             Expanded(
-              child: _buildStatCard(
-                'Delivered',
-                delivered.toString(),
-                CupertinoIcons.checkmark_circle,
-                AppColors.success,
-                theme,
-                isDark,
+              child: AdminStatTile(
+                icon: CupertinoIcons.checkmark_circle_fill,
+                label: 'Devices reached',
+                value: inbox.loading ? '–' : '$reached',
+                tone: AdminTone.success,
               ),
             ),
           ],
@@ -783,227 +615,159 @@ class _AdminManageNotificationsScreenState
     );
   }
 
-  Widget _buildStatCard(
-      String label,
-      String value,
-      IconData icon,
-      Color color,
-      ThemeData theme,
-      bool isDark,
-      ) {
-    return Card(
-      elevation: isDark ? 2 : 1,
-      shape: RoundedRectangleBorder(borderRadius: AppConstants.radiusM),
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.padL),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppConstants.padS),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: AppConstants.radiusS,
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(width: AppConstants.padM),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+  /// `analytics.sent` / `analytics.failed` as written by the Cloud Function.
+  int _analyticsCount(Map<String, dynamic> notif, String key) {
+    final analytics = notif['analytics'];
+    if (analytics is Map && analytics[key] is num) {
+      return (analytics[key] as num).toInt();
+    }
+    return 0;
   }
 
   Widget _buildNotificationHistoryCard(
-      Map<String, dynamic> notif,
-      ThemeData theme,
-      bool isDark,
-      ) {
+    BuildContext context,
+    Map<String, dynamic> notif,
+  ) {
     final title = notif['title'] as String? ?? 'Untitled';
     final body = notif['body'] as String? ?? '';
     final sentAt = (notif['sentAt'] as Timestamp?)?.toDate();
     final targetAudience = notif['targetAudience'] as String? ?? 'unknown';
-    final delivered = notif['delivered'] as bool? ?? false;
     final imageUrl = notif['imageUrl'] as String?;
-    final actionLabel = notif['actionLabel'] as String?;
+    // The composer sends the CTA label inside `customData`.
+    final customData = notif['customData'];
+    final actionLabel = (notif['actionLabel'] as String?) ??
+        (customData is Map ? customData['actionLabel'] as String? : null);
 
-    IconData audienceIcon;
-    Color audienceColor;
+    // Delivery: the Cloud Function stores counts under `analytics`; older
+    // documents used a plain `delivered` flag; topic sends store neither.
+    final sentCount = _analyticsCount(notif, 'sent');
+    final failedCount = _analyticsCount(notif, 'failed');
+    final legacyDelivered = notif['delivered'] == true;
+    final String deliveryLabel;
+    final AdminTone deliveryTone;
+    final IconData deliveryIcon;
+    if (sentCount > 0 || legacyDelivered) {
+      deliveryLabel = sentCount > 0 ? 'Sent to $sentCount' : 'Delivered';
+      deliveryTone = AdminTone.success;
+      deliveryIcon = CupertinoIcons.checkmark_circle_fill;
+    } else if (failedCount > 0) {
+      deliveryLabel = 'Failed';
+      deliveryTone = AdminTone.danger;
+      deliveryIcon = CupertinoIcons.xmark_circle_fill;
+    } else {
+      deliveryLabel = 'Sent';
+      deliveryTone = AdminTone.info;
+      deliveryIcon = CupertinoIcons.paperplane_fill;
+    }
+
+    final IconData audienceIcon;
+    final AdminTone audienceTone;
+    final String audienceLabel;
     switch (targetAudience) {
       case 'clients':
         audienceIcon = CupertinoIcons.person_fill;
-        audienceColor = AppColors.success;
+        audienceTone = AdminTone.success;
+        audienceLabel = 'Clients';
         break;
       case 'owners':
         audienceIcon = CupertinoIcons.briefcase_fill;
-        audienceColor = AppColors.accent2;
+        audienceTone = AdminTone.info;
+        audienceLabel = 'Salon owners';
         break;
       default:
         audienceIcon = CupertinoIcons.person_3_fill;
-        audienceColor = AppColors.primary;
+        audienceTone = AdminTone.primary;
+        audienceLabel = targetAudience.startsWith('topic:')
+            ? 'Topic · ${targetAudience.substring(6)}'
+            : 'Everyone';
     }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppConstants.padM),
-      shape: RoundedRectangleBorder(
-        borderRadius: AppConstants.radiusM,
-        side: BorderSide(
-          color: isDark ? AppColors.darkBorder : Colors.grey.shade200,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.padL),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Row
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(AppConstants.padXS),
-                  decoration: BoxDecoration(
-                    color: audienceColor.withValues(alpha: 0.1),
-                    borderRadius: AppConstants.radiusS,
-                  ),
-                  child: Icon(audienceIcon, size: 16, color: audienceColor),
-                ),
-                const SizedBox(width: AppConstants.padS),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+    return AdminCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              AdminIconTile(icon: audienceIcon, tone: audienceTone, size: 38),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AdminTheme.body(context)
+                          .copyWith(fontWeight: FontWeight.w700),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                    Text(audienceLabel, style: AdminTheme.caption(context)),
+                  ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppConstants.padS,
-                    vertical: AppConstants.padXXS,
-                  ),
-                  decoration: BoxDecoration(
-                    color: delivered
-                        ? AppColors.success.withValues(alpha: 0.1)
-                        : AppColors.warning.withValues(alpha: 0.1),
-                    borderRadius: AppConstants.radiusS,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        delivered
-                            ? CupertinoIcons.checkmark_circle_fill
-                            : CupertinoIcons.clock_fill,
-                        size: 12,
-                        color: delivered ? AppColors.success : AppColors.warning,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        delivered ? 'Delivered' : 'Pending',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: delivered ? AppColors.success : AppColors.warning,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppConstants.padS),
-
-            // Body
+              ),
+              const SizedBox(width: 8),
+              AdminPill(
+                label: deliveryLabel,
+                tone: deliveryTone,
+                icon: deliveryIcon,
+              ),
+            ],
+          ),
+          if (body.isNotEmpty) ...[
+            const SizedBox(height: 12),
             Text(
               body,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-            ),
-
-            // Image preview
-            if (imageUrl != null && imageUrl.isNotEmpty) ...[
-              const SizedBox(height: AppConstants.padS),
-              Row(
-                children: [
-                  Icon(
-                    CupertinoIcons.photo,
-                    size: 14,
-                    color: AppColors.info,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Has image',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.info,
-                    ),
-                  ),
-                ],
+              style: AdminTheme.body(context).copyWith(
+                fontWeight: FontWeight.w400,
+                color: AdminTheme.textSecondary(context),
               ),
-            ],
-
-            // Action label
-            if (actionLabel != null && actionLabel.isNotEmpty) ...[
-              const SizedBox(height: AppConstants.padXS),
-              Row(
-                children: [
-                  Icon(
-                    CupertinoIcons.hand_point_right,
-                    size: 14,
-                    color: AppColors.success,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'CTA: $actionLabel',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.success,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-
-            const SizedBox(height: AppConstants.padS),
-
-            // Footer
-            Row(
-              children: [
-                Icon(
-                  CupertinoIcons.clock,
-                  size: 14,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  sentAt != null ? _formatDateTime(sentAt) : 'Unknown time',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                  ),
-                ),
-              ],
             ),
           ],
-        ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (imageUrl != null && imageUrl.isNotEmpty)
+                const AdminPill(
+                  label: 'Has image',
+                  tone: AdminTone.info,
+                  icon: CupertinoIcons.photo,
+                ),
+              if (actionLabel != null && actionLabel.isNotEmpty)
+                AdminPill(
+                  label: 'CTA: $actionLabel',
+                  tone: AdminTone.success,
+                  icon: CupertinoIcons.hand_point_right,
+                ),
+              if (failedCount > 0 && sentCount > 0)
+                AdminPill(
+                  label: '$failedCount failed',
+                  tone: AdminTone.warning,
+                  icon: CupertinoIcons.exclamationmark_triangle_fill,
+                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    CupertinoIcons.clock,
+                    size: 13,
+                    color: AdminTheme.textSecondary(context),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    sentAt != null ? _formatDateTime(sentAt) : 'Unknown time',
+                    style: AdminTheme.caption(context),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1037,28 +801,35 @@ class _AdminManageNotificationsScreenState
   void _showCustomRouteDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Custom Route'),
-        content: TextField(
+      builder: (dialogContext) => AdminDialogFrame(
+        icon: CupertinoIcons.link,
+        title: 'Custom route',
+        message: 'Enter the in-app path the button should open.',
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            style:
+                AdminTheme.textButton(dialogContext, tone: AdminTone.neutral),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              setState(() {});
+            },
+            style: AdminTheme.filledButton(dialogContext),
+            child: const Text('Save'),
+          ),
+        ],
+        child: TextField(
           controller: _actionRouteController,
+          autofocus: true,
+          style: AdminTheme.body(dialogContext),
           decoration: const InputDecoration(
             hintText: 'e.g., /salon/abc123',
             labelText: 'Route path',
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {});
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }
@@ -1146,18 +917,10 @@ class _AdminManageNotificationsScreenState
 
       // Show success
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(CupertinoIcons.checkmark_circle_fill, color: Colors.white),
-                SizedBox(width: 12),
-                Text('Notification sent successfully!'),
-              ],
-            ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-          ),
+        CustomSnackBar.show(
+          context,
+          message: 'Notification sent successfully!',
+          type: SnackBarType.success,
         );
 
         // Switch to history tab
@@ -1173,19 +936,11 @@ class _AdminManageNotificationsScreenState
   }
 
   void _showErrorSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(CupertinoIcons.exclamationmark_circle_fill,
-                color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: AppColors.error,
-        behavior: SnackBarBehavior.floating,
-      ),
+    if (!mounted) return;
+    CustomSnackBar.show(
+      context,
+      message: message,
+      type: SnackBarType.error,
     );
   }
 
@@ -1205,4 +960,41 @@ class _AdminManageNotificationsScreenState
       return 'Just now';
     }
   }
+}
+
+/// Keeps form-like content readable on wide screens.
+class _CenteredColumn extends StatelessWidget {
+  final Widget child;
+  const _CenteredColumn({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// Latest known state of the notification inbox.
+class _InboxState {
+  final bool loading;
+  final String? error;
+  final List<Map<String, dynamic>> items;
+
+  const _InboxState.loading()
+      : loading = true,
+        error = null,
+        items = const [];
+
+  const _InboxState.error(String this.error)
+      : loading = false,
+        items = const [];
+
+  const _InboxState.data(this.items)
+      : loading = false,
+        error = null;
 }

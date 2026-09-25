@@ -1114,7 +1114,7 @@ class _PaymentReceiptScreenState extends State<PaymentReceiptScreen>
         'Thank you for choosing Pendeza!',
       ];
 
-      await Share.share(lines.join('\n'));
+      await SharePlus.instance.share(ShareParams(text: lines.join('\n')));
     } catch (e) {
       log.e('Failed to share receipt', error: e);
     }

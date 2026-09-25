@@ -1,9 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pendeza/app/config/app_router.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
 import 'package:pendeza/shared/widgets/loading_indicator.dart';
 
 /// A compact horizontal preview of the gallery.
@@ -16,8 +18,6 @@ class SalonGalleryPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    // Use allImages. If empty, hide widget.
     final images = salon.allImages;
     if (images.isEmpty) return const SizedBox.shrink();
 
@@ -28,29 +28,17 @@ class SalonGalleryPreview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Gallery',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              TextButton(
-                onPressed: () => _navigateToGallery(context),
-                child: const Text('View All'),
-              ),
-            ],
-          ),
+        ClientSectionHeader(
+          title: 'client.salon_details.gallery'.tr(),
+          subtitle: '${images.length}',
+          actionLabel: 'client.salon_details.view_all'.tr(),
+          onAction: () => _navigateToGallery(context),
         ),
-        const SizedBox(height: AppConstants.padS),
+        const SizedBox(height: 12),
         SizedBox(
-          height: 100, // Fixed height for thumbnails
+          height: 128,
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
+            padding: const EdgeInsets.symmetric(horizontal: ClientTheme.gutter),
             scrollDirection: Axis.horizontal,
             itemCount: displayCount,
             physics: const BouncingScrollPhysics(),
@@ -61,45 +49,46 @@ class SalonGalleryPreview extends StatelessWidget {
               return GestureDetector(
                 onTap: () => _navigateToGallery(context),
                 child: Container(
-                  width: 100, // Square thumbnails
-                  margin: const EdgeInsets.only(right: AppConstants.padS),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Image
-                      ClipRRect(
-                        borderRadius: AppConstants.radiusM,
-                        child: CachedNetworkImage(
+                  width: 128,
+                  margin: const EdgeInsets.only(right: 10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: ClientTheme.shadow(context),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CachedNetworkImage(
                           imageUrl: images[index],
                           fit: BoxFit.cover,
                           placeholder: (context, url) =>
-                          const ShimmerPlaceholder.rectangular(height: 100),
+                              const ShimmerPlaceholder.rectangular(height: 128),
                           errorWidget: (context, url, error) => Container(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: const Icon(Icons.broken_image, size: 20),
+                            color: ClientTheme.inset(context),
+                            child: Icon(
+                              CupertinoIcons.photo,
+                              size: 22,
+                              color: ClientTheme.textSecondary(context),
+                            ),
                           ),
                         ),
-                      ),
-
-                      // "+X" Overlay for the last item
-                      if (showOverlay)
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: AppConstants.radiusM,
-                            color: Colors.black.withValues(alpha: 0.6),
-                          ),
-                          child: Center(
+                        if (showOverlay)
+                          Container(
+                            color: Colors.black.withValues(alpha: 0.55),
+                            alignment: Alignment.center,
                             child: Text(
                               '+$remainingCount',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 20,
                               ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );

@@ -422,6 +422,9 @@ class AppRouter {
               state,
               ServiceSelectionScreen(
                 salonName: extra['salonName'] ?? 'Salon',
+                preselectedService: extra['preselectedService'] is ServiceModel
+                    ? extra['preselectedService'] as ServiceModel
+                    : null,
               ));
         },
       ),

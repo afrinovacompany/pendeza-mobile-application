@@ -219,7 +219,7 @@ class _AppointmentDetailsDialogState extends State<AppointmentDetailsDialog> {
                       ),
                     ),
                     Text(
-                      AppFormatters.formatCurrency(service.price),
+                      AppFormatters.formatCurrency(service.effectivePrice),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w500,
                       ),

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../../app/config/theme/app_constants.dart';
 
-/// A chip widget for displaying and selecting an available time slot.
+import '../../../../app/config/theme/app_colors.dart';
+import '../../../../app/config/theme/app_text_styles.dart';
+import '../../../../shared/widgets/client_ui.dart';
+
+/// A chip for one available time slot. Fills the width it is given.
 class TimeSlotChip extends StatelessWidget {
   final String slot;
   final bool isSelected;
@@ -16,37 +19,58 @@ class TimeSlotChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    // Use theme colors for selected/unselected states
-    final containerColor = isSelected ? colorScheme.primary : theme.cardColor;
-    final textColor = isSelected ? colorScheme.onPrimary : colorScheme.onSurface;
-    final borderColor = isSelected ? colorScheme.primary : theme.dividerColor.withValues(alpha: 0.5);
+    final radius = BorderRadius.circular(16);
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppConstants.radiusM, // Use theme constant
-      child: AnimatedContainer( // Add animation for selection change
-        duration: AppConstants.durationFast, // Use theme constant
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppConstants.padM, vertical: AppConstants.padS),
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: slot,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        height: 48,
         decoration: BoxDecoration(
-          color: containerColor,
-          borderRadius: AppConstants.radiusM, // Use theme constant
-          border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1.0),
-          boxShadow: isSelected ? [ // Add subtle shadow when selected
-            BoxShadow(
-              color: colorScheme.primary.withValues(alpha: 0.2),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            )
-          ] : [],
+          gradient: isSelected ? AppColors.primaryGradient : null,
+          color: isSelected ? null : ClientTheme.card(context),
+          borderRadius: radius,
+          border: Border.all(
+            color: isSelected ? Colors.transparent : ClientTheme.border(context),
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.4),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                    spreadRadius: -4,
+                  ),
+                ]
+              : null,
         ),
-        child: Text(
-          slot,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: textColor,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: radius,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    slot,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontFamily: AppTextStyles.fontFamily,
+                      fontSize: 14,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      color:
+                          isSelected ? Colors.white : ClientTheme.textPrimary(context),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ),

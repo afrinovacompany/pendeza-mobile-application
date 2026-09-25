@@ -1,10 +1,14 @@
-import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:intl/intl.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
+import 'package:flutter/material.dart';
+import 'package:pendeza/app/config/theme/app_colors.dart';
+import 'package:pendeza/app/config/theme/app_text_styles.dart';
 import 'package:pendeza/features/2_client_appointments/domain/models/appointment_with_details.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
+
 import '../../../../app/helpers/contact_helper.dart';
 
+/// "Up next" card for the nearest upcoming appointment.
 class UpcomingAppointmentWidget extends StatelessWidget {
   final AppointmentWithDetails appointmentWithDetails;
   final VoidCallback? onTap;
@@ -15,190 +19,159 @@ class UpcomingAppointmentWidget extends StatelessWidget {
     this.onTap,
   });
 
+  /// Whole days from today to [when] (0 = today, 1 = tomorrow).
+  int _daysAway(DateTime when) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return DateTime(when.year, when.month, when.day).difference(today).inDays;
+  }
+
+  /// "Today", "Tomorrow" or "Wed, Sep 23".
+  String _dayLabel(DateTime when) {
+    final days = _daysAway(when);
+    if (days == 0) return 'client.dashboard.today'.tr();
+    if (days == 1) return 'client.dashboard.tomorrow'.tr();
+    return DateFormat('EEE, MMM d').format(when);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final appointment = appointmentWithDetails.appointment;
     final salon = appointmentWithDetails.salon;
 
     final dateStr = DateFormat('MMM d').format(appointment.startTime);
     final timeStr = DateFormat('h:mm a').format(appointment.startTime);
-    final dayStr = DateFormat('EEE').format(appointment.startTime);
+    final isToday = _daysAway(appointment.startTime) == 0;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              theme.colorScheme.primary.withValues(alpha: 0.08),
-              theme.colorScheme.secondary.withValues(alpha: 0.05),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: theme.colorScheme.primary.withValues(alpha: 0.15),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: ClientTheme.gutter),
+      child: ClientCard(
+        onTap: onTap,
+        radius: 24,
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // Date block
+            Container(
+              width: 62,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.35),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                    spreadRadius: -4,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    dateStr.split(' ').last,
+                    style: const TextStyle(
+                      fontFamily: AppTextStyles.fontFamily,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      height: 1.05,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    dateStr.split(' ').first.toUpperCase(),
+                    style: TextStyle(
+                      fontFamily: AppTextStyles.fontFamily,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.padL),
-          child: Row(
-            children: [
-              // Date Box
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary,
-                      theme.colorScheme.secondary,
+            const SizedBox(width: 14),
+
+            // Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClientPill(
+                    label: '${_dayLabel(appointment.startTime)} · $timeStr',
+                    color: isToday ? const Color(0xFF00B894) : AppColors.primary,
+                    icon: CupertinoIcons.clock_fill,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    salon.salonName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: ClientTheme.heading(context),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Icon(
+                        CupertinoIcons.scissors,
+                        size: 13,
+                        color: ClientTheme.textSecondary(context),
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          appointmentWithDetails.serviceNames,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: ClientTheme.caption(context),
+                        ),
+                      ),
                     ],
                   ),
+                ],
+              ),
+            ),
+
+            // WhatsApp
+            if (salon.whatsappNumber != null || salon.phoneNumber != null) ...[
+              const SizedBox(width: 10),
+              Material(
+                color: const Color(0xFF25D366).withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      dateStr.split(' ')[1],
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onPrimary,
-                        height: 1.0,
+                  onTap: () {
+                    final contactNum = salon.whatsappNumber ?? salon.phoneNumber!;
+                    final msg = ContactHelper.createBookingMessage(
+                      salonName: salon.salonName,
+                      date: dateStr,
+                      time: timeStr,
+                    );
+                    ContactHelper.openWhatsApp(
+                      phone: contactNum,
+                      message: msg,
+                    );
+                  },
+                  child: const Tooltip(
+                    message: 'Contact Salon',
+                    child: SizedBox(
+                      width: 46,
+                      height: 46,
+                      child: Icon(
+                        CupertinoIcons.chat_bubble_2_fill,
+                        color: Color(0xFF1FAF5A),
+                        size: 22,
                       ),
-                    ),
-                    Text(
-                      dateStr.split(' ')[0].toUpperCase(),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: theme.colorScheme.onPrimary.withValues(alpha: 0.9),
-                        fontSize: 10,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(width: AppConstants.padM),
-
-              // Info Section
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Text(
-                        '$dayStr • $timeStr',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      salon.salonName,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Icon(
-                          CupertinoIcons.scissors,
-                          size: 14,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            appointmentWithDetails.serviceNames,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // WhatsApp Button
-              if (salon.whatsappNumber != null || salon.phoneNumber != null)
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFF25D366).withValues(alpha: 0.15),
-                        const Color(0xFF25D366).withValues(alpha: 0.08),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: const Color(0xFF25D366).withValues(alpha: 0.3),
-                      width: 1.5,
                     ),
                   ),
-                  child: IconButton(
-                    onPressed: () {
-                      final contactNum = salon.whatsappNumber ?? salon.phoneNumber!;
-                      final msg = ContactHelper.createBookingMessage(
-                        salonName: salon.salonName,
-                        date: dateStr,
-                        time: timeStr,
-                      );
-                      ContactHelper.openWhatsApp(
-                        phone: contactNum,
-                        message: msg,
-                      );
-                    },
-                    icon: const Icon(
-                      CupertinoIcons.chat_bubble_2_fill,
-                      color: Color(0xFF25D366),
-                      size: 22,
-                    ),
-                    tooltip: 'Contact Salon',
-                  ),
                 ),
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );

@@ -1,14 +1,14 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
-import '../../../../app/config/theme/app_constants.dart';
-import '../../../../shared/widgets/custom_card.dart';
+import '../../../../app/config/theme/app_text_styles.dart';
+import '../../../../shared/widgets/client_ui.dart';
 
-/// Displays the core appointment details (Salon, Date, Time) in a prominent card.
+/// Gradient "ticket" with the salon and the chosen date and time.
 class AppointmentSummaryCard extends StatelessWidget {
   final String salonName;
-  final DateTime appointmentDateTime;
+  final DateTime? appointmentDateTime;
 
   const AppointmentSummaryCard({
     super.key,
@@ -18,62 +18,153 @@ class AppointmentSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return CustomCard(
-      padding: const EdgeInsets.all(AppConstants.padL),
-      // Use primary color with low opacity for background
-      color: theme.colorScheme.primary.withValues(alpha: 0.05),
+    final when = appointmentDateTime;
+
+    return ClientBrandHero(
+      margin: EdgeInsets.zero,
+      radius: 28,
+      padding: const EdgeInsets.all(18),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Salon Name
-          Text(
-            salonName,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              // Use primary color directly for better contrast
-              color: theme.colorScheme.primary,
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+                ),
+                child: const Icon(
+                  CupertinoIcons.scissors,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'client.booking.your_booking'.tr().toUpperCase(),
+                      style: TextStyle(
+                        fontFamily: AppTextStyles.fontFamily,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.0,
+                        color: Colors.white.withValues(alpha: 0.78),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      salonName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: AppTextStyles.fontFamily,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (when != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.26)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 6,
+                    child: _When(
+                      icon: CupertinoIcons.calendar,
+                      label: 'common.date'.tr(),
+                      value: DateFormat('EEE, MMM d').format(when),
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 38,
+                    margin: const EdgeInsets.symmetric(horizontal: 12),
+                    color: Colors.white.withValues(alpha: 0.35),
+                  ),
+                  Expanded(
+                    flex: 4,
+                    child: _When(
+                      icon: CupertinoIcons.clock,
+                      label: 'common.time'.tr(),
+                      value: DateFormat.jm().format(when),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: AppConstants.padM),
-          // Date Row
-          _buildDetailRow(
-            context,
-            icon: CupertinoIcons.calendar_today,
-            value: DateFormat.yMMMMEEEEd().format(appointmentDateTime), // Full date format
-          ),
-          const SizedBox(height: AppConstants.padS),
-          // Time Row
-          _buildDetailRow(
-            context,
-            icon: CupertinoIcons.time,
-            value: DateFormat.jm().format(appointmentDateTime), // Time format
-          ),
+          ],
         ],
       ),
     );
   }
+}
 
-  /// Helper to build consistent rows with icon and text.
-  Widget _buildDetailRow(BuildContext context, {required IconData icon, required String value}) {
-    final theme = Theme.of(context);
+class _When extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _When({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 20, // Consistent icon size
-          color: theme.colorScheme.primary,
-        ),
-        const SizedBox(width: AppConstants.padM),
-        Expanded( // Allow text to wrap if needed
-          child: Text(
-            value,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w500, // Make details slightly bolder
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.9), // Slightly darker text
-            ),
+        Icon(icon, size: 20, color: Colors.white),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label.toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: AppTextStyles.fontFamily,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: Colors.white.withValues(alpha: 0.78),
+                ),
+              ),
+              const SizedBox(height: 2),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    fontFamily: AppTextStyles.fontFamily,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],

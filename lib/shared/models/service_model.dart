@@ -53,7 +53,10 @@ class ServiceModel extends Equatable {
 
   // Computed properties
   bool get hasDiscount => discountedPrice != null && discountedPrice! < price;
-  double get effectivePrice => discountedPrice ?? price;
+  /// What the customer actually pays: the discounted price when there is a
+  /// real discount, otherwise the list price. Every total (booking, payment,
+  /// stored appointment) is built from this, never from [price] directly.
+  double get effectivePrice => hasDiscount ? discountedPrice! : price;
   double get discountPercentage =>
       hasDiscount ? ((price - discountedPrice!) / price * 100) : 0;
   String get formattedPrice => 'TZS ${price.toStringAsFixed(0)}';

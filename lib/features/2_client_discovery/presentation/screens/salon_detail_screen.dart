@@ -18,6 +18,7 @@ import 'package:pendeza/features/3_reviews/presentation/widgets/reviews_section.
 import 'package:pendeza/features/2_client_booking/presentation/bloc/booking_bloc.dart';
 import 'package:pendeza/features/2_client_booking/presentation/bloc/booking_event.dart';
 import 'package:pendeza/app/config/app_router.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
 import '../widgets/salon_hero_appbar.dart';
 import '../widgets/salon_services_tab.dart';
 import '../widgets/enhanced_booking_bottom_bar.dart';
@@ -98,8 +99,6 @@ class _SalonDetailScreenState extends State<SalonDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return MultiBlocProvider(
       providers: [
         // Reviews Bloc - Necessary for the reviews tab and rating aggregation
@@ -109,6 +108,7 @@ class _SalonDetailScreenState extends State<SalonDetailScreen>
         ),
       ],
       child: Scaffold(
+        backgroundColor: ClientTheme.background(context),
         body: NestedScrollView(
           controller: _scrollController,
           headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -119,22 +119,17 @@ class _SalonDetailScreenState extends State<SalonDetailScreen>
                 scrollOffset: _scrollOffset,
               ),
 
-              // 2. Sticky Tab Bar
+              // 2. Sticky segmented tab bar
               SliverPersistentHeader(
                 pinned: true,
                 delegate: _StickyTabBarDelegate(
-                  TabBar(
+                  background: ClientTheme.background(context),
+                  child: ClientSegmentedTabs(
                     controller: _tabController,
-                    indicatorColor: theme.colorScheme.primary,
-                    labelColor: theme.colorScheme.primary,
-                    unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-                    labelStyle: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                    tabs: [
-                      Tab(text: 'client.salon_details.tab_overview'.tr()),
-                      Tab(text: 'client.salon_details.tab_services'.tr()),
-                      Tab(text: 'client.salon_details.tab_reviews'.tr()),
+                    labels: [
+                      'client.salon_details.tab_overview'.tr(),
+                      'client.salon_details.tab_services'.tr(),
+                      'client.salon_details.tab_reviews'.tr(),
                     ],
                   ),
                 ),
@@ -159,11 +154,11 @@ class _SalonDetailScreenState extends State<SalonDetailScreen>
 
               // TAB 3: REVIEWS
               SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: AppConstants.padL),
+                padding: const EdgeInsets.only(top: AppConstants.padS),
                 child: Column(
                   children: [
                     ReviewsSection(salon: widget.salon),
-                    const SizedBox(height: 100),
+                    const SizedBox(height: 120),
                   ],
                 ),
               ),
@@ -183,28 +178,34 @@ class _SalonDetailScreenState extends State<SalonDetailScreen>
 }
 
 class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabBar tabBar;
+  final Widget child;
+  final Color background;
 
-  _StickyTabBarDelegate(this.tabBar);
+  _StickyTabBarDelegate({required this.child, required this.background});
+
+  static const double _height = 68;
 
   @override
-  double get minExtent => tabBar.preferredSize.height;
+  double get minExtent => _height;
 
   @override
-  double get maxExtent => tabBar.preferredSize.height;
+  double get maxExtent => _height;
 
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final theme = Theme.of(context);
     return Container(
-      color: theme.scaffoldBackgroundColor,
-      child: tabBar,
+      color: background,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(
+        horizontal: ClientTheme.gutter,
+        vertical: 8,
+      ),
+      child: child,
     );
   }
 
   @override
-  bool shouldRebuild(_StickyTabBarDelegate oldDelegate) {
-    return false;
-  }
+  bool shouldRebuild(_StickyTabBarDelegate oldDelegate) =>
+      oldDelegate.background != background || oldDelegate.child != child;
 }

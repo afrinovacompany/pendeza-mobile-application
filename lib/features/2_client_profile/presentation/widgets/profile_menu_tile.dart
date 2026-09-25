@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
+import 'package:flutter/material.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
 
 class ProfileMenuTile extends StatelessWidget {
   final IconData icon;
@@ -34,26 +34,11 @@ class ProfileMenuTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppConstants.padL,
-          vertical: AppConstants.padM,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         child: Row(
           children: [
-            // Icon Container
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: effectiveIconColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: effectiveIconColor,
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: AppConstants.padM),
+            ClientIconTile(icon: icon, color: effectiveIconColor, size: 42),
+            const SizedBox(width: 14),
 
             // Text Content
             Expanded(
@@ -62,19 +47,13 @@ class ProfileMenuTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                    style: ClientTheme.heading(context).copyWith(
                       color: isDestructive ? theme.colorScheme.error : null,
                     ),
                   ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 2),
-                    Text(
-                      subtitle!,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                      ),
-                    ),
+                    Text(subtitle!, style: ClientTheme.caption(context)),
                   ],
                 ],
               ),
@@ -85,9 +64,9 @@ class ProfileMenuTile extends StatelessWidget {
 
             if (showChevron && trailing == null)
               Icon(
-                CupertinoIcons.chevron_right,
+                CupertinoIcons.chevron_forward,
                 size: 16,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                color: ClientTheme.textSecondary(context),
               ),
           ],
         ),

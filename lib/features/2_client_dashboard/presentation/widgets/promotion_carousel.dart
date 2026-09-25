@@ -1,9 +1,13 @@
-import 'package:easy_localization/easy_localization.dart';
-import 'package:flutter/material.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:pendeza/app/config/theme/app_colors.dart';
+import 'package:pendeza/app/config/theme/app_text_styles.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
+
 import '../../../../shared/models/promotion_model.dart';
-import '../../../../app/config/theme/app_constants.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 
 class PromotionCarousel extends StatefulWidget {
@@ -15,7 +19,7 @@ class PromotionCarousel extends StatefulWidget {
     super.key,
     required this.promotions,
     this.onPromotionTap,
-    this.height = 200,
+    this.height = 210,
   });
 
   @override
@@ -37,13 +41,11 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
         CarouselSlider.builder(
           carouselController: _carouselController,
           itemCount: widget.promotions.length,
-          itemBuilder: (context, index, realIndex) {
-            final promotion = widget.promotions[index];
-            return _buildPromotionCard(context, promotion);
-          },
+          itemBuilder: (context, index, realIndex) =>
+              _buildPromotionCard(context, widget.promotions[index]),
           options: CarouselOptions(
             height: widget.height,
-            viewportFraction: 0.92,
+            viewportFraction: 0.9,
             initialPage: 0,
             enableInfiniteScroll: widget.promotions.length > 1,
             autoPlay: widget.promotions.length > 1,
@@ -51,17 +53,14 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
             autoPlayAnimationDuration: const Duration(milliseconds: 1000),
             autoPlayCurve: Curves.easeInOutCubicEmphasized,
             enlargeCenterPage: true,
-            enlargeFactor: 0.15,
+            enlargeFactor: 0.12,
             onPageChanged: (index, reason) {
-              setState(() {
-                _currentIndex = index;
-              });
+              setState(() => _currentIndex = index);
             },
           ),
         ),
-
         if (widget.promotions.length > 1) ...[
-          const SizedBox(height: AppConstants.padM),
+          const SizedBox(height: 14),
           _buildDotIndicators(context),
         ],
       ],
@@ -69,25 +68,23 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
   }
 
   Widget _buildPromotionCard(BuildContext context, PromotionModel promotion) {
-    final theme = Theme.of(context);
-
     return GestureDetector(
       onTap: () => widget.onPromotionTap?.call(promotion),
       child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: 6),
+        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
+              spreadRadius: -6,
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(28),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -98,201 +95,102 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
                 placeholder: (context, url) => ShimmerPlaceholder.rectangular(
                   height: widget.height,
                 ),
-                errorWidget: (context, url, error) => _buildImagePlaceholder(context, promotion),
+                errorWidget: (context, url, error) =>
+                    _buildImagePlaceholder(context, promotion),
               ),
 
-              // Enhanced gradient overlay
-              Container(
+              // One soft scrim: clear at the top, dark where the text sits.
+              DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withValues(alpha: 0.1),
-                      Colors.black.withValues(alpha: 0.3),
-                      Colors.black.withValues(alpha: 0.7),
-                      Colors.black.withValues(alpha: 0.9),
+                      Colors.black.withValues(alpha: 0.05),
+                      Colors.black.withValues(alpha: 0.10),
+                      Colors.black.withValues(alpha: 0.82),
                     ],
-                    stops: const [0.0, 0.4, 0.7, 1.0],
+                    stops: const [0.0, 0.35, 1.0],
                   ),
                 ),
               ),
 
-              // Top badge overlay
+              // Offer badge
               Positioned(
-                top: 16,
-                left: 16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.primary,
-                        theme.colorScheme.primaryContainer,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.4),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
+                top: 14,
+                left: 14,
+                child: ClientPill(
+                  label: 'client.dashboard.special_offers'.tr().toUpperCase(),
+                  color: Colors.white,
+                  icon: CupertinoIcons.sparkles,
+                  onDark: true,
+                ),
+              ),
+
+              // Copy
+              Positioned(
+                left: 18,
+                right: 18,
+                bottom: 16,
+                child: MediaQuery.withClampedTextScaling(
+                  maxScaleFactor: 1.1,
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.local_offer,
-                        size: 14,
-                        color: theme.colorScheme.onPrimary,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            promotion.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: AppTextStyles.fontFamily,
+                              fontSize: 21,
+                              fontWeight: FontWeight.w700,
+                              height: 1.2,
+                              letterSpacing: -0.2,
+                              color: Colors.white,
+                            ),
+                          ),
+                          if (promotion.description.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              promotion.description,
+                              maxLines: promotion.promoCode != null ? 1 : 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: AppTextStyles.fontFamily,
+                                fontSize: 13,
+                                height: 1.35,
+                                color: Colors.white.withValues(alpha: 0.88),
+                              ),
+                            ),
+                          ],
+                          if (promotion.promoCode != null) ...[
+                            const SizedBox(height: 10),
+                            _PromoCode(code: promotion.promoCode!),
+                          ],
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'SPECIAL OFFER',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Content at bottom
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.95),
-                      ],
                     ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Title with enhanced shadow
-                      Text(
-                        promotion.title,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withValues(alpha: 0.7),
-                              offset: const Offset(0, 2),
-                              blurRadius: 6,
-                            ),
-                          ],
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(height: 8),
-
-                      // Description
-                      Text(
-                        promotion.description,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.95),
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              offset: const Offset(0, 1),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      child: const Icon(
+                        CupertinoIcons.arrow_right,
+                        size: 18,
+                        color: AppColors.primaryDark,
                       ),
-
-                      // Promo code badge with enhanced styling
-                      if (promotion.promoCode != null) ...[
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.white.withValues(alpha: 0.25),
-                                    Colors.white.withValues(alpha: 0.15),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                  width: 1.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.3),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.confirmation_number,
-                                    size: 16,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    promotion.promoCode!,
-                                    style: theme.textTheme.labelLarge?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Spacer(),
-                            // Action arrow
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.4),
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.arrow_forward,
-                                size: 18,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
+                    ),
+                  ],
                   ),
                 ),
               ),
@@ -304,149 +202,103 @@ class _PromotionCarouselState extends State<PromotionCarousel> {
   }
 
   Widget _buildDotIndicators(BuildContext context) {
-    final theme = Theme.of(context);
-
+    final cs = Theme.of(context).colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
         widget.promotions.length,
-            (index) => AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          height: 8,
-          width: _currentIndex == index ? 32 : 8,
-          decoration: BoxDecoration(
-            gradient: _currentIndex == index
-                ? LinearGradient(
-              colors: [
-                theme.colorScheme.primary,
-                theme.colorScheme.secondary,
-              ],
-            )
-                : null,
-            color: _currentIndex == index
-                ? null
-                : theme.colorScheme.primary.withValues(alpha: 0.25),
-            borderRadius: BorderRadius.circular(4),
-            boxShadow: _currentIndex == index
-                ? [
-              BoxShadow(
-                color: theme.colorScheme.primary.withValues(alpha: 0.4),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ]
-                : null,
-          ),
-        ),
+        (index) {
+          final active = _currentIndex == index;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            height: 7,
+            width: active ? 26 : 7,
+            decoration: BoxDecoration(
+              gradient: active ? AppColors.primaryGradient : null,
+              color: active ? null : cs.primary.withValues(alpha: 0.22),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildImagePlaceholder(BuildContext context, PromotionModel promotion) {
-    final theme = Theme.of(context);
-
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primary.withValues(alpha: 0.3),
-            theme.colorScheme.secondary.withValues(alpha: 0.2),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+      decoration: BoxDecoration(gradient: ClientTheme.heroGradient(context)),
       child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.local_offer_outlined,
-                size: 56,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Text(
-                promotion.title,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      offset: const Offset(0, 2),
-                      blurRadius: 4,
-                    ),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-              ),
-            ),
-          ],
+        child: Icon(
+          CupertinoIcons.tag_fill,
+          size: 64,
+          color: Colors.white.withValues(alpha: 0.35),
         ),
       ),
     );
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Container(
       height: widget.height,
-      margin: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
+      margin: const EdgeInsets.symmetric(horizontal: ClientTheme.gutter),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.surfaceContainerHighest,
-            theme.colorScheme.surface,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.2),
-          width: 1.5,
-        ),
+        color: ClientTheme.inset(context),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: ClientTheme.border(context)),
       ),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.local_offer_outlined,
-                size: 48,
-                color: theme.colorScheme.primary.withValues(alpha: 0.5),
-              ),
+            const ClientIconTile(
+              icon: CupertinoIcons.tag,
+              color: AppColors.primary,
+              size: 52,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(
               'client.dashboard.no_promotions'.tr(),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                fontWeight: FontWeight.w500,
-              ),
+              style: ClientTheme.caption(context),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Dashed-look ticket showing the promo code.
+class _PromoCode extends StatelessWidget {
+  final String code;
+  const _PromoCode({required this.code});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(CupertinoIcons.ticket_fill, size: 14, color: Colors.white),
+          const SizedBox(width: 8),
+          Text(
+            code,
+            style: const TextStyle(
+              fontFamily: AppTextStyles.fontFamily,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -15,6 +15,7 @@
         android:maxSdkVersion="32" />
 
     <application
+        android:enableOnBackInvokedCallback="true"
         android:label="pendeza"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">

@@ -755,9 +755,11 @@ Book your appointment now on Pendeza app!
 https://pendeza.co.tz/salon/${salon.id}
 ''';
 
-    Share.share(
-      shareText.trim(),
-      subject: 'Check out ${salon.salonName} on Pendeza!',
+    SharePlus.instance.share(
+      ShareParams(
+        text: shareText.trim(),
+        subject: 'Check out ${salon.salonName} on Pendeza!',
+      ),
     );
   }
 

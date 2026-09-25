@@ -2,10 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:pendeza/app/config/theme/app_colors.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/app/utils/formatters.dart';
 import 'package:pendeza/features/0_auth/data/models/user_model.dart';
+import 'package:pendeza/features/5_admin_panel/presentation/widgets/admin_ui.dart';
 import 'package:pendeza/shared/models/appointment_model.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
 
@@ -24,7 +23,7 @@ class AdminManageTransactionsScreen extends StatefulWidget {
 class _AdminManageTransactionsScreenState
     extends State<AdminManageTransactionsScreen> {
   String? _selectedStatus;
-  final _searchController = TextEditingController();
+  String _query = '';
 
   @override
   void initState() {
@@ -37,204 +36,137 @@ class _AdminManageTransactionsScreenState
   }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    return BlocBuilder<AdminBloc, AdminState>(
+      builder: (context, state) {
+        final loaded = state is AdminLoaded ? state : null;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bookings'),
-        backgroundColor:
-            isDark ? AppColors.darkSurfaceVariant : theme.colorScheme.surface,
-        elevation: 1,
-        actions: [
-          IconButton(
-            icon: const Icon(CupertinoIcons.refresh),
-            onPressed: _loadBookings,
-            tooltip: 'Refresh',
-          ),
-        ],
-      ),
-      backgroundColor: isDark
-          ? AppColors.darkBackground
-          : theme.scaffoldBackgroundColor.withAlpha(245),
-      body: Column(
-        children: [
-          _buildFiltersSection(theme),
-          Expanded(
-            child: BlocBuilder<AdminBloc, AdminState>(
-              builder: (context, state) {
-                if (state is AdminLoading || state is AdminInitial) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (state is AdminError) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.error_outline,
-                            size: 48, color: AppColors.error),
-                        const SizedBox(height: AppConstants.padM),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Text(state.message, textAlign: TextAlign.center),
-                        ),
-                        const SizedBox(height: AppConstants.padM),
-                        ElevatedButton(
-                          onPressed: _loadBookings,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                if (state is AdminLoaded) {
-                  final filtered = _filterAppointments(state);
-                  return _buildLoadedBody(filtered, theme, state);
-                }
-
-                return const Center(child: Text('Unknown state'));
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFiltersSection(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(AppConstants.padM),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.shade300),
-        ),
-      ),
-      child: Column(
-        children: [
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search client, salon, or service...',
-              prefixIcon: const Icon(CupertinoIcons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+        return AdminPage(
+          title: 'Bookings',
+          subtitle: loaded == null
+              ? null
+              : '${loaded.appointments.length} appointments',
+          icon: CupertinoIcons.calendar,
+          actions: [
+            IconButton(
+              tooltip: 'Refresh',
+              onPressed: _loadBookings,
+              icon: const Icon(CupertinoIcons.refresh, size: 20),
+              style: IconButton.styleFrom(
+                backgroundColor: AdminTheme.card(context),
+                foregroundColor: AdminTheme.textSecondary(context),
+                side: BorderSide(color: AdminTheme.border(context)),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppConstants.padM,
-                vertical: AppConstants.padS,
-              ),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() {});
-                      },
-                    )
-                  : null,
             ),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: AppConstants.padM),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildFilterDropdown(
-                  label: 'Status',
-                  value: _selectedStatus,
-                  items: [
-                    const DropdownMenuItem(
-                        value: null, child: Text('All statuses')),
-                    ...AppointmentStatus.all.map(
-                      (status) => DropdownMenuItem(
-                        value: status,
-                        child: Text(status),
-                      ),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    setState(() => _selectedStatus = value);
-                  },
+          ],
+          toolbar: loaded == null
+              ? null
+              : AdminSearchField(
+                  hint: 'Search client, salon or service',
+                  onChanged: (v) => setState(() => _query = v),
                 ),
-                if (_selectedStatus != null) ...[
-                  const SizedBox(width: AppConstants.padM),
-                  TextButton.icon(
-                    onPressed: () {
-                      setState(() => _selectedStatus = null);
-                    },
-                    icon: const Icon(Icons.clear_all, size: 18),
-                    label: const Text('Clear'),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
+          filters: loaded == null ? null : _buildFilters(loaded),
+          child: _buildBody(context, state),
+        );
+      },
     );
   }
 
-  Widget _buildFilterDropdown({
-    required String label,
-    required String? value,
-    required List<DropdownMenuItem<String?>> items,
-    required void Function(String?) onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String?>(
-          value: value,
-          items: items,
-          onChanged: onChanged,
-          hint: Text(label),
-        ),
-      ),
-    );
-  }
+  Widget _buildFilters(AdminLoaded state) {
+    // Only offer statuses that actually occur in the data.
+    final counts = <String, int>{};
+    for (final a in state.appointments) {
+      counts[a.status] = (counts[a.status] ?? 0) + 1;
+    }
+    final statuses = AppointmentStatus.all
+        .where((s) => (counts[s] ?? 0) > 0 || s == _selectedStatus)
+        .toList();
 
-  Widget _buildLoadedBody(
-    List<AppointmentModel> filtered,
-    ThemeData theme,
-    AdminLoaded state,
-  ) {
-    return Column(
-      children: [
-        _buildSummary(state.appointments, theme),
-        Expanded(
-          child: filtered.isEmpty
-              ? _buildEmptyState(theme)
-              : ListView.separated(
-                  padding: const EdgeInsets.all(AppConstants.padM),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(height: AppConstants.padS),
-                  itemBuilder: (context, index) {
-                    final appointment = filtered[index];
-                    return _buildBookingCard(appointment, theme, state);
-                  },
-                ),
+    return AdminFilterBar(
+      chips: [
+        AdminFilterChip(
+          label: 'All',
+          count: state.appointments.length,
+          selected: _selectedStatus == null,
+          onTap: () => setState(() => _selectedStatus = null),
         ),
+        for (final status in statuses)
+          AdminFilterChip(
+            label: _statusLabel(status),
+            count: counts[status] ?? 0,
+            tone: _statusTone(status),
+            selected: _selectedStatus == status,
+            onTap: () => setState(() => _selectedStatus = status),
+          ),
       ],
     );
   }
 
-  Widget _buildSummary(List<AppointmentModel> appointments, ThemeData theme) {
+  Widget _buildBody(BuildContext context, AdminState state) {
+    if (state is AdminLoading || state is AdminInitial) {
+      return const AdminLoadingState(itemHeight: 104);
+    }
+    if (state is AdminError) {
+      return AdminErrorState(message: state.message, onRetry: _loadBookings);
+    }
+    if (state is! AdminLoaded) return const SizedBox.shrink();
+
+    final filtered = _filterAppointments(state);
+    final width = MediaQuery.sizeOf(context).width;
+    final gutter = AdminTheme.gutter(width);
+    final columns = width >= AdminTheme.wideBreakpoint ? 2 : 1;
+    final rowCount = (filtered.length / columns).ceil();
+
+    if (filtered.isEmpty) {
+      return Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 0),
+            child: _buildSummary(state.appointments),
+          ),
+          Expanded(child: _buildEmptyState()),
+        ],
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 32),
+      // The summary is the first row so it scrolls with the list.
+      itemCount: rowCount + 1,
+      itemBuilder: (context, row) {
+        if (row == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _buildSummary(state.appointments),
+          );
+        }
+
+        final children = <Widget>[];
+        for (var c = 0; c < columns; c++) {
+          final index = (row - 1) * columns + c;
+          if (c > 0) children.add(const SizedBox(width: 12));
+          children.add(
+            Expanded(
+              child: index < filtered.length
+                  ? _buildBookingCard(context, filtered[index], state)
+                  : const SizedBox.shrink(),
+            ),
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSummary(List<AppointmentModel> appointments) {
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
     final startOfWeek =
@@ -251,237 +183,175 @@ class _AdminManageTransactionsScreenState
           a.startTime.isBefore(endOfWeek);
     }).length;
 
-    final confirmed = appointments
-        .where((a) => a.status == AppointmentStatus.confirmed)
-        .length;
-    final completed = appointments
-        .where((a) => a.status == AppointmentStatus.completed)
-        .length;
-    final cancelled = appointments
-        .where((a) => a.status == AppointmentStatus.cancelled)
+    final upcoming = appointments
+        .where((a) =>
+            a.startTime.isAfter(now) &&
+            a.status == AppointmentStatus.confirmed)
         .length;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppConstants.padM,
-        AppConstants.padM,
-        AppConstants.padM,
-        0,
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _SummaryCard(
-                  label: 'Today',
-                  value: '$todayCount',
-                  icon: CupertinoIcons.today,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(width: AppConstants.padS),
-              Expanded(
-                child: _SummaryCard(
-                  label: 'This week',
-                  value: '$weekCount',
-                  icon: CupertinoIcons.calendar,
-                  color: AppColors.accent2,
-                ),
-              ),
-              const SizedBox(width: AppConstants.padS),
-              Expanded(
-                child: _SummaryCard(
-                  label: 'Loaded',
-                  value: '${appointments.length}',
-                  icon: CupertinoIcons.collections,
-                  color: AppColors.accent,
-                ),
-              ),
-            ],
+    return Row(
+      children: [
+        Expanded(
+          child: _SummaryTile(
+            label: 'Today',
+            value: '$todayCount',
+            icon: CupertinoIcons.today,
+            tone: AdminTone.primary,
           ),
-          const SizedBox(height: AppConstants.padS),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _StatusChip(label: 'Confirmed', count: confirmed),
-                _StatusChip(label: 'Completed', count: completed),
-                _StatusChip(label: 'Cancelled', count: cancelled),
-              ],
-            ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _SummaryTile(
+            label: 'This week',
+            value: '$weekCount',
+            icon: CupertinoIcons.calendar,
+            tone: AdminTone.info,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _SummaryTile(
+            label: 'Upcoming',
+            value: '$upcoming',
+            icon: CupertinoIcons.time,
+            tone: AdminTone.success,
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildEmptyState(ThemeData theme) {
-    final hasFilters =
-        _searchController.text.isNotEmpty || _selectedStatus != null;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            CupertinoIcons.calendar,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: AppConstants.padM),
-          Text(
-            hasFilters ? 'No bookings match your filters' : 'No bookings yet',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: AppConstants.padS),
-          Text(
-            hasFilters
-                ? 'Try a different status or search term'
-                : 'Appointments across all salons will appear here',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.grey.shade500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+  Widget _buildEmptyState() {
+    final hasFilters = _query.isNotEmpty || _selectedStatus != null;
+    return AdminEmptyState(
+      icon: CupertinoIcons.calendar,
+      title: hasFilters ? 'No bookings match your filters' : 'No bookings yet',
+      message: hasFilters
+          ? 'Try a different status or search term.'
+          : 'Appointments across all salons will appear here.',
     );
   }
 
   Widget _buildBookingCard(
+    BuildContext context,
     AppointmentModel appointment,
-    ThemeData theme,
     AdminLoaded state,
   ) {
     final clientName = _clientName(appointment, state.users);
     final salonName = _salonName(appointment, state.salons);
     final services = _serviceNames(appointment, state.serviceNames);
-    final dateLabel =
-        DateFormat('EEE d MMM').format(appointment.startTime);
     final timeLabel = DateFormat('h:mm a').format(appointment.startTime);
 
-    return Card(
-      elevation: 0,
-      color: theme.colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+    return AdminCard(
+      onTap: () => _showBookingDetails(
+        appointment,
+        clientName,
+        salonName,
+        services,
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _showBookingDetails(
-          appointment,
-          clientName,
-          salonName,
-          services,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.padM),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      clientName,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  _buildStatusBadge(appointment.status),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                salonName,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _DateBadge(date: appointment.startTime),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  clientName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AdminTheme.body(context)
+                      .copyWith(fontWeight: FontWeight.w700, fontSize: 15),
                 ),
-                overflow: TextOverflow.ellipsis,
+                const SizedBox(height: 2),
+                Text(
+                  salonName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AdminTheme.body(context).copyWith(
+                    fontSize: 13,
+                    color: AdminTheme.textSecondary(context),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  services,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AdminTheme.caption(context),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      CupertinoIcons.clock,
+                      size: 13,
+                      color: AdminTheme.textSecondary(context),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(timeLabel, style: AdminTheme.caption(context)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              AdminPill(
+                label: _statusLabel(appointment.status),
+                tone: _statusTone(appointment.status),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 10),
               Text(
-                services,
-                style: theme.textTheme.bodySmall,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(
-                    CupertinoIcons.clock,
-                    size: 14,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      '$dateLabel · $timeLabel',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
-                  Text(
-                    AppFormatters.formatCurrency(appointment.totalPrice),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+                AppFormatters.formatCurrency(appointment.totalPrice),
+                style: AdminTheme.body(context)
+                    .copyWith(fontWeight: FontWeight.w700),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildStatusBadge(String status) {
-    final color = _statusColor(status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Color _statusColor(String status) {
+  AdminTone _statusTone(String status) {
     switch (status) {
       case AppointmentStatus.confirmed:
-        return AppColors.success;
+        return AdminTone.success;
       case AppointmentStatus.completed:
-        return AppColors.primary;
+        return AdminTone.primary;
       case AppointmentStatus.cancelled:
-        return Colors.grey;
+        return AdminTone.neutral;
       case AppointmentStatus.pendingPayment:
-        return Colors.orange;
+        return AdminTone.warning;
       case AppointmentStatus.noShow:
       case AppointmentStatus.paymentFailed:
-        return AppColors.error;
+        return AdminTone.danger;
       default:
-        return AppColors.accent2;
+        return AdminTone.info;
     }
   }
 
+  /// "no_show" / "pendingPayment" → "No show" / "Pending payment".
+  String _statusLabel(String status) {
+    final spaced = status
+        .replaceAll('_', ' ')
+        .replaceAllMapped(
+          RegExp(r'(?<=[a-z])(?=[A-Z])'),
+          (_) => ' ',
+        )
+        .toLowerCase()
+        .trim();
+    if (spaced.isEmpty) return status;
+    return spaced[0].toUpperCase() + spaced.substring(1);
+  }
+
   List<AppointmentModel> _filterAppointments(AdminLoaded state) {
-    final searchTerm = _searchController.text.trim().toLowerCase();
+    final searchTerm = _query.trim().toLowerCase();
     return state.appointments.where((appointment) {
       if (_selectedStatus != null && appointment.status != _selectedStatus) {
         return false;
@@ -543,12 +413,16 @@ class _AdminManageTransactionsScreenState
         DateFormat('EEEE d MMM y').format(appointment.startTime);
     final timeLabel = DateFormat('h:mm a').format(appointment.startTime);
 
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+    showAdminSheet<void>(
+      context,
+      builder: (sheetContext) {
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            4,
+            24,
+            24 + MediaQuery.paddingOf(sheetContext).bottom,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -558,23 +432,46 @@ class _AdminManageTransactionsScreenState
                   Expanded(
                     child: Text(
                       clientName,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: AdminTheme.title(sheetContext)
+                          .copyWith(fontSize: 20),
                     ),
                   ),
-                  _buildStatusBadge(appointment.status),
+                  AdminPill(
+                    label: _statusLabel(appointment.status),
+                    tone: _statusTone(appointment.status),
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
-              _detailRow('Salon', salonName),
-              _detailRow('Service', services),
-              _detailRow('Date', dateLabel),
-              _detailRow('Time', timeLabel),
-              _detailRow('Duration', '${appointment.durationMinutes} min'),
-              _detailRow(
-                'Total',
-                AppFormatters.formatCurrency(appointment.totalPrice),
+              const SizedBox(height: 20),
+              AdminInfoRow(
+                icon: CupertinoIcons.building_2_fill,
+                label: 'Salon',
+                value: salonName,
+              ),
+              AdminInfoRow(
+                icon: CupertinoIcons.scissors,
+                label: 'Service',
+                value: services,
+              ),
+              AdminInfoRow(
+                icon: CupertinoIcons.calendar,
+                label: 'Date',
+                value: dateLabel,
+              ),
+              AdminInfoRow(
+                icon: CupertinoIcons.clock,
+                label: 'Time',
+                value: timeLabel,
+              ),
+              AdminInfoRow(
+                icon: CupertinoIcons.hourglass,
+                label: 'Duration',
+                value: '${appointment.durationMinutes} min',
+              ),
+              AdminInfoRow(
+                icon: CupertinoIcons.money_dollar_circle,
+                label: 'Total',
+                value: AppFormatters.formatCurrency(appointment.totalPrice),
               ),
             ],
           ),
@@ -582,74 +479,44 @@ class _AdminManageTransactionsScreenState
       },
     );
   }
-
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-class _SummaryCard extends StatelessWidget {
+/// Compact KPI used in the summary row.
+class _SummaryTile extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
-  final Color color;
+  final AdminTone tone;
 
-  const _SummaryCard({
+  const _SummaryTile({
     required this.label,
     required this.value,
     required this.icon,
-    required this.color,
+    required this.tone,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
+    return AdminCard(
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
+          AdminIconTile(icon: icon, tone: tone, size: 32),
+          const SizedBox(height: 10),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: AdminTheme.title(context).copyWith(fontSize: 24),
             ),
           ),
           Text(
             label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AdminTheme.caption(context),
           ),
         ],
       ),
@@ -657,18 +524,42 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-class _StatusChip extends StatelessWidget {
-  final String label;
-  final int count;
-
-  const _StatusChip({required this.label, required this.count});
+/// Calendar-style day tile ("SEP / 20").
+class _DateBadge extends StatelessWidget {
+  final DateTime date;
+  const _DateBadge({required this.date});
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      visualDensity: VisualDensity.compact,
-      label: Text('$label $count'),
-      padding: EdgeInsets.zero,
+    final ink = AdminTheme.toneInk(context, AdminTone.primary);
+    return Container(
+      width: 54,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: AdminTheme.toneTint(context, AdminTone.primary),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            DateFormat('MMM').format(date).toUpperCase(),
+            style: AdminTheme.label(context).copyWith(color: ink),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${date.day}',
+            style: AdminTheme.title(context).copyWith(fontSize: 22, color: ink),
+          ),
+          Text(
+            DateFormat('EEE').format(date),
+            style: AdminTheme.caption(context).copyWith(
+              fontSize: 11,
+              color: ink.withValues(alpha: 0.8),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

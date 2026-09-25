@@ -4,21 +4,30 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
+import 'package:pendeza/app/config/theme/app_text_styles.dart';
+import 'package:pendeza/app/utils/business_hours_utils.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
 import 'package:pendeza/shared/utils/placeholder_images.dart';
 import 'package:pendeza/app/config/app_config.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
 
-// Import Auth and Favorites Blocs
+// Import Auth, Favorites and Reviews Blocs
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_bloc.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_state.dart';
 import 'package:pendeza/features/2_client_favorites/presentation/bloc/favorites_bloc.dart';
 import 'package:pendeza/features/2_client_favorites/presentation/bloc/favorites_state.dart';
 import 'package:pendeza/features/2_client_favorites/presentation/bloc/favorites_event.dart';
+import 'package:pendeza/features/3_reviews/presentation/bloc/reviews_bloc.dart';
+import 'package:pendeza/features/3_reviews/presentation/bloc/reviews_state.dart';
 
+/// Full-bleed photo header for the salon page: name, place, rating and
+/// open/closed status over the image, with the content sheet curving up
+/// underneath.
 class SalonHeroAppBar extends StatelessWidget {
   final SalonModel salon;
   final double scrollOffset;
+
+  static const double expandedHeight = 340;
 
   const SalonHeroAppBar({
     super.key,
@@ -32,10 +41,11 @@ class SalonHeroAppBar extends StatelessWidget {
     final String shareMessage =
         'Check out ${salon.salonName} on Pendeza! Book your appointment now.\n\n$deepLink';
 
-    // Using the standard static Share method to avoid object creation issues
-    Share.share(
-      shareMessage,
-      subject: 'Book ${salon.salonName} on Pendeza',
+    SharePlus.instance.share(
+      ShareParams(
+        text: shareMessage,
+        subject: 'Book ${salon.salonName} on Pendeza',
+      ),
     );
   }
 
@@ -66,76 +76,41 @@ class SalonHeroAppBar extends StatelessWidget {
     );
   }
 
-  // Safe check for business hours
-  bool _isSalonOpen() {
-    if (salon.openingTime == null || salon.closingTime == null) return false;
-
-    try {
-      final now = DateTime.now();
-
-      // Parse "HH:mm" strings safely
-      final openParts = salon.openingTime!.split(':');
-      final closeParts = salon.closingTime!.split(':');
-
-      if (openParts.length != 2 || closeParts.length != 2) return false;
-
-      final openTime = DateTime(
-          now.year, now.month, now.day,
-          int.parse(openParts[0]), int.parse(openParts[1])
-      );
-
-      final closeTime = DateTime(
-          now.year, now.month, now.day,
-          int.parse(closeParts[0]), int.parse(closeParts[1])
-      );
-
-      return now.isAfter(openTime) && now.isBefore(closeTime);
-    } catch (e) {
-      return false;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final cs = Theme.of(context).colorScheme;
 
-    // Calculate opacity for the background/title
-    final double opacity = (scrollOffset / 150).clamp(0.0, 1.0);
+    // 0 while the photo is showing, 1 once the bar has collapsed.
+    final double collapsed =
+        ((scrollOffset - (expandedHeight - 160)) / 90).clamp(0.0, 1.0);
+    final bool isCollapsed = collapsed > 0.6;
+    final Color iconColor = isCollapsed ? cs.onSurface : Colors.white;
 
-    // Dynamic text color based on scroll
-    final Color iconColor = opacity > 0.6
-        ? theme.colorScheme.onSurface
-        : Colors.white;
-
-    // Check if image exists and is not empty to prevent "String?" errors
-    // We assume primaryImage might be nullable (String?) in your model
     final String? imageUrl = salon.primaryImage;
     final bool hasImage = imageUrl != null && imageUrl.isNotEmpty;
 
     return SliverAppBar(
-      expandedHeight: 280,
+      expandedHeight: expandedHeight,
       pinned: true,
       stretch: true,
-      backgroundColor: theme.scaffoldBackgroundColor,
-      elevation: opacity > 0.8 ? 2 : 0,
-      leading: _buildGlassButton(
-        context,
+      backgroundColor: ClientTheme.background(context),
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      leadingWidth: 60,
+      leading: _GlassButton(
         icon: CupertinoIcons.back,
         onTap: () => context.pop(),
-        opacity: opacity,
+        collapsed: isCollapsed,
         iconColor: iconColor,
       ),
       actions: [
-        // Share Button
-        _buildGlassButton(
-          context,
+        _GlassButton(
           icon: CupertinoIcons.share_up,
           onTap: () => _shareSalon(context),
-          opacity: opacity,
+          collapsed: isCollapsed,
           iconColor: iconColor,
         ),
-        const SizedBox(width: 8),
-
         // Favorite Button (Connected to Bloc)
         BlocBuilder<FavoritesBloc, FavoritesState>(
           builder: (context, state) {
@@ -147,16 +122,15 @@ class SalonHeroAppBar extends StatelessWidget {
               isFavorited = state.isFavorited;
             }
 
-            return _buildGlassButton(
-              context,
+            return _GlassButton(
               icon: isFavorited ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
-              iconColor: isFavorited ? Colors.red : iconColor,
+              iconColor: isFavorited ? const Color(0xFFFF6B6B) : iconColor,
               onTap: () => _toggleFavorite(context),
-              opacity: opacity,
+              collapsed: isCollapsed,
             );
           },
         ),
-        const SizedBox(width: AppConstants.padM),
+        const SizedBox(width: 8),
       ],
       flexibleSpace: FlexibleSpaceBar(
         stretchModes: const [
@@ -164,17 +138,21 @@ class SalonHeroAppBar extends StatelessWidget {
           StretchMode.blurBackground,
         ],
         title: Opacity(
-          opacity: opacity,
+          opacity: collapsed,
           child: Text(
             salon.salonName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: theme.colorScheme.onSurface,
-              fontWeight: FontWeight.bold,
+              fontFamily: AppTextStyles.fontFamily,
+              color: cs.onSurface,
+              fontWeight: FontWeight.w700,
               fontSize: 16,
             ),
           ),
         ),
         centerTitle: true,
+        titlePadding: const EdgeInsets.only(bottom: 14, left: 64, right: 110),
         background: Stack(
           fit: StackFit.expand,
           children: [
@@ -187,128 +165,256 @@ class SalonHeroAppBar extends StatelessWidget {
                     : PlaceholderImages.forSalon(salon.id),
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
-                  color: theme.colorScheme.surfaceContainerHighest,
+                  color: cs.surfaceContainerHighest,
                 ),
                 errorWidget: (context, url, error) => CachedNetworkImage(
                   imageUrl: PlaceholderImages.forSalon(salon.id),
                   fit: BoxFit.cover,
                   errorWidget: (context, url, error) => Container(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    child: const Icon(Icons.broken_image, size: 40),
+                    color: cs.surfaceContainerHighest,
+                    child: const Icon(CupertinoIcons.photo, size: 40),
                   ),
                 ),
               ),
             ),
 
-            // 2. GRADIENT OVERLAY
+            // 2. SCRIM
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.4),
+                    Colors.black.withValues(alpha: 0.45),
                     Colors.transparent,
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.7),
+                    Colors.black.withValues(alpha: 0.30),
+                    Colors.black.withValues(alpha: 0.82),
                   ],
-                  stops: const [0.0, 0.3, 0.6, 1.0],
+                  stops: const [0.0, 0.28, 0.55, 1.0],
                 ),
               ),
             ),
 
-            // 3. STATUS BADGE (Open/Closed)
+            // 3. IDENTITY (name, place, rating, status)
             Positioned(
-              bottom: 16,
-              left: 16,
-              child: _buildStatusBadge(context),
+              left: 20,
+              right: 20,
+              bottom: 44,
+              child: Opacity(
+                opacity: (1 - collapsed * 1.6).clamp(0.0, 1.0),
+                child: _Identity(salon: salon),
+              ),
+            ),
+
+            // 4. Content sheet curving up over the photo.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: -1,
+              height: 28,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: ClientTheme.background(context),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(30)),
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildStatusBadge(BuildContext context) {
-    // Check if hours are set
-    if (salon.openingTime == null || salon.closingTime == null) {
-      return const SizedBox.shrink();
-    }
+class _Identity extends StatelessWidget {
+  final SalonModel salon;
+  const _Identity({required this.salon});
 
-    final isOpen = _isSalonOpen();
+  @override
+  Widget build(BuildContext context) {
+    final status = BusinessHoursUtils.getStatus(
+      openingTime: salon.openingTime,
+      closingTime: salon.closingTime,
+    );
+    final hasStatus = status != SalonStatus.unknown;
+    final statusColor = BusinessHoursUtils.getStatusColor(status);
 
-    final theme = Theme.of(context);
-    final badgeColor =
-        isOpen ? theme.colorScheme.primary : theme.colorScheme.error;
-    final onBadge =
-        isOpen ? theme.colorScheme.onPrimary : theme.colorScheme.onError;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: badgeColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.shadow.withValues(alpha: 0.2),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.15,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (hasStatus)
+                _StatusChip(
+                  color: statusColor,
+                  label: BusinessHoursUtils.getStatusText(
+                    openingTime: salon.openingTime,
+                    closingTime: salon.closingTime,
+                  ),
+                ),
+              BlocBuilder<ReviewsBloc, ReviewsState>(
+                builder: (context, state) {
+                  if (state is! ReviewsLoaded || state.totalReviews == 0) {
+                    return const SizedBox.shrink();
+                  }
+                  return ClientPill(
+                    label:
+                        '${state.averageRating.toStringAsFixed(1)} (${state.totalReviews})',
+                    color: const Color(0xFFF5A623),
+                    icon: CupertinoIcons.star_fill,
+                    onDark: true,
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  salon.salonName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: AppTextStyles.fontFamily,
+                    fontSize: 27,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
+                    letterSpacing: -0.4,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              if (salon.isApproved) ...[
+                const SizedBox(width: 8),
+                const Icon(
+                  CupertinoIcons.checkmark_seal_fill,
+                  size: 20,
+                  color: Color(0xFF8FE3C9),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                CupertinoIcons.location_solid,
+                size: 13,
+                color: Colors.white.withValues(alpha: 0.85),
+              ),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  salon.district ?? salon.address,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppTextStyles.fontFamily,
+                    fontSize: 13.5,
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _StatusChip({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isOpen ? Icons.check_circle : Icons.access_time_filled,
-            color: onBadge,
-            size: 14,
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 6),
+              ],
+            ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 7),
           Text(
-            isOpen ? 'Open Now' : 'Closed',
-            style: TextStyle(
-              color: onBadge,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
+            label,
+            style: const TextStyle(
+              fontFamily: AppTextStyles.fontFamily,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildGlassButton(
-      BuildContext context, {
-        required IconData icon,
-        required VoidCallback onTap,
-        double opacity = 0.0,
-        Color? iconColor,
-      }) {
-    // If scrolled (opacity > 0.8), use standard transparent/flat look
-    // If expanded (opacity < 0.8), use glassmorphism
-    final isScrolled = opacity > 0.8;
+/// Round icon button: translucent over the photo, card-coloured once the
+/// bar has collapsed.
+class _GlassButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool collapsed;
+  final Color? iconColor;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: isScrolled
-            ? Colors.transparent
-            : Colors.black.withValues(alpha: 0.2),
-        shape: BoxShape.circle,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Icon(
-              icon,
-              size: 22,
-              color: iconColor ?? Colors.white,
+  const _GlassButton({
+    required this.icon,
+    required this.onTap,
+    required this.collapsed,
+    this.iconColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Material(
+          color: collapsed
+              ? Colors.transparent
+              : Colors.black.withValues(alpha: 0.30),
+          shape: CircleBorder(
+            side: BorderSide(
+              color: collapsed
+                  ? Colors.transparent
+                  : Colors.white.withValues(alpha: 0.25),
+            ),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: Icon(icon, size: 21, color: iconColor ?? cs.onSurface),
             ),
           ),
         ),

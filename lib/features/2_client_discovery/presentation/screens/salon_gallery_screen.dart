@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -8,7 +9,7 @@ import 'package:pendeza/app/config/theme/app_constants.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
 import 'package:pendeza/shared/models/salon_video_model.dart';
 import 'package:pendeza/shared/widgets/loading_indicator.dart';
-import 'package:pendeza/shared/widgets/empty_state_widget.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
 import 'package:pendeza/features/video_shorts/presentation/screens/video_viewer_screen.dart';
 
 class SalonGalleryScreen extends StatefulWidget {
@@ -59,54 +60,53 @@ class _SalonGalleryScreenState extends State<SalonGalleryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final images = widget.salon.allImages;
+    final videoCount = _videos?.length ?? 0;
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(widget.salon.salonName),
-          bottom: TabBar(
-            indicatorColor: theme.colorScheme.primary,
-            labelColor: theme.colorScheme.primary,
-            unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-            labelStyle: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-            tabs: [
-              Tab(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(CupertinoIcons.photo, size: 18),
-                    const SizedBox(width: 6),
-                    Text('Photos${images.isNotEmpty ? ' (${images.length})' : ''}'),
+        backgroundColor: ClientTheme.background(context),
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              ClientPageHeader(title: widget.salon.salonName),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  ClientTheme.gutter,
+                  14,
+                  ClientTheme.gutter,
+                  0,
+                ),
+                child: ClientSegmentedTabs(
+                  labels: [
+                    '${'client.salon_details.photos'.tr()}${images.isNotEmpty ? ' (${images.length})' : ''}',
+                    '${'client.salon_details.videos'.tr()}${videoCount > 0 ? ' ($videoCount)' : ''}',
                   ],
                 ),
               ),
-              Tab(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              Expanded(
+                child: TabBarView(
                   children: [
-                    const Icon(CupertinoIcons.play_rectangle, size: 18),
-                    const SizedBox(width: 6),
-                    Text('Videos${_videos != null && _videos!.isNotEmpty ? ' (${_videos!.length})' : ''}'),
+                    _buildPhotoGrid(context, images),
+                    _buildVideoGrid(context),
                   ],
                 ),
               ),
             ],
           ),
         ),
-        body: TabBarView(
-          children: [
-            _buildPhotoGrid(context, images),
-            _buildVideoGrid(context),
-          ],
-        ),
       ),
     );
   }
+
+  EdgeInsets _gridPadding(BuildContext context) => EdgeInsets.fromLTRB(
+        ClientTheme.gutter,
+        16,
+        ClientTheme.gutter,
+        24 + MediaQuery.paddingOf(context).bottom,
+      );
 
   // ═══════════════════════════════════════════════════════════════════════════
   // PHOTOS TAB
@@ -114,18 +114,19 @@ class _SalonGalleryScreenState extends State<SalonGalleryScreen> {
 
   Widget _buildPhotoGrid(BuildContext context, List<String> images) {
     if (images.isEmpty) {
-      return const EmptyStateWidget.notFound(
-        message: 'No photos available for this salon.',
-        iconData: CupertinoIcons.photo,
+      return ClientEmptyState(
+        icon: CupertinoIcons.photo_fill,
+        title: 'client.salon_details.no_photos'.tr(),
       );
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(AppConstants.padS),
+      padding: _gridPadding(context),
+      physics: const BouncingScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: 3,
-        mainAxisSpacing: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
         childAspectRatio: 1.0,
       ),
       itemCount: images.length,
@@ -135,15 +136,18 @@ class _SalonGalleryScreenState extends State<SalonGalleryScreen> {
           child: Hero(
             tag: 'gallery_full_$index',
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppConstants.radiusValXS),
+              borderRadius: BorderRadius.circular(16),
               child: CachedNetworkImage(
                 imageUrl: images[index],
                 fit: BoxFit.cover,
                 placeholder: (context, url) =>
                     const ShimmerPlaceholder.rectangular(height: double.infinity),
                 errorWidget: (context, url, error) => Container(
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.broken_image, color: Colors.grey),
+                  color: ClientTheme.inset(context),
+                  child: Icon(
+                    CupertinoIcons.photo,
+                    color: ClientTheme.textSecondary(context),
+                  ),
                 ),
               ),
             ),
@@ -175,33 +179,37 @@ class _SalonGalleryScreenState extends State<SalonGalleryScreen> {
     }
 
     if (_videoError != null) {
-      return EmptyStateWidget.error(
-        message: 'Could not load videos. Please try again.',
-        onActionPressed: () {
+      return ClientEmptyState(
+        icon: CupertinoIcons.exclamationmark_triangle_fill,
+        title: 'client.salon_details.videos_error'.tr(),
+        actionLabel: 'common.retry'.tr(),
+        onAction: () {
           setState(() {
             _isLoadingVideos = true;
             _videoError = null;
           });
           _fetchVideos();
         },
+        color: const Color(0xFFF5A623),
       );
     }
 
     final videos = _videos ?? [];
 
     if (videos.isEmpty) {
-      return const EmptyStateWidget.notFound(
-        message: 'No videos available for this salon yet.',
-        iconData: CupertinoIcons.video_camera,
+      return ClientEmptyState(
+        icon: CupertinoIcons.videocam_fill,
+        title: 'client.salon_details.no_videos'.tr(),
       );
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(AppConstants.padS),
+      padding: _gridPadding(context),
+      physics: const BouncingScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: 3,
-        mainAxisSpacing: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
         childAspectRatio: 9 / 16,
       ),
       itemCount: videos.length,
@@ -216,17 +224,18 @@ class _SalonGalleryScreenState extends State<SalonGalleryScreen> {
 
   Widget _buildVideoLoadingShimmer(BuildContext context) {
     return GridView.builder(
-      padding: const EdgeInsets.all(AppConstants.padS),
+      padding: _gridPadding(context),
+      physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: 3,
-        mainAxisSpacing: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
         childAspectRatio: 9 / 16,
       ),
       itemCount: 6,
       itemBuilder: (context, index) {
         return ClipRRect(
-          borderRadius: BorderRadius.circular(AppConstants.radiusValS),
+          borderRadius: BorderRadius.circular(16),
           child: const ShimmerPlaceholder.rectangular(height: double.infinity),
         );
       },

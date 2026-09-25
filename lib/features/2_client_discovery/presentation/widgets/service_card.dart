@@ -1,18 +1,28 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
+import 'package:pendeza/app/config/theme/app_colors.dart';
+import 'package:pendeza/app/config/theme/app_text_styles.dart';
 import 'package:pendeza/app/utils/formatters.dart';
 import 'package:pendeza/shared/models/service_model.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
+import 'package:pendeza/shared/widgets/service_category_icon.dart';
+
+const Color _kDiscount = Color(0xFFEF4444);
+const Color _kPopular = Color(0xFFF5A623);
+
+Color _priceColor(BuildContext context, {required bool discounted}) {
+  if (discounted) return _kDiscount;
+  return ClientTheme.isDark(context)
+      ? Theme.of(context).colorScheme.primary
+      : AppColors.primaryDark;
+}
 
 /// Vertical service card for category lists.
 ///
-/// Displays:
-/// - Service image or category icon (56x56)
-/// - Name with "Popular" badge if `isPopular`
-/// - Duration with clock icon
-/// - Price with discount strikethrough if `hasDiscount`
-/// - Selection state styling
+/// Shows the image (or a tinted category icon), name with a "Popular" badge,
+/// duration, price with a discount strike-through, and a selected state.
 class ServiceCard extends StatelessWidget {
   final ServiceModel service;
   final bool isSelected;
@@ -27,264 +37,196 @@ class ServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isSelected
-            ? theme.colorScheme.primary.withValues(alpha: 0.08)
-            : theme.colorScheme.surface,
-        borderRadius: AppConstants.radiusM,
-        border: Border.all(
-          color: isSelected
-              ? theme.colorScheme.primary
-              : theme.colorScheme.outline.withValues(alpha: 0.15),
-          width: isSelected ? 2 : 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return ClientCard(
+      onTap: onTap,
+      radius: 22,
+      padding: const EdgeInsets.all(12),
+      color: isSelected ? ClientTheme.tinted(context, AppColors.primary) : null,
+      borderColor: isSelected ? AppColors.primary : null,
+      child: Row(
+        children: [
+          _ServiceThumb(service: service),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  service.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: ClientTheme.body(context).copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: ClientTheme.textPrimary(context),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          CupertinoIcons.time,
+                          size: 13,
+                          color: ClientTheme.textSecondary(context),
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            '${service.durationMinutes} ${'common.min'.tr()}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: ClientTheme.caption(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (service.isPopular)
+                      ClientPill(
+                        label: 'client.salon_details.popular'.tr(),
+                        color: _kPopular,
+                        icon: CupertinoIcons.flame_fill,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (service.hasDiscount)
+                Text(
+                  AppFormatters.formatCurrency(service.price),
+                  style: ClientTheme.caption(context).copyWith(
+                    decoration: TextDecoration.lineThrough,
+                    fontSize: 11,
+                  ),
+                ),
+              Text(
+                AppFormatters.formatCurrency(service.effectivePrice),
+                style: TextStyle(
+                  fontFamily: AppTextStyles.fontFamily,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: _priceColor(context, discounted: service.hasDiscount),
+                ),
+              ),
+              const SizedBox(height: 6),
+              if (isSelected)
+                const Icon(
+                  CupertinoIcons.checkmark_circle_fill,
+                  color: AppColors.primary,
+                  size: 24,
+                )
+              else if (onTap != null)
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    CupertinoIcons.chevron_right,
+                    size: 12,
+                    color: ClientTheme.isDark(context)
+                        ? Theme.of(context).colorScheme.primary
+                        : AppColors.primaryDark,
+                  ),
+                ),
+            ],
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: AppConstants.radiusM,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: AppConstants.radiusM,
-          child: Padding(
-            padding: const EdgeInsets.all(AppConstants.padM),
-            child: Row(
-              children: [
-                // Service Image/Icon
-                _buildServiceImage(context),
-                const SizedBox(width: AppConstants.padM),
-
-                // Service Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Name + Popular Badge
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              service.name,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: theme.colorScheme.onSurface,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (service.isPopular) ...[
-                            const SizedBox(width: 6),
-                            _buildBadge(
-                              context,
-                              'Popular',
-                              Colors.orange,
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-
-                      // Duration
-                      Row(
-                        children: [
-                          Icon(
-                            CupertinoIcons.time,
-                            size: 14,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${service.durationMinutes} min',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: AppConstants.padS),
-
-                // Price
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (service.hasDiscount) ...[
-                      Text(
-                        AppFormatters.formatCurrency(service.price),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          decoration: TextDecoration.lineThrough,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                    ],
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: service.hasDiscount
-                            ? Colors.red.withValues(alpha: 0.1)
-                            : theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: AppConstants.radiusS,
-                      ),
-                      child: Text(
-                        AppFormatters.formatCurrency(service.effectivePrice),
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: service.hasDiscount
-                              ? Colors.red
-                              : theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Selection Indicator
-                if (isSelected) ...[
-                  const SizedBox(width: AppConstants.padS),
-                  Icon(
-                    CupertinoIcons.checkmark_circle_fill,
-                    color: theme.colorScheme.primary,
-                    size: 24,
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
     );
-  }
-
-  Widget _buildServiceImage(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Stack(
-      children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                theme.colorScheme.primary.withValues(alpha: 0.12),
-                theme.colorScheme.secondary.withValues(alpha: 0.12),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: theme.colorScheme.primary.withValues(alpha: 0.2),
-            ),
-          ),
-          child: service.imageUrl != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(13),
-                  child: CachedNetworkImage(
-                    imageUrl: service.imageUrl!,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: theme.colorScheme.surfaceContainerHighest,
-                    ),
-                    errorWidget: (context, url, error) => Icon(
-                      _getCategoryIcon(service.category),
-                      color: theme.colorScheme.primary,
-                      size: 26,
-                    ),
-                  ),
-                )
-              : Icon(
-                  _getCategoryIcon(service.category),
-                  color: theme.colorScheme.primary,
-                  size: 26,
-                ),
-        ),
-        // Discount badge
-        if (service.hasDiscount)
-          Positioned(
-            top: -4,
-            right: -4,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                '-${service.discountPercentage.toInt()}%',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 8,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildBadge(BuildContext context, String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
-      ),
-    );
-  }
-
-  IconData _getCategoryIcon(String category) {
-    final cat = category.toLowerCase();
-    if (cat.contains('hair')) return CupertinoIcons.scissors;
-    if (cat.contains('nail')) return Icons.back_hand_outlined;
-    if (cat.contains('massage')) return Icons.spa;
-    if (cat.contains('skin') || cat.contains('facial')) return Icons.face;
-    if (cat.contains('makeup') || cat.contains('beauty')) return Icons.brush;
-    if (cat.contains('braid') || cat.contains('extension')) return Icons.person;
-    if (cat.contains('lash') || cat.contains('brow')) return Icons.remove_red_eye;
-    if (cat.contains('men') || cat.contains('groom')) return Icons.content_cut;
-    if (cat.contains('body') || cat.contains('spa')) return Icons.spa;
-    if (cat.contains('tattoo') || cat.contains('piercing')) return Icons.edit;
-    if (cat.contains('medical')) return Icons.medical_services;
-    return CupertinoIcons.scissors;
   }
 }
 
-/// Horizontal featured service card for carousel display.
+class _ServiceThumb extends StatelessWidget {
+  final ServiceModel service;
+
+  const _ServiceThumb({required this.service});
+
+  @override
+  Widget build(BuildContext context) {
+    final tone = ClientPalette.forKey(service.category);
+    final dark = ClientTheme.isDark(context);
+    final fallback = Center(
+      child: Icon(
+        serviceCategoryIcon(service.category),
+        size: 26,
+        color: dark ? Color.lerp(tone, Colors.white, 0.25) : tone,
+      ),
+    );
+
+    return SizedBox(
+      width: 64,
+      height: 64,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: tone.withValues(alpha: dark ? 0.2 : 0.12),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: service.imageUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: service.imageUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => fallback,
+                      errorWidget: (context, url, error) => fallback,
+                    )
+                  : fallback,
+            ),
+          ),
+          if (service.hasDiscount)
+            Positioned(
+              top: -5,
+              right: -5,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _kDiscount,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: ClientTheme.card(context), width: 2),
+                ),
+                child: Text(
+                  '-${service.discountPercentage.toInt()}%',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Horizontal featured service card for the carousel.
 ///
-/// Fixed 180px width for horizontal scroll with:
-/// - Hero image area (100px height)
-/// - "Featured" or "Popular" badge overlay
-/// - Compact name, duration, price
+/// Fixed 176 x 214: image area with a "Featured"/"Popular" badge, then name,
+/// duration and price.
 class FeaturedServiceCard extends StatelessWidget {
   final ServiceModel service;
   final VoidCallback? onTap;
+
+  static const double width = 176;
+  static const double height = 214;
 
   const FeaturedServiceCard({
     super.key,
@@ -294,170 +236,156 @@ class FeaturedServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tone = ClientPalette.forKey(service.category);
+    final dark = ClientTheme.isDark(context);
 
-    return Container(
-      width: 180,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: AppConstants.radiusL,
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: AppConstants.radiusL,
-        child: InkWell(
+    return SizedBox(
+      width: width,
+      height: height,
+      child: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 1.15,
+        child: ClientCard(
           onTap: onTap,
-          borderRadius: AppConstants.radiusL,
+          radius: 24,
+          padding: EdgeInsets.zero,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              // Hero Image Area
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(AppConstants.radiusValL),
-                    ),
-                    child: SizedBox(
-                      height: 100,
-                      width: double.infinity,
+              SizedBox(
+                height: 104,
+                width: double.infinity,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            tone.withValues(alpha: dark ? 0.35 : 0.22),
+                            tone.withValues(alpha: dark ? 0.15 : 0.08),
+                          ],
+                        ),
+                      ),
                       child: service.imageUrl != null
                           ? CachedNetworkImage(
                               imageUrl: service.imageUrl!,
                               fit: BoxFit.cover,
-                              placeholder: (context, url) => Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      theme.colorScheme.primary
-                                          .withValues(alpha: 0.1),
-                                      theme.colorScheme.secondary
-                                          .withValues(alpha: 0.1),
-                                    ],
-                                  ),
-                                ),
-                                child: Icon(
-                                  _getCategoryIcon(service.category),
-                                  size: 32,
-                                  color: theme.colorScheme.primary
-                                      .withValues(alpha: 0.5),
-                                ),
-                              ),
+                              placeholder: (context, url) =>
+                                  _placeholder(tone, dark),
                               errorWidget: (context, url, error) =>
-                                  _buildPlaceholder(context),
+                                  _placeholder(tone, dark),
                             )
-                          : _buildPlaceholder(context),
+                          : _placeholder(tone, dark),
                     ),
-                  ),
-
-                  // Badge Overlay
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: _buildOverlayBadge(context),
-                  ),
-
-                  // Discount Badge
-                  if (service.hasDiscount)
                     Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '-${service.discountPercentage.toInt()}%',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                      top: 10,
+                      left: 10,
+                      child: _overlayBadge(),
+                    ),
+                    if (service.hasDiscount)
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
                           ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-
-              // Content Area
-              Padding(
-                padding: const EdgeInsets.all(AppConstants.padS),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Service Name
-                    Text(
-                      service.name,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-
-                    // Duration
-                    Row(
-                      children: [
-                        Icon(
-                          CupertinoIcons.time,
-                          size: 12,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${service.durationMinutes} min',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontSize: 11,
+                          decoration: BoxDecoration(
+                            color: _kDiscount,
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Price Row
-                    Row(
-                      children: [
-                        if (service.hasDiscount) ...[
-                          Text(
-                            AppFormatters.formatCurrency(service.price),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              decoration: TextDecoration.lineThrough,
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontSize: 11,
+                          child: Text(
+                            '-${service.discountPercentage.toInt()}%',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(width: 6),
-                        ],
-                        Text(
-                          AppFormatters.formatCurrency(service.effectivePrice),
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: service.hasDiscount
-                                ? Colors.red
-                                : theme.colorScheme.primary,
-                          ),
                         ),
-                      ],
-                    ),
+                      ),
                   ],
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        service.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: ClientTheme.body(context).copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: ClientTheme.textPrimary(context),
+                          height: 1.25,
+                        ),
+                      ),
+                      const Spacer(),
+                      Row(
+                        children: [
+                          Icon(
+                            CupertinoIcons.time,
+                            size: 12,
+                            color: ClientTheme.textSecondary(context),
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              '${service.durationMinutes} ${'common.min'.tr()}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: ClientTheme.caption(context)
+                                  .copyWith(fontSize: 11),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              AppFormatters.formatCurrency(
+                                  service.effectivePrice),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: AppTextStyles.fontFamily,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: _priceColor(
+                                  context,
+                                  discounted: service.hasDiscount,
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (service.hasDiscount) ...[
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                AppFormatters.formatCurrency(service.price),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: ClientTheme.caption(context).copyWith(
+                                  decoration: TextDecoration.lineThrough,
+                                  fontSize: 10.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -467,43 +395,29 @@ class FeaturedServiceCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholder(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.primary.withValues(alpha: 0.15),
-            theme.colorScheme.secondary.withValues(alpha: 0.15),
-          ],
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          _getCategoryIcon(service.category),
-          size: 36,
-          color: theme.colorScheme.primary.withValues(alpha: 0.6),
-        ),
+  Widget _placeholder(Color tone, bool dark) {
+    return Center(
+      child: Icon(
+        serviceCategoryIcon(service.category),
+        size: 36,
+        color: dark ? Color.lerp(tone, Colors.white, 0.3) : tone,
       ),
     );
   }
 
-  Widget _buildOverlayBadge(BuildContext context) {
-    final isFeatured = service.isFeatured;
-    final color = isFeatured ? Colors.purple : Colors.orange;
-    final text = isFeatured ? 'Featured' : 'Popular';
+  Widget _overlayBadge() {
+    final featured = service.isFeatured;
+    final color = featured ? AppColors.primary : _kPopular;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(100),
         boxShadow: [
           BoxShadow(
             color: color.withValues(alpha: 0.4),
-            blurRadius: 4,
+            blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],
@@ -512,37 +426,23 @@ class FeaturedServiceCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            isFeatured ? CupertinoIcons.star_fill : CupertinoIcons.flame_fill,
+            featured ? CupertinoIcons.star_fill : CupertinoIcons.flame_fill,
             size: 10,
             color: Colors.white,
           ),
           const SizedBox(width: 4),
           Text(
-            text,
+            featured
+                ? 'client.salon_details.featured'.tr()
+                : 'client.salon_details.popular'.tr(),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 10,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
       ),
     );
-  }
-
-  IconData _getCategoryIcon(String category) {
-    final cat = category.toLowerCase();
-    if (cat.contains('hair')) return CupertinoIcons.scissors;
-    if (cat.contains('nail')) return Icons.back_hand_outlined;
-    if (cat.contains('massage')) return Icons.spa;
-    if (cat.contains('skin') || cat.contains('facial')) return Icons.face;
-    if (cat.contains('makeup') || cat.contains('beauty')) return Icons.brush;
-    if (cat.contains('braid') || cat.contains('extension')) return Icons.person;
-    if (cat.contains('lash') || cat.contains('brow')) return Icons.remove_red_eye;
-    if (cat.contains('men') || cat.contains('groom')) return Icons.content_cut;
-    if (cat.contains('body') || cat.contains('spa')) return Icons.spa;
-    if (cat.contains('tattoo') || cat.contains('piercing')) return Icons.edit;
-    if (cat.contains('medical')) return Icons.medical_services;
-    return CupertinoIcons.scissors;
   }
 }

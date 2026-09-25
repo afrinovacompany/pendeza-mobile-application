@@ -1,11 +1,14 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import '../../../../app/config/theme/app_constants.dart';
-import '../../../../app/utils/formatters.dart';
-import '../../../../shared/models/service_model.dart';
-import '../../../../shared/widgets/custom_card.dart';
 
-/// A card widget for displaying a selectable service item.
+import '../../../../app/config/theme/app_colors.dart';
+import '../../../../shared/models/service_model.dart';
+import '../../../../shared/widgets/client_ui.dart';
+import 'service_price.dart';
+
+/// Selectable service row of the booking flow: check mark, name, description,
+/// duration and price.
 class ServiceSelectionCard extends StatelessWidget {
   final ServiceModel service;
   final bool isSelected;
@@ -20,84 +23,128 @@ class ServiceSelectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    // Determine colors based on selection state using theme colors
-    final borderColor = isSelected ? colorScheme.primary : Colors.transparent;
-    final backgroundColor =
-    isSelected ? colorScheme.primary.withValues(alpha: 0.05) : theme.cardColor;
-    final iconColor = isSelected
-        ? colorScheme.primary
-        : colorScheme.onSurface.withValues(alpha: 0.4);
-    final titleStyle = theme.textTheme.titleMedium?.copyWith(
-      fontWeight: FontWeight.bold,
-      // Slightly dim title if not selected
-      color: isSelected ? colorScheme.onSurface : colorScheme.onSurface.withValues(alpha: 0.8),
-    );
-    final detailsColor = colorScheme.onSurface.withValues(alpha: 0.7);
+    final isDark = ClientTheme.isDark(context);
+    final cs = Theme.of(context).colorScheme;
 
-    return CustomCard(
-      onTap: onTap,
-      color: backgroundColor,
-      padding: EdgeInsets.zero, // Remove default card padding
-      child: Container(
-        // Use container border for selection indicator
-        decoration: BoxDecoration(
-          border: Border(left: BorderSide(color: borderColor, width: 4.0)),
-          borderRadius: AppConstants.radiusL, // Match card radius if needed visually
-        ),
-        padding: const EdgeInsets.symmetric(
-            vertical: AppConstants.padM, horizontal: AppConstants.padL), // Adjusted padding
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: service.name,
+      child: ClientCard(
+        onTap: onTap,
+        radius: 22,
+        padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
+        color: isSelected
+            ? ClientTheme.tinted(context, AppColors.primary,
+                light: 0.06, dark: 0.18)
+            : null,
+        borderColor: isSelected ? AppColors.primary : null,
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center, // Center vertically
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Selection icon
-            Icon(
-              isSelected
-                  ? CupertinoIcons.check_mark_circled_solid
-                  : CupertinoIcons.circle,
-              color: iconColor,
-              size: 28,
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: _SelectMark(isSelected: isSelected),
             ),
-            const SizedBox(width: AppConstants.padL),
-            // Service details
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     service.name,
-                    style: titleStyle,
-                    maxLines: 2, // Allow title to wrap
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: AppConstants.padXXS),
-                  // Show duration and price clearly
-                  // FIXED: Changed from â€¢ to • (proper bullet)
-                  Text(
-                    '${service.durationMinutes} min • ${AppFormatters.formatCurrency(service.price)}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: detailsColor,
-                      fontWeight: FontWeight.w500, // Make details slightly bolder
+                    style: ClientTheme.body(context).copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: ClientTheme.textPrimary(context),
                     ),
                   ),
-                  // Show description if available
-                  if (service.description.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppConstants.padXXS), // Add space
-                      child: Text(
-                        service.description,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: detailsColor.withValues(alpha: 0.8), // Slightly dimmer description
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                  if (service.description.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      service.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: ClientTheme.caption(context),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        CupertinoIcons.time,
+                        size: 13,
+                        color: isSelected
+                            ? (isDark ? cs.primary : AppColors.primaryDark)
+                            : ClientTheme.textSecondary(context),
                       ),
-                    ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          '${service.durationMinutes} ${'common.min'.tr()}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: ClientTheme.caption(context).copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
+            const SizedBox(width: 10),
+            ServicePrice(service: service),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectMark extends StatelessWidget {
+  final bool isSelected;
+
+  const _SelectMark({required this.isSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      width: 26,
+      height: 26,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: isSelected ? AppColors.primaryGradient : null,
+        border: isSelected
+            ? null
+            : Border.all(
+                color: ClientTheme.textSecondary(context).withValues(alpha: 0.5),
+                width: 2,
+              ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                  spreadRadius: -3,
+                ),
+              ]
+            : null,
+      ),
+      child: AnimatedScale(
+        scale: isSelected ? 1 : 0,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutBack,
+        child: const Icon(
+          CupertinoIcons.checkmark_alt,
+          size: 16,
+          color: Colors.white,
         ),
       ),
     );

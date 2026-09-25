@@ -204,38 +204,44 @@ class RatingDistributionChart extends StatelessWidget {
   Widget build(BuildContext context) {
     if (totalReviews == 0) return const SizedBox.shrink();
 
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    final track = theme.colorScheme.onSurface.withValues(alpha: dark ? 0.14 : 0.08);
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(
+      fontWeight: FontWeight.w600,
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+    );
+
     return Column(
       children: [5, 4, 3, 2, 1].map((star) {
         final count = distribution[star] ?? 0;
         final percentage = totalReviews > 0 ? count / totalReviews : 0.0;
 
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
+          padding: const EdgeInsets.symmetric(vertical: 3),
           child: Row(
             children: [
               // Star label (e.g. "5")
-              SizedBox(
-                width: 12,
-                child: Text(
-                  '$star',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+              SizedBox(width: 12, child: Text('$star', style: labelStyle)),
               const SizedBox(width: 4),
-              const Icon(Icons.star_rounded, size: 12, color: Colors.grey),
+              const Icon(
+                Icons.star_rounded,
+                size: 13,
+                color: Color(0xFFFFB400),
+              ),
               const SizedBox(width: 8),
 
               // Progress Bar
               Expanded(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(100),
                   child: LinearProgressIndicator(
                     value: percentage,
-                    minHeight: 6,
-                    backgroundColor: Colors.grey[200],
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFFB400)),
+                    minHeight: 7,
+                    backgroundColor: track,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Color(0xFFFFB400),
+                    ),
                   ),
                 ),
               ),
@@ -246,9 +252,7 @@ class RatingDistributionChart extends StatelessWidget {
                 child: Text(
                   '$count',
                   textAlign: TextAlign.end,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.grey,
-                  ),
+                  style: labelStyle,
                 ),
               ),
             ],

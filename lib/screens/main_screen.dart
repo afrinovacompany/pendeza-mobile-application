@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/cupertino.dart';
 
 import '../app/config/app_router.dart';
 import '../app/widgets/adaptive/adaptive_bottom_nav.dart';
-import '../app/widgets/adaptive/adaptive_dialog.dart';
+import '../app/widgets/main_back_scope.dart';
 import '../app/utils/navigation_guard.dart';
 
 // Import the Appointments Bloc
@@ -111,20 +110,6 @@ class _MainScreenState extends State<MainScreen> with NavigationGuard {
         ? _clientTabRoutes
         : _ownerTabRoutes;
     return tabRoutes.any((route) => location == route || location == '$route/');
-  }
-
-  Future<void> _showExitConfirmation() async {
-    final shouldExit = await showAdaptiveConfirmDialog(
-      context: context,
-      title: 'Exit Pendeza?',
-      content: 'Are you sure you want to leave the app?',
-      confirmText: 'Exit',
-      cancelText: 'Stay',
-      isDestructive: true,
-    );
-    if (shouldExit && mounted) {
-      SystemNavigator.pop();
-    }
   }
 
   int _calculateSelectedIndex(BuildContext context) {
@@ -245,24 +230,12 @@ class _MainScreenState extends State<MainScreen> with NavigationGuard {
         : AppRoutes.ownerHome;
     final canPopSecondary = !isOnMainTab && context.canPop();
 
-    return PopScope(
-      canPop: canPopSecondary,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (!isOnMainTab) {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go(homeRoute);
-          }
-          return;
-        }
-        if (currentIndex != 0) {
-          _goToRoute(0);
-          return;
-        }
-        _showExitConfirmation();
-      },
+    return MainBackScope(
+      isOnMainTab: isOnMainTab,
+      currentIndex: currentIndex,
+      canPopSecondary: canPopSecondary,
+      onLeaveSecondary: () => context.go(homeRoute),
+      onGoHome: () => _goToRoute(0),
       child: Scaffold(
         body: isOnMainTab
             ? PageView(

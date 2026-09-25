@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:pendeza/shared/models/appointment_model.dart';
@@ -400,17 +402,41 @@ class FirestoreService {
   //============================================================================
 
   // CHANGE: Return Future<String> instead of Future<void>
+  //
+  // iOS-specific fix: on some devices the set() Future never resolves even
+  // though the write already reached Firestore (it shows up after a force
+  // restart — the classic symptom of an App Check/gRPC ack that stalls
+  // while the local write already succeeded). We don't want the booking UI
+  // stuck on a spinner forever waiting for that ack, so we bound the wait.
+  // The write itself is never cancelled — if it's genuinely still in
+  // flight it keeps running in the background and we log how it resolves.
+  // Real failures (permission-denied, bad data, etc.) normally surface in
+  // well under the timeout and still propagate via the rethrow below.
+  static const _createAppointmentAckTimeout = Duration(seconds: 10);
+
   Future<String> createAppointment(AppointmentModel appointment) async {
+    final docRef = _db.collection('appointments').doc();
+    final appointmentWithId = appointment.copyWith(id: docRef.id);
+    final writeFuture = docRef.set(appointmentWithId.toFirestore());
+
+    // Always observe the eventual outcome for diagnostics, whether or not
+    // we end up waiting below for the full round trip.
+    unawaited(writeFuture.then(
+      (_) => log.i('Appointment created successfully: ${docRef.id}'),
+      onError: (e, s) => log.e('Error creating appointment ${docRef.id}',
+          error: e, stackTrace: s),
+    ));
+
     try {
-      final docRef = _db.collection('appointments').doc();
-      final appointmentWithId = appointment.copyWith(id: docRef.id);
-      await docRef.set(appointmentWithId.toFirestore());
-      log.i('Appointment created successfully: ${docRef.id}');
-      return docRef.id; // RETURN THE ID
-    } catch (e, s) {
-      log.e('Error creating appointment', error: e, stackTrace: s);
-      rethrow;
+      await writeFuture.timeout(_createAppointmentAckTimeout);
+    } on TimeoutException {
+      log.w('Appointment write ${docRef.id} did not acknowledge within '
+          '${_createAppointmentAckTimeout.inSeconds}s — proceeding '
+          'optimistically so the UI is not stuck; the write continues in '
+          'the background (see the log line above once it settles).');
     }
+
+    return docRef.id; // RETURN THE ID
   }
 
   Future<void> updateAppointmentStatus(String appointmentId, String newStatus) async {

@@ -7,14 +7,13 @@ import 'package:pendeza/features/2_client_booking/presentation/bloc/booking_bloc
 import 'package:pendeza/features/2_client_booking/presentation/bloc/booking_event.dart';
 import 'package:pendeza/features/2_client_booking/presentation/bloc/booking_state.dart';
 import '../../../../app/config/app_router.dart';
-import '../../../../app/config/theme/app_colors.dart';
-import '../../../../app/config/theme/app_constants.dart';
-import '../../../../app/utils/formatters.dart';
-import '../../../../shared/widgets/primary_gradient_button.dart';
-import '../widgets/calendar_view.dart';
-import '../../../../shared/widgets/empty_state_widget.dart';
-import '../../../../shared/widgets/custom_snackbar.dart';
 import '../../../../app/utils/navigation_guard.dart';
+import '../../../../shared/widgets/client_ui.dart';
+import '../../../../shared/widgets/custom_snackbar.dart';
+import '../widgets/booking_step_header.dart';
+import '../widgets/booking_summary_footer.dart';
+import '../widgets/calendar_view.dart';
+import '../widgets/time_slot_chip.dart';
 
 class TimeslotSelectionScreen extends StatefulWidget {
   const TimeslotSelectionScreen({super.key});
@@ -25,18 +24,17 @@ class TimeslotSelectionScreen extends StatefulWidget {
 }
 
 class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen>
-    with SingleTickerProviderStateMixin, NavigationGuard {
+    with NavigationGuard {
   DateTime _selectedDate = DateTime.now();
   String? _selectedTimeSlot;
-  late AnimationController _pulseController;
+
+  // Keeps the day strip (and its scroll position) alive while the screen swaps
+  // between the loading and loaded layouts.
+  final GlobalKey _dayPickerKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
 
     final currentState = context.read<BookingBloc>().state;
     if (currentState is BookingInProgress) {
@@ -60,12 +58,6 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen>
         context.read<BookingBloc>().add(DateSelected(_selectedDate));
       });
     }
-  }
-
-  @override
-  void dispose() {
-    _pulseController.dispose();
-    super.dispose();
   }
 
   void _onDateSelectedInUI(DateTime newDate) {
@@ -104,375 +96,330 @@ class _TimeslotSelectionScreenState extends State<TimeslotSelectionScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text('client.booking.select_time_title'.tr()),
-      ),
-      body: BlocConsumer<BookingBloc, BookingState>(
-        listener: (context, state) {
-          if (state is BookingInProgress &&
-              state.status == BookingStatus.failure &&
-              state.errorMessage != null) {
-            CustomSnackBar.show(
-              context,
-              message: 'Error: ${state.errorMessage}',
-              type: SnackBarType.error,
-            );
-          }
-        },
-        builder: (context, state) {
-          if (state is BookingFailure) {
-            return EmptyStateWidget.error(message: state.error);
-          }
-
-          if (state is BookingInProgress &&
-              state.status == BookingStatus.selectingServices) {
-            return _buildLoadingStateWithCalendar(context, _selectedDate);
-          }
-
-          if (state is BookingInProgress &&
-              (state.status == BookingStatus.selectingTime ||
-                  state.status == BookingStatus.reviewing)) {
-            final availableTimeSlots = state.availableTimeSlots;
-            final totalDurationMinutes = state.totalDurationMinutes;
-
-            _selectedDate = state.selectedDate ?? _selectedDate;
-            _selectedTimeSlot = state.selectedTimeSlot ?? _selectedTimeSlot;
+      backgroundColor: ClientTheme.background(context),
+      body: SafeArea(
+        bottom: false,
+        child: BlocConsumer<BookingBloc, BookingState>(
+          listener: (context, state) {
+            if (state is BookingInProgress &&
+                state.status == BookingStatus.failure &&
+                state.errorMessage != null) {
+              CustomSnackBar.show(
+                context,
+                message: 'Error: ${state.errorMessage}',
+                type: SnackBarType.error,
+              );
+            }
+          },
+          builder: (context, state) {
+            final salonName =
+                state is BookingInProgress ? state.salon.salonName : '';
 
             return Column(
               children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.only(bottom: 140),
+                BookingStepHeader(
+                  step: 2,
+                  title: 'client.booking.select_time_title'.tr(),
+                  subtitle: salonName,
+                ),
+                Expanded(child: _buildBody(context, state)),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, BookingState state) {
+    if (state is BookingFailure) {
+      return ClientEmptyState(
+        icon: CupertinoIcons.exclamationmark_circle,
+        title: 'common.oops'.tr(),
+        message: state.error,
+        color: const Color(0xFFEF4444),
+      );
+    }
+
+    if (state is BookingInProgress &&
+        state.status == BookingStatus.selectingServices) {
+      return _buildLoadingStateWithCalendar(context);
+    }
+
+    if (state is BookingInProgress &&
+        (state.status == BookingStatus.selectingTime ||
+            state.status == BookingStatus.reviewing)) {
+      final availableTimeSlots = state.availableTimeSlots;
+      final totalDurationMinutes = state.totalDurationMinutes;
+
+      _selectedDate = state.selectedDate ?? _selectedDate;
+      _selectedTimeSlot = state.selectedTimeSlot ?? _selectedTimeSlot;
+
+      return Column(
+        children: [
+          Expanded(
+            child: ListView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(top: 18, bottom: 24),
+              children: [
+                _buildDateSection(context),
+                const SizedBox(height: 14),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: ClientTheme.gutter,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: AppConstants.padL),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppConstants.padL),
-                        child: Text(
-                          'client.booking.choose_date'.tr(),
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      Text(
+                        'client.booking.available_slots'.tr(),
+                        style: ClientTheme.title(context),
                       ),
-                      const SizedBox(height: AppConstants.padM),
-                      HorizontalDayPicker(
-                        selectedDate: _selectedDate,
-                        onDateSelected: _onDateSelectedInUI,
-                      ),
-                      const SizedBox(height: AppConstants.padXL),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppConstants.padL),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      if (totalDurationMinutes > 0) ...[
+                        const SizedBox(height: 4),
+                        Row(
                           children: [
-                            Text(
-                              'client.booking.available_slots'.tr(),
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
+                            Icon(
+                              CupertinoIcons.time,
+                              size: 13,
+                              color: ClientTheme.textSecondary(context),
+                            ),
+                            const SizedBox(width: 5),
+                            Flexible(
+                              child: Text(
+                                'client.booking.est_duration'
+                                    .tr(args: ['$totalDurationMinutes']),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: ClientTheme.caption(context),
                               ),
                             ),
-                            if (totalDurationMinutes > 0)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppConstants.padM,
-                                  vertical: AppConstants.padXS,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(100),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      CupertinoIcons.time,
-                                      size: 14,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'client.booking.est_duration'
-                                          .tr(args: ['$totalDurationMinutes']),
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.primary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: AppConstants.padM),
-                      availableTimeSlots.isEmpty
-                          ? Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppConstants.padL,
-                            vertical: AppConstants.padXL),
-                        child: Center(
-                          child: Column(
-                            children: [
-                              Icon(
-                                CupertinoIcons.calendar_badge_minus,
-                                size: 48,
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                              ),
-                              const SizedBox(height: AppConstants.padM),
-                              Text(
-                                'client.booking.no_slots'.tr(),
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  fontStyle: FontStyle.italic,
-                                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                          : Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppConstants.padL),
-                        child: Wrap(
-                          spacing: AppConstants.padS,
-                          runSpacing: AppConstants.padS,
-                          children: availableTimeSlots.map((slot) {
-                            final isSelected = slot == _selectedTimeSlot;
-                            return _EnhancedTimeSlotChip(
-                              slot: slot,
-                              isSelected: isSelected,
-                              onTap: () => _onTimeSlotSelectedInUI(slot),
-                            );
-                          }).toList(),
-                        ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
-                _buildEnhancedFooter(theme, state),
-              ],
-            );
-          }
-          return _buildLoadingStateWithCalendar(context, _selectedDate);
-        },
-      ),
-    );
-  }
-
-  Widget _buildLoadingStateWithCalendar(
-      BuildContext context, DateTime currentDate) {
-    final theme = Theme.of(context);
-    return Column(
-      children: [
-        const SizedBox(height: AppConstants.padL),
-        Padding(
-          padding:
-          const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-          child: Text(
-            'client.booking.choose_date'.tr(),
-            style: theme.textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-        const SizedBox(height: AppConstants.padS),
-        HorizontalDayPicker(
-          selectedDate: currentDate,
-          onDateSelected: _onDateSelectedInUI,
-        ),
-        const SizedBox(height: AppConstants.padXL),
-        const Expanded(
-          child: Center(child: CircularProgressIndicator()),
-        ),
-        _buildEnhancedFooter(theme, null, isDisabled: true),
-      ],
-    );
-  }
-
-  Widget _buildEnhancedFooter(ThemeData theme, BookingInProgress? state,
-      {bool isDisabled = false}) {
-    final totalPrice = state?.totalPrice ?? 0.0;
-    final isTimeSlotSelected = _selectedTimeSlot != null;
-
-    return AnimatedContainer(
-      duration: AppConstants.durationMedium,
-      margin: isTimeSlotSelected && !isDisabled
-          ? const EdgeInsets.all(AppConstants.padL)
-          : EdgeInsets.zero,
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        boxShadow: theme.brightness == Brightness.light
-            ? AppColors.lightShadowLg
-            : AppColors.darkShadowLg,
-        borderRadius: isTimeSlotSelected && !isDisabled
-            ? BorderRadius.circular(AppConstants.radiusValL)
-            : const BorderRadius.only(
-          topLeft: Radius.circular(AppConstants.radiusValL),
-          topRight: Radius.circular(AppConstants.radiusValL),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.padL),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'client.booking.total_payable'.tr(),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
+                const SizedBox(height: 14),
+                if (availableTimeSlots.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: ClientEmptyState(
+                      icon: CupertinoIcons.calendar_badge_minus,
+                      title: 'client.booking.no_slots'.tr(),
+                      message: 'client.booking.no_slots_hint'.tr(),
+                      color: const Color(0xFFF5A623),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      AppFormatters.formatCurrency(totalPrice),
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppConstants.padM),
-              Expanded(
-                flex: 3,
-                child: AnimatedBuilder(
-                  animation: _pulseController,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: isTimeSlotSelected && !isDisabled
-                          ? 1.0 + (_pulseController.value * 0.02)
-                          : 1.0,
-                      child: child,
-                    );
-                  },
-                  child: PrimaryGradientButton(
-                    text: 'client.booking.review_btn'.tr(),
-                    onPressed: isDisabled || !isTimeSlotSelected || state == null
-                        ? null
-                        : () => _proceedToConfirmation(state),
-                    iconData: CupertinoIcons.arrow_right,
+                  )
+                else
+                  _SlotGroups(
+                    slots: availableTimeSlots,
+                    selected: _selectedTimeSlot,
+                    onSelected: _onTimeSlotSelectedInUI,
                   ),
+              ],
+            ),
+          ),
+          _buildFooter(state),
+        ],
+      );
+    }
+    return _buildLoadingStateWithCalendar(context);
+  }
+
+  Widget _buildDateSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: ClientTheme.gutter),
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 2,
+            children: [
+              Text(
+                'client.booking.choose_date'.tr(),
+                style: ClientTheme.title(context),
+              ),
+              Text(
+                DateFormat.yMMMM().format(_selectedDate),
+                style: ClientTheme.caption(context).copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
         ),
-      ),
+        const SizedBox(height: 4),
+        HorizontalDayPicker(
+          key: _dayPickerKey,
+          selectedDate: _selectedDate,
+          onDateSelected: _onDateSelectedInUI,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoadingStateWithCalendar(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 18),
+          child: _buildDateSection(context),
+        ),
+        const Expanded(
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        _buildFooter(null),
+      ],
+    );
+  }
+
+  Widget _buildFooter(BookingInProgress? state) {
+    final slot = _selectedTimeSlot;
+    final canContinue = state != null && slot != null;
+
+    return BookingSummaryFooter(
+      totalPrice: state?.totalPrice ?? 0.0,
+      totalDurationMinutes: 0,
+      label: 'client.booking.total_payable'.tr(),
+      caption: slot != null
+          ? '${DateFormat('EEE, MMM d').format(_selectedDate)} • $slot'
+          : 'client.booking.pick_time_hint'.tr(),
+      buttonText: 'client.booking.review_btn'.tr(),
+      buttonIcon: CupertinoIcons.arrow_right,
+      onButtonPressed: canContinue ? () => _proceedToConfirmation(state) : null,
     );
   }
 }
 
-class _EnhancedTimeSlotChip extends StatefulWidget {
-  final String slot;
-  final bool isSelected;
-  final VoidCallback onTap;
+/// Time slots grouped into Morning / Afternoon / Evening. Falls back to one
+/// flat list when a slot is not "HH:mm".
+class _SlotGroups extends StatelessWidget {
+  final List<String> slots;
+  final String? selected;
+  final ValueChanged<String> onSelected;
 
-  const _EnhancedTimeSlotChip({
-    required this.slot,
-    required this.isSelected,
-    required this.onTap,
+  const _SlotGroups({
+    required this.slots,
+    required this.selected,
+    required this.onSelected,
   });
 
-  @override
-  State<_EnhancedTimeSlotChip> createState() => _EnhancedTimeSlotChipState();
-}
-
-class _EnhancedTimeSlotChipState extends State<_EnhancedTimeSlotChip>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _scaleController;
-
-  @override
-  void initState() {
-    super.initState();
-    _scaleController = AnimationController(
-      vsync: this,
-      duration: AppConstants.durationFast,
-      value: widget.isSelected ? 1.0 : 0.0,
-    );
-  }
-
-  @override
-  void didUpdateWidget(_EnhancedTimeSlotChip oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isSelected != oldWidget.isSelected) {
-      if (widget.isSelected) {
-        _scaleController.forward();
-      } else {
-        _scaleController.reverse();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _scaleController.dispose();
-    super.dispose();
-  }
+  static const _gap = 10.0;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final groups = _group(slots);
 
-    return AnimatedBuilder(
-      animation: _scaleController,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: 1.0 + (_scaleController.value * 0.03),
-          child: child,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth - ClientTheme.gutter * 2;
+        final columns = available >= 260 ? 3 : 2;
+        final chipWidth = (available - _gap * (columns - 1)) / columns;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: ClientTheme.gutter),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final group in groups) ...[
+                if (group.label != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, bottom: 10),
+                    child: Row(
+                      children: [
+                        Icon(
+                          group.icon,
+                          size: 16,
+                          color: ClientTheme.textSecondary(context),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          group.label!.toUpperCase(),
+                          style: ClientTheme.label(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                Wrap(
+                  spacing: _gap,
+                  runSpacing: _gap,
+                  children: [
+                    for (final slot in group.slots)
+                      SizedBox(
+                        width: chipWidth,
+                        child: TimeSlotChip(
+                          slot: slot,
+                          isSelected: slot == selected,
+                          onTap: () => onSelected(slot),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+              ],
+            ],
+          ),
         );
       },
-      child: InkWell(
-        onTap: widget.onTap,
-        borderRadius: AppConstants.radiusM,
-        child: AnimatedContainer(
-          duration: AppConstants.durationFast,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppConstants.padL,
-            vertical: AppConstants.padM,
-          ),
-          decoration: BoxDecoration(
-            color: widget.isSelected ? colorScheme.primary : theme.cardColor,
-            borderRadius: AppConstants.radiusM,
-            border: Border.all(
-              color: widget.isSelected
-                  ? colorScheme.primary
-                  : theme.dividerColor.withValues(alpha: 0.3),
-              width: widget.isSelected ? 2.0 : 1.0,
-            ),
-            boxShadow: widget.isSelected
-                ? [
-              BoxShadow(
-                color: colorScheme.primary.withValues(alpha: 0.25),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              )
-            ]
-                : [],
-          ),
-          child: Text(
-            widget.slot,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: widget.isSelected
-                  ? colorScheme.onPrimary
-                  : colorScheme.onSurface,
-              fontWeight: widget.isSelected ? FontWeight.bold : FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
     );
   }
+
+  List<_SlotGroup> _group(List<String> slots) {
+    final hours = <int>[];
+    for (final slot in slots) {
+      final hour = int.tryParse(slot.split(':').first.trim());
+      if (hour == null || !slot.contains(':')) {
+        return [_SlotGroup(null, null, slots)];
+      }
+      hours.add(hour);
+    }
+
+    final morning = <String>[];
+    final afternoon = <String>[];
+    final evening = <String>[];
+    for (var i = 0; i < slots.length; i++) {
+      final hour = hours[i];
+      if (hour < 12) {
+        morning.add(slots[i]);
+      } else if (hour < 17) {
+        afternoon.add(slots[i]);
+      } else {
+        evening.add(slots[i]);
+      }
+    }
+
+    return [
+      if (morning.isNotEmpty)
+        _SlotGroup(
+          'client.booking.morning'.tr(),
+          CupertinoIcons.sunrise_fill,
+          morning,
+        ),
+      if (afternoon.isNotEmpty)
+        _SlotGroup(
+          'client.booking.afternoon'.tr(),
+          CupertinoIcons.sun_max_fill,
+          afternoon,
+        ),
+      if (evening.isNotEmpty)
+        _SlotGroup(
+          'client.booking.evening'.tr(),
+          CupertinoIcons.sunset_fill,
+          evening,
+        ),
+    ];
+  }
+}
+
+class _SlotGroup {
+  final String? label;
+  final IconData? icon;
+  final List<String> slots;
+
+  const _SlotGroup(this.label, this.icon, this.slots);
 }

@@ -2,12 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:pendeza/app/config/theme/app_colors.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pendeza/features/5_admin_panel/presentation/bloc/admin_bloc.dart';
 import 'package:pendeza/features/5_admin_panel/presentation/bloc/admin_event.dart';
 import 'package:pendeza/features/5_admin_panel/presentation/bloc/admin_state.dart';
+import 'package:pendeza/features/5_admin_panel/presentation/widgets/admin_ui.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
+import 'package:pendeza/shared/widgets/custom_snackbar.dart';
 import 'package:pendeza/shared/widgets/profile_avatar.dart';
 
 class AdminManageSalonsScreen extends StatefulWidget {
@@ -21,65 +22,103 @@ class AdminManageSalonsScreen extends StatefulWidget {
 class _AdminManageSalonsScreenState extends State<AdminManageSalonsScreen> {
   String _filterStatus = 'all'; // all, pending, approved, rejected
   String _searchQuery = '';
+  bool _appliedRouteFilter = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // The dashboard can deep-link straight to the pending queue.
+    if (!_appliedRouteFilter) {
+      _appliedRouteFilter = true;
+      final extra = GoRouterState.of(context).extra;
+      if (extra is String &&
+          const {'pending', 'approved', 'rejected'}.contains(extra)) {
+        _filterStatus = extra;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    return BlocBuilder<AdminBloc, AdminState>(
+      builder: (context, state) {
+        final loaded = state is AdminLoaded ? state : null;
+        final salons = loaded?.salons ?? const <SalonModel>[];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Manage Salons'),
-        backgroundColor:
-            isDark ? AppColors.darkSurfaceVariant : theme.colorScheme.surface,
-        elevation: 1,
-      ),
-      backgroundColor: isDark
-          ? AppColors.darkBackground
-          : theme.scaffoldBackgroundColor.withAlpha(245),
-      body: BlocBuilder<AdminBloc, AdminState>(
-        builder: (context, state) {
-          if (state is AdminLoading || state is AdminInitial) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state is AdminError) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                  const SizedBox(height: AppConstants.padM),
-                  Text(state.message),
-                  const SizedBox(height: AppConstants.padM),
-                  ElevatedButton(
-                    onPressed: () => context.read<AdminBloc>().add(LoadAdminData()),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
-          if (state is AdminLoaded) {
-            return _buildBody(context, state);
-          }
-          return const Center(child: Text('Unknown state.'));
-        },
-      ),
+        return AdminPage(
+          title: 'Salons',
+          subtitle: loaded == null
+              ? null
+              : '${salons.length} registered · '
+                  '${salons.where((s) => s.isPending).length} pending',
+          icon: CupertinoIcons.building_2_fill,
+          toolbar: loaded == null
+              ? null
+              : AdminSearchField(
+                  hint: 'Search by salon name or address',
+                  onChanged: (v) => setState(() => _searchQuery = v),
+                ),
+          filters: loaded == null
+              ? null
+              : AdminFilterBar(
+                      chips: [
+                        AdminFilterChip(
+                          label: 'All',
+                          count: salons.length,
+                          selected: _filterStatus == 'all',
+                          onTap: () => setState(() => _filterStatus = 'all'),
+                        ),
+                        AdminFilterChip(
+                          label: 'Pending',
+                          count: salons.where((s) => s.isPending).length,
+                          tone: AdminTone.warning,
+                          selected: _filterStatus == 'pending',
+                          onTap: () =>
+                              setState(() => _filterStatus = 'pending'),
+                        ),
+                        AdminFilterChip(
+                          label: 'Approved',
+                          count: salons.where((s) => s.isApproved).length,
+                          tone: AdminTone.success,
+                          selected: _filterStatus == 'approved',
+                          onTap: () =>
+                              setState(() => _filterStatus = 'approved'),
+                        ),
+                        AdminFilterChip(
+                          label: 'Rejected',
+                          count: salons.where((s) => s.isRejected).length,
+                          tone: AdminTone.danger,
+                          selected: _filterStatus == 'rejected',
+                          onTap: () =>
+                              setState(() => _filterStatus = 'rejected'),
+                        ),
+                      ],
+                    ),
+          child: _buildBody(context, state),
+        );
+      },
     );
   }
 
-  Widget _buildBody(BuildContext context, AdminLoaded state) {
-    final theme = Theme.of(context);
+  Widget _buildBody(BuildContext context, AdminState state) {
+    if (state is AdminLoading || state is AdminInitial) {
+      return const AdminLoadingState(itemHeight: 150);
+    }
+    if (state is AdminError) {
+      return AdminErrorState(
+        message: state.message,
+        onRetry: () => context.read<AdminBloc>().add(LoadAdminData()),
+      );
+    }
+    if (state is! AdminLoaded) return const SizedBox.shrink();
 
-    // Filter salons
     var salons = state.salons;
     if (_filterStatus != 'all') {
-      salons = salons
-          .where((s) => s.verificationStatus == _filterStatus)
-          .toList();
+      salons =
+          salons.where((s) => s.verificationStatus == _filterStatus).toList();
     }
-    if (_searchQuery.isNotEmpty) {
-      final q = _searchQuery.toLowerCase();
+    final q = _searchQuery.trim().toLowerCase();
+    if (q.isNotEmpty) {
       salons = salons
           .where((s) =>
               s.salonName.toLowerCase().contains(q) ||
@@ -87,187 +126,52 @@ class _AdminManageSalonsScreenState extends State<AdminManageSalonsScreen> {
           .toList();
     }
 
-    // Count by status
-    final pendingCount =
-        state.salons.where((s) => s.isPending).length;
-    final approvedCount =
-        state.salons.where((s) => s.isApproved).length;
-    final rejectedCount =
-        state.salons.where((s) => s.isRejected).length;
+    if (salons.isEmpty) {
+      final filtering = q.isNotEmpty || _filterStatus != 'all';
+      return AdminEmptyState(
+        icon: CupertinoIcons.building_2_fill,
+        title: filtering ? 'No matching salons' : 'No salons yet',
+        message: filtering
+            ? 'Try a different search or switch the status filter.'
+            : 'Salons appear here once owners register them.',
+      );
+    }
 
-    return Column(
-      children: [
-        // Stats row
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppConstants.padM,
-            AppConstants.padM,
-            AppConstants.padM,
-            AppConstants.padS,
-          ),
-          child: Row(
-            children: [
-              _buildStatChip(
-                context,
-                label: 'All',
-                count: state.salons.length,
-                color: theme.colorScheme.primary,
-                isSelected: _filterStatus == 'all',
-                onTap: () => setState(() => _filterStatus = 'all'),
-              ),
-              const SizedBox(width: AppConstants.padS),
-              _buildStatChip(
-                context,
-                label: 'Pending',
-                count: pendingCount,
-                color: Colors.orange,
-                isSelected: _filterStatus == 'pending',
-                onTap: () => setState(() => _filterStatus = 'pending'),
-              ),
-              const SizedBox(width: AppConstants.padS),
-              _buildStatChip(
-                context,
-                label: 'Approved',
-                count: approvedCount,
-                color: Colors.green,
-                isSelected: _filterStatus == 'approved',
-                onTap: () => setState(() => _filterStatus = 'approved'),
-              ),
-              const SizedBox(width: AppConstants.padS),
-              _buildStatChip(
-                context,
-                label: 'Rejected',
-                count: rejectedCount,
-                color: Colors.red,
-                isSelected: _filterStatus == 'rejected',
-                onTap: () => setState(() => _filterStatus = 'rejected'),
-              ),
-            ],
-          ),
-        ),
+    final width = MediaQuery.sizeOf(context).width;
+    final gutter = AdminTheme.gutter(width);
+    final columns = width >= AdminTheme.wideBreakpoint ? 2 : 1;
+    final rowCount = (salons.length / columns).ceil();
 
-        // Search bar
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppConstants.padM,
-            vertical: AppConstants.padS,
-          ),
-          child: TextField(
-            onChanged: (v) => setState(() => _searchQuery = v),
-            decoration: InputDecoration(
-              hintText: 'Search salons...',
-              prefixIcon: const Icon(CupertinoIcons.search, size: 20),
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppConstants.padM,
-                vertical: AppConstants.padS,
-              ),
-              border: OutlineInputBorder(
-                borderRadius:
-                    BorderRadius.circular(AppConstants.radiusValM),
-                borderSide: BorderSide(color: theme.dividerColor),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius:
-                    BorderRadius.circular(AppConstants.radiusValM),
-                borderSide: BorderSide(color: theme.dividerColor),
-              ),
-            ),
-          ),
-        ),
-
-        // Salon list
-        Expanded(
-          child: salons.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        CupertinoIcons.building_2_fill,
-                        size: 48,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-                      ),
-                      const SizedBox(height: AppConstants.padM),
-                      Text(
-                        'No salons found',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color:
-                              theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppConstants.padM,
-                    vertical: AppConstants.padS,
-                  ),
-                  itemCount: salons.length,
-                  itemBuilder: (context, index) {
-                    return _SalonCard(
+    return ListView.builder(
+      padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 32),
+      itemCount: rowCount,
+      itemBuilder: (context, row) {
+        final children = <Widget>[];
+        for (var c = 0; c < columns; c++) {
+          final index = row * columns + c;
+          if (c > 0) children.add(const SizedBox(width: 12));
+          children.add(
+            Expanded(
+              child: index < salons.length
+                  ? _SalonCard(
+                      key: ValueKey(salons[index].id),
                       salon: salons[index],
                       users: state.users,
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatChip(
-    BuildContext context, {
-    required String label,
-    required int count,
-    required Color color,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final theme = Theme.of(context);
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(
-            vertical: AppConstants.padS,
-          ),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? color.withValues(alpha: 0.15)
-                : theme.colorScheme.surface,
-            borderRadius:
-                BorderRadius.circular(AppConstants.radiusValM),
-            border: Border.all(
-              color: isSelected ? color : theme.dividerColor,
-              width: isSelected ? 1.5 : 1,
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
             ),
           ),
-          child: Column(
-            children: [
-              Text(
-                '$count',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: isSelected ? color : null,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: isSelected
-                      ? color
-                      : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -276,11 +180,40 @@ class _AdminManageSalonsScreenState extends State<AdminManageSalonsScreen> {
 // SALON CARD
 // ═════════════════════════════════════════════════════════════════════════════
 
+AdminTone _statusTone(SalonModel salon) {
+  if (salon.isApproved) return AdminTone.success;
+  if (salon.isPending) return AdminTone.warning;
+  return AdminTone.danger;
+}
+
+class _StatusPill extends StatelessWidget {
+  final SalonModel salon;
+  const _StatusPill({required this.salon});
+
+  @override
+  Widget build(BuildContext context) {
+    final IconData icon;
+    final String text;
+    if (salon.isApproved) {
+      icon = CupertinoIcons.checkmark_seal_fill;
+      text = 'Approved';
+    } else if (salon.isPending) {
+      icon = CupertinoIcons.hourglass;
+      text = 'Pending';
+    } else {
+      icon = CupertinoIcons.xmark_circle_fill;
+      text = 'Rejected';
+    }
+    return AdminPill(label: text, tone: _statusTone(salon), icon: icon);
+  }
+}
+
 class _SalonCard extends StatefulWidget {
   final SalonModel salon;
   final List<dynamic> users;
 
   const _SalonCard({
+    super.key,
     required this.salon,
     required this.users,
   });
@@ -307,12 +240,10 @@ class _SalonCardState extends State<_SalonCard> {
       final match = widget.users.firstWhere(
         (u) => u.uid == widget.salon.ownerId,
       );
-      setState(() {
-        _ownerName = match.fullName;
-        _ownerEmail = match.email;
-        _ownerAvatar = match.profilePictureUrl;
-        _ownerLoaded = true;
-      });
+      _ownerName = match.fullName;
+      _ownerEmail = match.email;
+      _ownerAvatar = match.profilePictureUrl;
+      _ownerLoaded = true;
     } catch (_) {
       // User not in pre-loaded list - fetch from Firestore
       _fetchOwner();
@@ -346,593 +277,457 @@ class _SalonCardState extends State<_SalonCard> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final salon = widget.salon;
+    final tone = _statusTone(salon);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppConstants.padS),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppConstants.radiusValM),
-        side: BorderSide(color: theme.dividerColor),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppConstants.radiusValM),
-        onTap: () => _showSalonDetails(context, salon),
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.padM),
-          child: Column(
+    return AdminCard(
+      onTap: () => _showSalonDetails(context, salon),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Salon identity + status
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Row 1: Salon name + avatar + status badge
-              Row(
-                children: [
+              ProfileAvatar(
+                imageUrl: salon.primaryImage,
+                fullName: salon.salonName,
+                radius: 24,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      salon.salonName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AdminTheme.body(context)
+                          .copyWith(fontWeight: FontWeight.w700, fontSize: 15),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(
+                          CupertinoIcons.location_solid,
+                          size: 12,
+                          color: AdminTheme.textSecondary(context),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            salon.address,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AdminTheme.caption(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              _StatusPill(salon: salon),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Owner
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AdminTheme.inset(context),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                if (!_ownerLoaded)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else ...[
                   ProfileAvatar(
-                    imageUrl: salon.primaryImage,
-                    fullName: salon.salonName,
-                    radius: 22,
+                    imageUrl: _ownerAvatar,
+                    fullName: _ownerName,
+                    radius: 12,
                   ),
-                  const SizedBox(width: AppConstants.padM),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text('OWNER', style: AdminTheme.label(context)),
                         Text(
-                          salon.salonName,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          _ownerName ?? 'Unknown',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          salon.address,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.6),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          style: AdminTheme.body(context)
+                              .copyWith(fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: AppConstants.padS),
-                  _buildStatusBadge(context, salon),
+                  if (_ownerEmail != null && _ownerEmail!.isNotEmpty)
+                    Flexible(
+                      child: Text(
+                        _ownerEmail!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AdminTheme.caption(context),
+                      ),
+                    ),
                 ],
-              ),
-              const SizedBox(height: AppConstants.padM),
-
-              // Row 2: Owner info
-              Container(
-                padding: const EdgeInsets.all(AppConstants.padS),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.4),
-                  borderRadius:
-                      BorderRadius.circular(AppConstants.radiusValS),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      CupertinoIcons.person_fill,
-                      size: 14,
-                      color:
-                          theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                    ),
-                    const SizedBox(width: AppConstants.padXS),
-                    Text(
-                      'Owner: ',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.5),
-                      ),
-                    ),
-                    if (_ownerLoaded) ...[
-                      if (_ownerAvatar != null)
-                        Padding(
-                          padding: const EdgeInsets.only(
-                              right: AppConstants.padXS),
-                          child: ProfileAvatar(
-                            imageUrl: _ownerAvatar,
-                            fullName: _ownerName,
-                            radius: 10,
-                          ),
-                        ),
-                      Expanded(
-                        child: Text(
-                          _ownerName ?? 'Unknown',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (_ownerEmail != null &&
-                          _ownerEmail!.isNotEmpty)
-                        Text(
-                          _ownerEmail!,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.5),
-                            fontSize: 10,
-                          ),
-                        ),
-                    ] else
-                      const SizedBox(
-                        width: 12,
-                        height: 12,
-                        child:
-                            CircularProgressIndicator(strokeWidth: 1.5),
-                      ),
-                  ],
-                ),
-              ),
-
-              // Row 3: Categories + business types
-              if (salon.serviceCategories.isNotEmpty) ...[
-                const SizedBox(height: AppConstants.padS),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: salon.serviceCategories
-                      .take(4)
-                      .map((cat) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer
-                                  .withValues(alpha: 0.4),
-                              borderRadius: BorderRadius.circular(
-                                  AppConstants.radiusValCircular),
-                            ),
-                            child: Text(
-                              cat,
-                              style:
-                                  theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.primary,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ))
-                      .toList(),
-                ),
               ],
-
-              // Row 4: Rejection reason if rejected
-              if (salon.isRejected &&
-                  salon.rejectionReason != null) ...[
-                const SizedBox(height: AppConstants.padS),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(AppConstants.padS),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.08),
-                    borderRadius:
-                        BorderRadius.circular(AppConstants.radiusValS),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline,
-                          size: 14, color: Colors.red),
-                      const SizedBox(width: AppConstants.padXS),
-                      Expanded(
-                        child: Text(
-                          salon.rejectionReason!,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.red[700],
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              // Row 5: Action buttons for pending salons
-              if (salon.isPending) ...[
-                const SizedBox(height: AppConstants.padM),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () =>
-                            _showRejectDialog(context, salon),
-                        icon: const Icon(Icons.close_rounded, size: 16),
-                        label: const Text('Reject'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          side: const BorderSide(color: Colors.red),
-                          padding: const EdgeInsets.symmetric(
-                              vertical: AppConstants.padS),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppConstants.padM),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () =>
-                            _confirmApprove(context, salon),
-                        icon: const Icon(Icons.check_rounded, size: 16),
-                        label: const Text('Approve'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              vertical: AppConstants.padS),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(BuildContext context, SalonModel salon) {
-    Color color;
-    String text;
-    IconData icon;
-
-    if (salon.isApproved) {
-      color = Colors.green;
-      text = 'Approved';
-      icon = Icons.check_circle_rounded;
-    } else if (salon.isPending) {
-      color = Colors.orange;
-      text = 'Pending';
-      icon = Icons.hourglass_empty_rounded;
-    } else {
-      color = Colors.red;
-      text = 'Rejected';
-      icon = Icons.cancel_rounded;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius:
-            BorderRadius.circular(AppConstants.radiusValCircular),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
             ),
           ),
-        ],
-      ),
-    );
-  }
 
-  void _confirmApprove(BuildContext context, SalonModel salon) {
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text('Approve Salon'),
-        content: Text(
-          'Are you sure you want to approve "${salon.salonName}"?\n\n'
-          'This salon will become visible to all clients.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogCtx);
-              context.read<AdminBloc>().add(ApproveSalon(salon.id));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${salon.salonName} approved'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
+          // Categories
+          if (salon.serviceCategories.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final cat in salon.serviceCategories.take(4))
+                  AdminPill(label: cat, tone: AdminTone.primary),
+                if (salon.serviceCategories.length > 4)
+                  AdminPill(
+                    label: '+${salon.serviceCategories.length - 4}',
+                    tone: AdminTone.neutral,
+                  ),
+              ],
             ),
-            child: const Text('Approve'),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
 
-  void _showRejectDialog(BuildContext context, SalonModel salon) {
-    final reasonController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: const Text('Reject Salon'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Rejecting "${salon.salonName}".'),
-            const SizedBox(height: AppConstants.padM),
-            TextField(
-              controller: reasonController,
-              maxLines: 3,
-              maxLength: 250,
-              decoration: const InputDecoration(
-                hintText: 'Reason for rejection...',
-                border: OutlineInputBorder(),
+          // Rejection reason
+          if (salon.isRejected && salon.rejectionReason != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AdminTheme.toneTint(context, tone, alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    CupertinoIcons.info_circle_fill,
+                    size: 15,
+                    color: AdminTheme.toneInk(context, tone),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      salon.rejectionReason!,
+                      style: AdminTheme.caption(context).copyWith(
+                        color: AdminTheme.toneInk(context, tone),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              final reason = reasonController.text.trim();
-              if (reason.isEmpty) return;
-              Navigator.pop(dialogCtx);
-              context.read<AdminBloc>().add(
-                    RejectSalon(
-                      salonId: salon.id,
-                      reason: reason,
-                    ),
-                  );
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${salon.salonName} rejected'),
-                  backgroundColor: Colors.red,
+
+          // Actions for pending salons
+          if (salon.isPending) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showRejectDialog(context, salon),
+                    icon: const Icon(CupertinoIcons.xmark, size: 15),
+                    label: const Text('Reject'),
+                    style: AdminTheme.outlinedButton(context,
+                        tone: AdminTone.danger),
+                  ),
                 ),
-              );
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Reject'),
-          ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => _confirmApprove(context, salon),
+                    icon: const Icon(CupertinoIcons.checkmark_alt, size: 16),
+                    label: const Text('Approve'),
+                    style: AdminTheme.filledButton(context,
+                        tone: AdminTone.success),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Future<void> _confirmApprove(BuildContext context, SalonModel salon) async {
+    final confirmed = await showAdminConfirmDialog(
+      context,
+      title: 'Approve salon?',
+      message: '"${salon.salonName}" will become visible to all clients.',
+      confirmLabel: 'Approve',
+      tone: AdminTone.success,
+      icon: CupertinoIcons.checkmark_seal_fill,
+    );
+    if (!confirmed || !context.mounted) return;
+
+    context.read<AdminBloc>().add(ApproveSalon(salon.id));
+    CustomSnackBar.show(
+      context,
+      message: '${salon.salonName} approved',
+      type: SnackBarType.success,
+    );
+  }
+
+  Future<void> _showRejectDialog(BuildContext context, SalonModel salon) async {
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (_) => _RejectReasonDialog(salon: salon),
+    );
+    if (reason == null || !context.mounted) return;
+
+    context.read<AdminBloc>().add(
+          RejectSalon(salonId: salon.id, reason: reason),
+        );
+    CustomSnackBar.show(
+      context,
+      message: '${salon.salonName} rejected',
+      type: SnackBarType.error,
     );
   }
 
   void _showSalonDetails(BuildContext context, SalonModel salon) {
-    final theme = Theme.of(context);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppConstants.radiusValL),
-        ),
-      ),
-      builder: (sheetCtx) => DraggableScrollableSheet(
-        initialChildSize: 0.65,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (_, scrollController) => SingleChildScrollView(
-          controller: scrollController,
-          padding: const EdgeInsets.all(AppConstants.padL),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Handle bar
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: theme.dividerColor,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppConstants.padL),
-
-              // Salon header
-              Row(
+    showAdminSheet<void>(
+      context,
+      builder: (sheetCtx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 4, 24, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ProfileAvatar(
-                    imageUrl: salon.primaryImage,
-                    fullName: salon.salonName,
-                    radius: 30,
-                  ),
-                  const SizedBox(width: AppConstants.padM),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          salon.salonName,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        _buildStatusBadge(context, salon),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppConstants.padL),
-
-              // Details
-              _detailRow(theme, CupertinoIcons.location_solid,
-                  'Address', salon.address),
-              if (salon.fullLocation != null)
-                _detailRow(theme, CupertinoIcons.map,
-                    'Location', salon.fullLocation!),
-              if (salon.phoneNumber != null)
-                _detailRow(theme, CupertinoIcons.phone_fill,
-                    'Phone', salon.phoneNumber!),
-              if (salon.description != null &&
-                  salon.description!.isNotEmpty)
-                _detailRow(theme, CupertinoIcons.doc_text,
-                    'Description', salon.description!),
-              if (salon.hasBusinessHours)
-                _detailRow(theme, CupertinoIcons.clock_fill,
-                    'Hours', '${salon.openingTime} - ${salon.closingTime}'),
-              _detailRow(
-                theme,
-                CupertinoIcons.tag,
-                'Categories',
-                salon.serviceCategories.join(', '),
-              ),
-              if (salon.businessTypeNames.isNotEmpty)
-                _detailRow(
-                  theme,
-                  CupertinoIcons.building_2_fill,
-                  'Business Type',
-                  salon.businessTypeNames.join(', '),
-                ),
-              _detailRow(
-                theme,
-                CupertinoIcons.photo,
-                'Images',
-                '${salon.imageCount} photo(s)',
-              ),
-
-              // Owner section
-              const SizedBox(height: AppConstants.padM),
-              const Divider(),
-              const SizedBox(height: AppConstants.padS),
-              Text(
-                'Owner',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: AppConstants.padS),
-              Row(
-                children: [
-                  if (_ownerAvatar != null)
-                    ProfileAvatar(
-                      imageUrl: _ownerAvatar,
-                      fullName: _ownerName,
-                      radius: 18,
-                    ),
-                  if (_ownerAvatar != null)
-                    const SizedBox(width: AppConstants.padS),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _ownerName ?? 'Loading...',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (_ownerEmail != null)
-                          Text(
-                            _ownerEmail!,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.6),
+                  Row(
+                    children: [
+                      ProfileAvatar(
+                        imageUrl: salon.primaryImage,
+                        fullName: salon.salonName,
+                        radius: 30,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              salon.salonName,
+                              style: AdminTheme.title(sheetCtx)
+                                  .copyWith(fontSize: 20),
                             ),
+                            const SizedBox(height: 6),
+                            _StatusPill(salon: salon),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                  AdminInfoRow(
+                    icon: CupertinoIcons.location_solid,
+                    label: 'Address',
+                    value: salon.address,
+                  ),
+                  if (salon.fullLocation != null)
+                    AdminInfoRow(
+                      icon: CupertinoIcons.map,
+                      label: 'Location',
+                      value: salon.fullLocation!,
+                    ),
+                  if (salon.phoneNumber != null)
+                    AdminInfoRow(
+                      icon: CupertinoIcons.phone_fill,
+                      label: 'Phone',
+                      value: salon.phoneNumber!,
+                    ),
+                  if (salon.description != null &&
+                      salon.description!.isNotEmpty)
+                    AdminInfoRow(
+                      icon: CupertinoIcons.doc_text,
+                      label: 'Description',
+                      value: salon.description!,
+                    ),
+                  if (salon.hasBusinessHours)
+                    AdminInfoRow(
+                      icon: CupertinoIcons.clock_fill,
+                      label: 'Hours',
+                      value: '${salon.openingTime} - ${salon.closingTime}',
+                    ),
+                  AdminInfoRow(
+                    icon: CupertinoIcons.tag,
+                    label: 'Categories',
+                    value: salon.serviceCategories.isEmpty
+                        ? 'None'
+                        : salon.serviceCategories.join(', '),
+                  ),
+                  if (salon.businessTypeNames.isNotEmpty)
+                    AdminInfoRow(
+                      icon: CupertinoIcons.building_2_fill,
+                      label: 'Business type',
+                      value: salon.businessTypeNames.join(', '),
+                    ),
+                  AdminInfoRow(
+                    icon: CupertinoIcons.photo,
+                    label: 'Images',
+                    value: '${salon.imageCount} photo(s)',
+                  ),
+                  const SizedBox(height: 4),
+                  AdminCard(
+                    color: AdminTheme.inset(sheetCtx),
+                    borderColor: Colors.transparent,
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        ProfileAvatar(
+                          imageUrl: _ownerAvatar,
+                          fullName: _ownerName,
+                          radius: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('OWNER', style: AdminTheme.label(sheetCtx)),
+                              Text(
+                                _ownerName ?? 'Loading…',
+                                style: AdminTheme.body(sheetCtx)
+                                    .copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              if (_ownerEmail != null &&
+                                  _ownerEmail!.isNotEmpty)
+                                Text(
+                                  _ownerEmail!,
+                                  style: AdminTheme.caption(sheetCtx),
+                                ),
+                            ],
                           ),
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
-
-              // Action buttons
-              const SizedBox(height: AppConstants.padL),
-              if (salon.isPending || salon.isRejected)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(sheetCtx);
-                      _confirmApprove(context, salon);
-                    },
-                    icon: const Icon(Icons.check_rounded),
-                    label: const Text('Approve Salon'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.all(AppConstants.padM),
-                    ),
-                  ),
-                ),
-              if (salon.isApproved || salon.isPending) ...[
-                const SizedBox(height: AppConstants.padS),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(sheetCtx);
-                      _showRejectDialog(context, salon);
-                    },
-                    icon: const Icon(Icons.close_rounded),
-                    label: Text(salon.isApproved
-                        ? 'Revoke Approval'
-                        : 'Reject Salon'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                      padding: const EdgeInsets.all(AppConstants.padM),
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: AppConstants.padL),
-            ],
+            ),
           ),
-        ),
+          if (salon.isPending || salon.isRejected || salon.isApproved)
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                24,
+                8,
+                24,
+                16 + MediaQuery.paddingOf(sheetCtx).bottom,
+              ),
+              child: Row(
+                children: [
+                  if (salon.isApproved || salon.isPending)
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(sheetCtx);
+                          _showRejectDialog(context, salon);
+                        },
+                        style: AdminTheme.outlinedButton(sheetCtx,
+                            tone: AdminTone.danger),
+                        child: Text(
+                          salon.isApproved ? 'Revoke approval' : 'Reject',
+                        ),
+                      ),
+                    ),
+                  if ((salon.isApproved || salon.isPending) &&
+                      (salon.isPending || salon.isRejected))
+                    const SizedBox(width: 12),
+                  if (salon.isPending || salon.isRejected)
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () {
+                          Navigator.pop(sheetCtx);
+                          _confirmApprove(context, salon);
+                        },
+                        style: AdminTheme.filledButton(sheetCtx,
+                            tone: AdminTone.success),
+                        child: const Text('Approve salon'),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
+}
 
-  Widget _detailRow(
-      ThemeData theme, IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppConstants.padS),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
-          const SizedBox(width: AppConstants.padS),
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
+// ═════════════════════════════════════════════════════════════════════════════
+// REJECT DIALOG
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Collects a rejection reason. Pops with the trimmed reason, or null.
+class _RejectReasonDialog extends StatefulWidget {
+  final SalonModel salon;
+  const _RejectReasonDialog({required this.salon});
+
+  @override
+  State<_RejectReasonDialog> createState() => _RejectReasonDialogState();
+}
+
+class _RejectReasonDialogState extends State<_RejectReasonDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AdminDialogFrame(
+      icon: CupertinoIcons.xmark_octagon_fill,
+      tone: AdminTone.danger,
+      title: 'Reject salon',
+      message:
+          'Tell "${widget.salon.salonName}" why it was rejected so the owner can fix it.',
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          style: AdminTheme.textButton(context, tone: AdminTone.neutral),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _controller.text.trim().isEmpty
+              ? null
+              : () => Navigator.pop(context, _controller.text.trim()),
+          style: AdminTheme.filledButton(context, tone: AdminTone.danger),
+          child: const Text('Reject'),
+        ),
+      ],
+      child: TextField(
+        controller: _controller,
+        maxLines: 3,
+        maxLength: 250,
+        autofocus: true,
+        style: AdminTheme.body(context),
+        onChanged: (_) => setState(() {}),
+        decoration: const InputDecoration(hintText: 'Reason for rejection…'),
       ),
     );
   }

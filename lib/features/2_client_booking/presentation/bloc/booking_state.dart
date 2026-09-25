@@ -49,7 +49,7 @@ class BookingInProgress extends BookingState {
       selectedServices.fold(0, (sum, service) => sum + service.durationMinutes);
 
   double get totalPrice =>
-      selectedServices.fold(0, (sum, item) => sum + item.price);
+      selectedServices.fold(0, (sum, item) => sum + item.effectivePrice);
 
   BookingInProgress copyWith({
     SalonModel? salon,

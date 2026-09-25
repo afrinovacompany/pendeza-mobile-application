@@ -1,217 +1,134 @@
-import 'package:data_table_2/data_table_2.dart';
-import 'package:flutter/material.dart'
-    hide DataColumn, DataRow, DataCell, DataTable, DataTableSource;
-import 'package:material_ui/material_ui.dart'
-    show DataCell, DataRow, DataTableSource;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:pendeza/app/config/theme/app_colors.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
-import 'package:pendeza/app/config/theme/app_text_styles.dart';
 import 'package:pendeza/features/0_auth/data/models/user_model.dart';
 import 'package:pendeza/features/5_admin_panel/presentation/bloc/admin_bloc.dart';
-import 'package:pendeza/features/5_admin_panel/presentation/bloc/admin_state.dart';
 import 'package:pendeza/features/5_admin_panel/presentation/bloc/admin_event.dart';
-import 'package:pendeza/features/5_admin_panel/presentation/dialog/admin_role_dialog.dart';
-import 'package:pendeza/shared/widgets/profile_avatar.dart';
+import 'package:pendeza/features/5_admin_panel/presentation/bloc/admin_state.dart';
+import 'package:pendeza/features/5_admin_panel/presentation/widgets/admin_ui.dart';
+import 'package:pendeza/features/5_admin_panel/presentation/widgets/admin_user_list_item.dart';
 
-class AdminManageUsersScreen extends StatelessWidget {
+class AdminManageUsersScreen extends StatefulWidget {
   const AdminManageUsersScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Manage Users'),
-        backgroundColor:
-        isDark ? AppColors.darkSurfaceVariant : theme.colorScheme.surface,
-        elevation: 1,
-      ),
-      // Use the scaffold's background color
-      backgroundColor: isDark
-          ? AppColors.darkBackground
-          : theme.scaffoldBackgroundColor.withAlpha(245),
-      body: BlocBuilder<AdminBloc, AdminState>(
-        builder: (context, state) {
-          if (state is AdminLoading || state is AdminInitial) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state is AdminError) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                  const SizedBox(height: AppConstants.padM),
-                  Text(state.message),
-                  const SizedBox(height: AppConstants.padM),
-                  ElevatedButton(
-                    onPressed: () => context.read<AdminBloc>().add(LoadAdminData()),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
-          if (state is AdminLoaded) {
-            return Card(
-              elevation: 0,
-              // Use theme's surface color
-              color: theme.colorScheme.surface,
-              margin: const EdgeInsets.all(AppConstants.padM),
-              shape: RoundedRectangleBorder(
-                borderRadius: AppConstants.radiusL,
-                side: BorderSide(
-                  color:
-                  isDark ? AppColors.darkBorder : theme.dividerColor,
-                  width: 1,
-                ),
-              ),
-              clipBehavior: Clip.antiAlias, // Clip the datatable to the card's shape
-              child: PaginatedDataTable2(
-                columns: const [
-                  DataColumn2(
-                    label: Text('Name'),
-                    size: ColumnSize.L, // Give more space for name
-                  ),
-                  DataColumn2(
-                    label: Text('Contact'),
-                    size: ColumnSize.M,
-                  ),
-                  DataColumn2(
-                    label: Text('Role'),
-                    size: ColumnSize.S,
-                  ),
-                ],
-                source: UserDataTableSource(
-                  users: state.users,
-                  adminBloc: context.read<AdminBloc>(),
-                  context: context,
-                ),
-                columnSpacing: 20,
-                horizontalMargin: 12,
-                minWidth: 600,
-                rowsPerPage: 20,
-                sortArrowIcon: Icons.arrow_upward,
-                sortAscending: true,
-                // Apply theme
-                dataRowHeight: 60,
-                headingRowHeight: 56,
-                headingRowColor: WidgetStateProperty.all(
-                  theme.colorScheme.surface.withValues(alpha: 0.5),
-                ),
-                // ** FIX: Removed the problematic dataRowColor line **
-              ),
-            );
-          }
-          return const Center(child: Text('Unknown state.'));
-        },
-      ),
-    );
-  }
+  State<AdminManageUsersScreen> createState() =>
+      _AdminManageUsersScreenState();
 }
 
-/// Data source for the PaginatedDataTable2
-class UserDataTableSource extends DataTableSource {
-  final List<UserModel> users;
-  final AdminBloc adminBloc;
-  final BuildContext context;
+class _AdminManageUsersScreenState extends State<AdminManageUsersScreen> {
+  String _role = 'all'; // all, client, owner, admin
+  String _query = '';
 
-  UserDataTableSource({
-    required this.users,
-    required this.adminBloc,
-    required this.context,
-  });
-
-  @override
-  DataRow? getRow(int index) {
-    if (index >= users.length) return null;
-    final user = users[index];
-
-    return DataRow2.byIndex(
-      index: index,
-      onSelectChanged: (isSelected) {
-        if (isSelected != null && isSelected) {
-          _showRoleDialog(context, user);
-        }
-      },
-      cells: [
-        // Name Cell
-        DataCell(
-          Row(
-            children: [
-              ProfileAvatar(
-                imageUrl: user.profilePictureUrl,
-                fullName: user.fullName,
-                radius: 20,
-              ),
-              const SizedBox(width: AppConstants.padM),
-              Expanded(
-                child: Text(
-                  user.fullName,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-        // Contact Cell
-        DataCell(
-          Text(user.email.isEmpty ? user.phoneNumber ?? 'N/A' : user.email),
-        ),
-        // Role Cell
-        DataCell(_buildRoleChip(user.role)),
-      ],
-    );
-  }
-
-  void _showRoleDialog(BuildContext context, UserModel user) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AdminRoleDialog(
-        user: user,
-        adminBloc: adminBloc,
-      ),
-    );
-  }
-
-  Widget _buildRoleChip(String? role) {
-    Color color;
-    switch (role) {
-      case 'admin':
-        color = AppColors.error;
-        break;
-      case 'owner':
-        color = AppColors.accent2;
-        break;
-      case 'client':
-        color = AppColors.success;
-        break;
-      default:
-        color = AppColors.textSecondary;
+  List<UserModel> _filter(List<UserModel> users) {
+    var result = users;
+    if (_role != 'all') {
+      result = result.where((u) => u.role == _role).toList();
     }
-    return Chip(
-      label: Text(
-        role ?? 'N/A',
-        style: AppTextStyles.bodySmall.copyWith(
-          color: color,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      backgroundColor: color.withValues(alpha: 0.1),
-      side: BorderSide.none,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-    );
+    final q = _query.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      result = result
+          .where((u) =>
+              u.fullName.toLowerCase().contains(q) ||
+              u.email.toLowerCase().contains(q) ||
+              (u.phoneNumber ?? '').toLowerCase().contains(q))
+          .toList();
+    }
+    return result;
   }
 
   @override
-  bool get isRowCountApproximate => false;
+  Widget build(BuildContext context) {
+    return BlocBuilder<AdminBloc, AdminState>(
+      builder: (context, state) {
+        final loaded = state is AdminLoaded ? state : null;
+        final users = loaded?.users ?? const <UserModel>[];
 
-  @override
-  int get rowCount => users.length;
+        int count(String role) => users.where((u) => u.role == role).length;
 
-  @override
-  int get selectedRowCount => 0;
+        return AdminPage(
+          title: 'Users',
+          subtitle: loaded == null ? null : '${users.length} accounts',
+          icon: CupertinoIcons.group_solid,
+          toolbar: loaded == null
+              ? null
+              : AdminSearchField(
+                  hint: 'Search by name, email or phone',
+                  onChanged: (v) => setState(() => _query = v),
+                ),
+          filters: loaded == null
+              ? null
+              : AdminFilterBar(
+                      chips: [
+                        AdminFilterChip(
+                          label: 'All',
+                          count: users.length,
+                          selected: _role == 'all',
+                          onTap: () => setState(() => _role = 'all'),
+                        ),
+                        AdminFilterChip(
+                          label: 'Clients',
+                          count: count('client'),
+                          tone: AdminTone.success,
+                          selected: _role == 'client',
+                          onTap: () => setState(() => _role = 'client'),
+                        ),
+                        AdminFilterChip(
+                          label: 'Owners',
+                          count: count('owner'),
+                          tone: AdminTone.info,
+                          selected: _role == 'owner',
+                          onTap: () => setState(() => _role = 'owner'),
+                        ),
+                        AdminFilterChip(
+                          label: 'Admins',
+                          count: count('admin'),
+                          tone: AdminTone.danger,
+                          selected: _role == 'admin',
+                          onTap: () => setState(() => _role = 'admin'),
+                        ),
+                      ],
+                    ),
+          child: _buildBody(context, state),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, AdminState state) {
+    if (state is AdminLoading || state is AdminInitial) {
+      return const AdminLoadingState();
+    }
+    if (state is AdminError) {
+      return AdminErrorState(
+        message: state.message,
+        onRetry: () => context.read<AdminBloc>().add(LoadAdminData()),
+      );
+    }
+    if (state is! AdminLoaded) return const SizedBox.shrink();
+
+    final users = _filter(state.users);
+    if (users.isEmpty) {
+      final filtering = _query.isNotEmpty || _role != 'all';
+      return AdminEmptyState(
+        icon: CupertinoIcons.person_crop_circle_badge_xmark,
+        title: filtering ? 'No matching users' : 'No users yet',
+        message: filtering
+            ? 'Try a different search or clear the filters.'
+            : 'Accounts will appear here as people sign up.',
+      );
+    }
+
+    final gutter = AdminTheme.gutter(MediaQuery.sizeOf(context).width);
+    return GridView.builder(
+      padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 32),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 560,
+        mainAxisExtent: 78,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: users.length,
+      itemBuilder: (context, index) => AdminUserListItem(user: users[index]),
+    );
+  }
 }

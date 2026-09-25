@@ -9,6 +9,9 @@ import 'dart:io';
 import 'package:pendeza/app/config/app_config.dart';
 import 'package:pendeza/app/config/app_router.dart';
 import 'package:pendeza/app/config/theme/app_constants.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
+import 'package:pendeza/shared/widgets/theme_mode_button.dart';
+import 'package:pendeza/app/bloc/theme_cubit.dart';
 import 'package:pendeza/app/widgets/adaptive/adaptive_dialog.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_bloc.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_state.dart';
@@ -157,8 +160,9 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
                 : const ProfileStats();
 
         return Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
+          backgroundColor: ClientTheme.background(context),
           body: SafeArea(
+            bottom: false,
             child: RefreshIndicator(
               onRefresh: () async {
                 context.read<ProfileBloc>().add(
@@ -177,14 +181,15 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
                       onAvatarTap: () => _pickAndUploadImage(context, user.uid),
                       onBookingsTap: () => context.go(AppRoutes.clientBookings),
                       onSavedTap: () => context.push(AppRoutes.clientFavorites),
+                      themeAction: const ThemeModeButton(onDark: true, size: 42),
                     ),
                   ),
 
                   // Grouped Menu Sections
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: AppConstants.padL,
-                      vertical: AppConstants.padL,
+                      horizontal: ClientTheme.gutter,
+                      vertical: 24,
                     ),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
@@ -212,6 +217,7 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
                                 children: [
                                   ProfileMenuTile(
                                     icon: CupertinoIcons.creditcard_fill,
+                                    iconColor: const Color(0xFF4DA3FF),
                                     title: 'client.profile.menu.wallet'.tr(),
                                     subtitle: subtitle,
                                     onTap:
@@ -234,6 +240,7 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
                           children: [
                             ProfileMenuTile(
                               icon: CupertinoIcons.person_crop_circle_fill,
+                              iconColor: ClientPalette.tones[0],
                               title: 'client.profile.menu.edit_profile'.tr(),
                               subtitle:
                                   'client.profile.edit_profile_subtitle'.tr(),
@@ -241,12 +248,14 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
                             ),
                             ProfileMenuTile(
                               icon: CupertinoIcons.heart_fill,
+                              iconColor: const Color(0xFFFF7A90),
                               title: 'client.profile.menu.favorites'.tr(),
                               onTap:
                                   () => context.push(AppRoutes.clientFavorites),
                             ),
                             ProfileMenuTile(
                               icon: CupertinoIcons.bell_fill,
+                              iconColor: const Color(0xFFF5A623),
                               title: 'client.profile.menu.notifications'.tr(),
                               onTap:
                                   () => context.push(
@@ -256,7 +265,7 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
                           ],
                         ),
 
-                        const SizedBox(height: AppConstants.padL),
+                        const SizedBox(height: 24),
 
                         _buildSectionHeader(
                           context,
@@ -266,6 +275,7 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
                           children: [
                             ProfileMenuTile(
                               icon: CupertinoIcons.globe,
+                              iconColor: const Color(0xFF4DA3FF),
                               title: 'client.profile.menu.language'.tr(),
                               trailing: Text(
                                 context.locale.languageCode == 'sw'
@@ -273,14 +283,31 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
                                         .tr()
                                     : 'client.profile.language_selector.english'
                                         .tr(),
-                                style: theme.textTheme.bodySmall?.copyWith(
+                                style: ClientTheme.caption(context).copyWith(
                                   color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                               onTap: () => _showLanguagePicker(context),
                             ),
+                            BlocBuilder<ThemeCubit, ThemeMode>(
+                              builder: (context, mode) => ProfileMenuTile(
+                                icon: themeModeIcon(mode),
+                                iconColor: const Color(0xFFB57BFF),
+                                title: 'appearance.title'.tr(),
+                                trailing: Text(
+                                  themeModeLabel(mode),
+                                  style: ClientTheme.caption(context).copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                onTap: () => showThemeModeSheet(context),
+                              ),
+                            ),
                             ProfileMenuTile(
                               icon: CupertinoIcons.question_circle_fill,
+                              iconColor: const Color(0xFF00B894),
                               title: 'client.profile.menu.help'.tr(),
                               onTap: () {
                                 context.push(
@@ -307,7 +334,7 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: AppConstants.padXL * 2),
+                        const SizedBox(height: 110),
                       ]),
                     ),
                   ),
@@ -322,15 +349,8 @@ class _AuthenticatedProfileViewState extends State<_AuthenticatedProfileView> {
 
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 8),
-      child: Text(
-        title.toUpperCase(),
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          letterSpacing: 1.2,
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
-        ),
-      ),
+      padding: const EdgeInsets.only(left: 6, bottom: 10),
+      child: Text(title.toUpperCase(), style: ClientTheme.label(context)),
     );
   }
 

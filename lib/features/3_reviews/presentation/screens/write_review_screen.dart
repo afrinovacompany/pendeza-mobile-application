@@ -1,11 +1,15 @@
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
+import 'package:pendeza/app/config/theme/app_colors.dart';
+import 'package:pendeza/app/config/theme/app_text_styles.dart';
 import 'package:pendeza/app/services/service_locator.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_bloc.dart';
 import 'package:pendeza/features/0_auth/presentation/bloc/auth_state.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
 import '../../data/models/review_model.dart';
 import '../bloc/reviews_bloc.dart';
 import '../bloc/reviews_event.dart';
@@ -56,90 +60,111 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return BlocProvider(
       create: (context) => sl<ReviewsBloc>(),
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(isEditMode ? 'Edit Review' : 'Write a Review'),
-          centerTitle: true,
-        ),
-        body: BlocConsumer<ReviewsBloc, ReviewsState>(
-          listener: (context, state) {
-            if (state is ReviewSubmitted || state is ReviewUpdated) {
-              // SUCCESS SNACKBAR
-              CustomSnackBar.show(
-                context,
-                message: state is ReviewSubmitted ? state.message : (state as ReviewUpdated).message,
-                type: SnackBarType.success,
-              );
+        backgroundColor: ClientTheme.background(context),
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              ClientPageHeader(
+                title: isEditMode
+                    ? 'client.salon_details.edit_review'.tr()
+                    : 'client.salon_details.write_review'.tr(),
+                subtitle: widget.salon.salonName,
+              ),
+              Expanded(
+                child: BlocConsumer<ReviewsBloc, ReviewsState>(
+                  listener: (context, state) {
+                    if (state is ReviewSubmitted || state is ReviewUpdated) {
+                      // SUCCESS SNACKBAR
+                      CustomSnackBar.show(
+                        context,
+                        message: state is ReviewSubmitted
+                            ? state.message
+                            : (state as ReviewUpdated).message,
+                        type: SnackBarType.success,
+                      );
 
-              // Go back
-              context.pop();
-            }
+                      // Go back
+                      context.pop();
+                    }
 
-            if (state is ReviewsError) {
-              // ERROR SNACKBAR
-              CustomSnackBar.show(
-                context,
-                message: state.message,
-                type: SnackBarType.error,
-              );
+                    if (state is ReviewsError) {
+                      // ERROR SNACKBAR
+                      CustomSnackBar.show(
+                        context,
+                        message: state.message,
+                        type: SnackBarType.error,
+                      );
 
-              setState(() {
-                _isSubmitting = false;
-              });
-            }
+                      setState(() {
+                        _isSubmitting = false;
+                      });
+                    }
 
-            if (state is SubmittingReview || state is UpdatingReview) {
-              setState(() {
-                _isSubmitting = true;
-              });
-            }
-          },
-          builder: (context, state) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(AppConstants.padL),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Salon info card
-                    _buildSalonInfoCard(theme),
-
-                    const SizedBox(height: AppConstants.padXL),
-
-                    // Rating input
-                    RatingInput(
-                      initialRating: _rating,
-                      label: 'How was your experience?',
-                      onRatingChanged: (rating) {
-                        setState(() {
-                          _rating = rating;
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: AppConstants.padXL),
-
-                    // Comment input
-                    _buildCommentField(theme),
-
-                    const SizedBox(height: AppConstants.padXXL),
-
-                    // Submit button
-                    _buildSubmitButton(context, theme),
-
-                    // Cancel button
-                    const SizedBox(height: AppConstants.padM),
-                    _buildCancelButton(context, theme),
-                  ],
+                    if (state is SubmittingReview || state is UpdatingReview) {
+                      setState(() {
+                        _isSubmitting = true;
+                      });
+                    }
+                  },
+                  builder: (context, state) {
+                    return SingleChildScrollView(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      padding: EdgeInsets.fromLTRB(
+                        ClientTheme.gutter,
+                        20,
+                        ClientTheme.gutter,
+                        24 + MediaQuery.paddingOf(context).bottom,
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildSalonInfoCard(context),
+                            const SizedBox(height: 16),
+                            _buildRatingCard(context),
+                            const SizedBox(height: 16),
+                            _buildCommentField(context),
+                            const SizedBox(height: 26),
+                            ClientPrimaryButton(
+                              text: isEditMode
+                                  ? 'client.salon_details.update_review'.tr()
+                                  : 'client.salon_details.submit_review'.tr(),
+                              icon: CupertinoIcons.paperplane_fill,
+                              isLoading: _isSubmitting,
+                              onPressed: _rating > 0
+                                  ? () => _handleSubmit(context)
+                                  : null,
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed:
+                                  _isSubmitting ? null : () => context.pop(),
+                              style: TextButton.styleFrom(
+                                minimumSize: const Size(0, 48),
+                                foregroundColor:
+                                    ClientTheme.textSecondary(context),
+                                textStyle: const TextStyle(
+                                  fontFamily: AppTextStyles.fontFamily,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              child: Text('common.cancel'.tr()),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
-            );
-          },
+            ],
+          ),
         ),
       ),
     );
@@ -149,42 +174,36 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
   // SALON INFO CARD
   //============================================================================
 
-  Widget _buildSalonInfoCard(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(AppConstants.padM),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: AppConstants.radiusL,
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
-        ),
-      ),
+  Widget _buildSalonInfoCard(BuildContext context) {
+    return ClientCard(
+      radius: 22,
+      padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          Icon(
-            Icons.store_rounded,
-            size: 32,
-            color: theme.colorScheme.primary,
+          const ClientIconTile(
+            icon: CupertinoIcons.scissors,
+            color: AppColors.primary,
+            size: 46,
+            solid: true,
           ),
-          const SizedBox(width: AppConstants.padM),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   widget.salon.salonName,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                  style: ClientTheme.body(context).copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: ClientTheme.textPrimary(context),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   widget.salon.address,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: ClientTheme.caption(context),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -197,88 +216,94 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
   }
 
   //============================================================================
-  // COMMENT FIELD
+  // RATING CARD
   //============================================================================
 
-  Widget _buildCommentField(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Share your thoughts (optional)',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+  String _ratingLabel(double rating) {
+    if (rating == 0) return 'client.salon_details.rating_tap'.tr();
+    final step = rating.ceil().clamp(1, 5);
+    return 'client.salon_details.rating_$step'.tr();
+  }
+
+  Widget _buildRatingCard(BuildContext context) {
+    final accent = ClientTheme.isDark(context)
+        ? Theme.of(context).colorScheme.primary
+        : AppColors.primaryDark;
+
+    return ClientCard(
+      radius: 24,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+      child: Column(
+        children: [
+          Text(
+            'client.salon_details.rate_prompt'.tr(),
+            textAlign: TextAlign.center,
+            style: ClientTheme.title(context),
           ),
-        ),
-        const SizedBox(height: AppConstants.padM),
-        TextFormField(
-          controller: _commentController,
-          maxLines: 6,
-          maxLength: 500,
-          decoration: InputDecoration(
-            hintText: 'Tell others about your experience...',
-            border: OutlineInputBorder(
-              borderRadius: AppConstants.radiusL,
+          const SizedBox(height: 16),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: RatingStars.input(
+              initialRating: _rating,
+              size: 44,
+              onRatingChanged: (rating) {
+                setState(() {
+                  _rating = rating;
+                });
+              },
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: AppConstants.radiusL,
-              borderSide: BorderSide(
-                color: theme.colorScheme.primary,
-                width: 2,
+          ),
+          const SizedBox(height: 12),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            child: Text(
+              _ratingLabel(_rating),
+              key: ValueKey(_rating),
+              style: TextStyle(
+                fontFamily: AppTextStyles.fontFamily,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: _rating == 0
+                    ? ClientTheme.textSecondary(context)
+                    : accent,
               ),
             ),
           ),
-          textCapitalization: TextCapitalization.sentences,
-        ),
-      ],
-    );
-  }
-
-  //============================================================================
-  // SUBMIT BUTTON
-  //============================================================================
-
-  Widget _buildSubmitButton(BuildContext context, ThemeData theme) {
-    final canSubmit = _rating > 0 && !_isSubmitting;
-
-    return ElevatedButton(
-      onPressed: canSubmit ? () => _handleSubmit(context) : null,
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: AppConstants.radiusL,
-        ),
-      ),
-      child: _isSubmitting
-          ? const SizedBox(
-        height: 20,
-        width: 20,
-        child: CircularProgressIndicator(
-          strokeWidth: 2,
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-        ),
-      )
-          : Text(
-        isEditMode ? 'Update Review' : 'Submit Review',
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
+        ],
       ),
     );
   }
 
   //============================================================================
-  // CANCEL BUTTON
+  // COMMENT FIELD
   //============================================================================
 
-  Widget _buildCancelButton(BuildContext context, ThemeData theme) {
-    return TextButton(
-      onPressed: _isSubmitting ? null : () => context.pop(),
-      style: TextButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+  Widget _buildCommentField(BuildContext context) {
+    return ClientCard(
+      radius: 24,
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'client.salon_details.comment_title'.tr(),
+            style: ClientTheme.body(context).copyWith(
+              fontWeight: FontWeight.w700,
+              color: ClientTheme.textPrimary(context),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _commentController,
+            maxLines: 5,
+            maxLength: 500,
+            decoration: InputDecoration(
+              hintText: 'client.salon_details.comment_hint'.tr(),
+            ),
+            textCapitalization: TextCapitalization.sentences,
+          ),
+        ],
       ),
-      child: const Text('Cancel'),
     );
   }
 
@@ -291,7 +316,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
       // WARNING SNACKBAR
       CustomSnackBar.show(
         context,
-        message: 'Please select a star rating',
+        message: 'client.salon_details.select_rating'.tr(),
         type: SnackBarType.warning,
       );
       return;
@@ -303,7 +328,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
       // ERROR SNACKBAR
       CustomSnackBar.show(
         context,
-        message: 'You must be signed in to leave a review',
+        message: 'client.salon_details.sign_in_required'.tr(),
         type: SnackBarType.error,
       );
       return;
@@ -314,25 +339,25 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
     if (isEditMode) {
       // Update existing review
       context.read<ReviewsBloc>().add(
-        UpdateReview(
-          reviewId: widget.existingReview!.id,
-          userId: user.uid,
-          rating: _rating,
-          comment: _commentController.text.trim(),
-        ),
-      );
+            UpdateReview(
+              reviewId: widget.existingReview!.id,
+              userId: user.uid,
+              rating: _rating,
+              comment: _commentController.text.trim(),
+            ),
+          );
     } else {
       // Submit new review
       context.read<ReviewsBloc>().add(
-        SubmitReview(
-          salonId: widget.salon.id,
-          userId: user.uid,
-          userName: user.fullName,
-          userProfilePicture: user.profilePictureUrl,
-          rating: _rating,
-          comment: _commentController.text.trim(),
-        ),
-      );
+            SubmitReview(
+              salonId: widget.salon.id,
+              userId: user.uid,
+              userName: user.fullName,
+              userProfilePicture: user.profilePictureUrl,
+              rating: _rating,
+              comment: _commentController.text.trim(),
+            ),
+          );
     }
   }
 }

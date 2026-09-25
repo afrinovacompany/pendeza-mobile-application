@@ -1,4 +1,5 @@
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +14,7 @@ import '../../../../shared/models/salon_model.dart';
 import '../../../../shared/models/promotion_model.dart';
 import '../../../../shared/widgets/salon_card.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
+import '../../../../shared/widgets/client_ui.dart';
 
 // BLoC Imports
 import '../../../2_client_discovery/presentation/bloc/discovery_bloc.dart';
@@ -87,69 +89,53 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
       child: Builder(
         builder: (context) {
           return Scaffold(
-            backgroundColor: theme.scaffoldBackgroundColor,
+            backgroundColor: ClientTheme.background(context),
             body: SafeArea(
+              bottom: false,
               child: RefreshIndicator(
                 onRefresh: () => _handleRefresh(context),
                 color: theme.colorScheme.primary,
                 child: CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
-                    // ════════════════════════════════════════════════════════
-                    // 1. CLEAN HEADER (No Overlay - Handles Guest Mode Inside)
-                    // ════════════════════════════════════════════════════════
+                    // 1. HERO HEADER (greeting, notifications, search)
                     const SliverToBoxAdapter(child: DashboardHeader()),
+                    const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-                    // Spacing after header
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: AppConstants.padM),
-                    ),
-
-                    // ════════════════════════════════════════════════════════
-                    // 🆕 2. VIDEO STORIES WIDGET (NEW!)
-                    // ════════════════════════════════════════════════════════
+                    // 2. VIDEO STORIES
                     const SliverToBoxAdapter(child: VideoStoryWidget()),
-
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: AppConstants.padL),
-                    ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 8)),
 
                     // TEMPORARILY DISABLED - Payments turned off for App Store submission
                     if (AppConfig.paymentsEnabled) ...[
                       const SliverToBoxAdapter(
                         child: Padding(
                           padding: EdgeInsets.symmetric(
-                            horizontal: AppConstants.padL,
+                            horizontal: ClientTheme.gutter,
                           ),
                           child: WalletBalanceCard(),
                         ),
                       ),
-                      const SliverToBoxAdapter(
-                        child: SizedBox(height: AppConstants.padL),
-                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 24)),
                     ],
 
-                    // ════════════════════════════════════════════════════════
-                    // 4. UPCOMING APPOINTMENT (Priority Visibility)
-                    // ════════════════════════════════════════════════════════
+                    // 3. UP NEXT
                     SliverToBoxAdapter(
                       child: _buildUpcomingAppointment(context, theme),
                     ),
 
-                    // ════════════════════════════════════════════════════════
-                    // 5. QUICK ACTIONS BAR
-                    // ════════════════════════════════════════════════════════
+                    // 4. QUICK ACTIONS
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppConstants.padL,
-                        ),
+                        padding: const EdgeInsets.only(top: 12, bottom: 28),
                         child: QuickActionsBar(
                           onActionTap: (action) {
-                            if (action == 'favorites')
+                            if (action == 'favorites') {
                               context.go(AppRoutes.clientFavorites);
-                            if (action == 'near_me')
+                            }
+                            if (action == 'near_me') {
                               context.go(AppRoutes.clientDiscover);
+                            }
                             if (action == 'offers') {
                               // Could scroll to promotions section
                             }
@@ -158,54 +144,32 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                       ),
                     ),
 
-                    // ════════════════════════════════════════════════════════
-                    // 6. PROMOTIONS CAROUSEL (Hero Section)
-                    // ════════════════════════════════════════════════════════
+                    // 5. PROMOTIONS
                     SliverToBoxAdapter(
                       child: _buildPromotionsSection(context, theme),
                     ),
 
-                    // Spacing before categories
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: AppConstants.padXL),
-                    ),
-
-                    // ════════════════════════════════════════════════════════
-                    // 7. CATEGORIES GRID WITH SECTION HEADER
-                    // ════════════════════════════════════════════════════════
+                    // 6. CATEGORIES
                     SliverToBoxAdapter(
                       child: _buildCategoriesSection(context, theme),
                     ),
-
-                    // Large spacing before salons
                     const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-                    // ════════════════════════════════════════════════════════
-                    // 8. RECOMMENDED SALONS WITH SECTION HEADER
-                    // ════════════════════════════════════════════════════════
+                    // 7. RECOMMENDED SALONS
                     SliverToBoxAdapter(
                       child: _buildSectionHeader(
                         context,
                         theme,
-                        // Key: "client.dashboard.recommended"
                         title: 'client.dashboard.recommended'.tr(),
-                        // Key: "client.dashboard.see_all"
                         actionLabel: 'client.dashboard.see_all'.tr(),
                         onActionTap: () => context.go(AppRoutes.clientDiscover),
                       ),
                     ),
-
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: AppConstants.padM),
-                    ),
-
-                    // ════════════════════════════════════════════════════════
-                    // 9. SALONS HORIZONTAL LIST
-                    // ════════════════════════════════════════════════════════
+                    const SliverToBoxAdapter(child: SizedBox(height: 14)),
                     SliverToBoxAdapter(child: _buildSalonsCarousel(context)),
 
                     // Bottom padding for navigation bar
-                    const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                    const SliverToBoxAdapter(child: SizedBox(height: 110)),
                   ],
                 ),
               ),
@@ -246,56 +210,16 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Section label
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppConstants.padL,
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 4,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'client.dashboard.up_next'.tr(),
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (AppConfig.paymentsEnabled && isPending) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.error.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: theme.colorScheme.error.withValues(alpha: 0.4),
-                          ),
-                        ),
-                        child: Text(
-                          'Pending Payment',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.error,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+              ClientSectionHeader(
+                title: 'client.dashboard.up_next'.tr(),
+                trailing: (AppConfig.paymentsEnabled && isPending)
+                    ? ClientPill(
+                        label: 'Pending Payment',
+                        color: theme.colorScheme.error,
+                      )
+                    : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               UpcomingAppointmentWidget(
                 appointmentWithDetails: nearest,
                 onTap: () => context.go(AppRoutes.clientBookings),
@@ -312,20 +236,36 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
     return BlocBuilder<PromotionsBloc, PromotionsState>(
       builder: (context, state) {
         if (state is PromotionsLoading) {
-          return const SizedBox(
-            height: 180,
-            child: Center(child: CircularProgressIndicator()),
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(
+              ClientTheme.gutter,
+              0,
+              ClientTheme.gutter,
+              28,
+            ),
+            child: ShimmerPlaceholder.rectangular(
+              height: 210,
+              borderRadius: BorderRadius.circular(28),
+            ),
           );
         }
 
-        if (state is PromotionsLoaded) {
-          if (state.promotions.isEmpty) {
-            return const SizedBox.shrink();
-          }
-
-          return PromotionCarousel(
-            promotions: state.promotions,
-            onPromotionTap: _handlePromotionTap,
+        if (state is PromotionsLoaded && state.promotions.isNotEmpty) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClientSectionHeader(
+                  title: 'client.dashboard.special_offers'.tr(),
+                ),
+                const SizedBox(height: 10),
+                PromotionCarousel(
+                  promotions: state.promotions,
+                  onPromotionTap: _handlePromotionTap,
+                ),
+              ],
+            ),
           );
         }
 
@@ -345,9 +285,9 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
           actionLabel: 'client.dashboard.see_all'.tr(),
           onActionTap: () => context.push(AppRoutes.clientCategories),
         ),
-        const SizedBox(height: AppConstants.padM),
+        const SizedBox(height: 14),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
+          padding: const EdgeInsets.symmetric(horizontal: ClientTheme.gutter),
           child: CategoryGridWidget(
             categories: CategoriesData.allCategories,
             onCategorySelected: _handleCategorySelected,
@@ -361,48 +301,13 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
     BuildContext context,
     ThemeData theme, {
     required String title,
-    IconData? icon,
     String? actionLabel,
     VoidCallback? onActionTap,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-      child: Row(
-        children: [
-          if (icon != null) ...[
-            Icon(icon, color: theme.colorScheme.primary, size: 20),
-            const SizedBox(width: 8),
-          ],
-          Expanded(
-            child: Text(
-              title,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (actionLabel != null && onActionTap != null)
-            TextButton(
-              onPressed: onActionTap,
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(actionLabel),
-                  const SizedBox(width: 4),
-                  Icon(Icons.arrow_forward_rounded, size: 16),
-                ],
-              ),
-            ),
-        ],
-      ),
+    return ClientSectionHeader(
+      title: title,
+      actionLabel: actionLabel,
+      onAction: onActionTap,
     );
   }
 
@@ -421,14 +326,15 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
 
           // Responsive card width based on screen size
           final screenWidth = MediaQuery.of(context).size.width;
-          final cardWidth = (screenWidth * 0.65).clamp(220.0, 280.0);
+          final cardWidth = (screenWidth * 0.68).clamp(230.0, 300.0);
 
           return SizedBox(
-            height: 280,
+            height: 300,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
               padding: const EdgeInsets.symmetric(
-                horizontal: AppConstants.padL,
+                horizontal: ClientTheme.gutter,
               ),
               itemCount: state.allSalons.length,
               separatorBuilder:
@@ -453,21 +359,21 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
   /// Loading shimmer for salons carousel
   Widget _buildLoadingCarousel() {
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = (screenWidth * 0.65).clamp(220.0, 280.0);
+    final cardWidth = (screenWidth * 0.68).clamp(230.0, 300.0);
 
     return SizedBox(
-      height: 280,
+      height: 300,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
+        padding: const EdgeInsets.symmetric(horizontal: ClientTheme.gutter),
         itemCount: 3,
         separatorBuilder:
             (context, index) => const SizedBox(width: AppConstants.padM),
         itemBuilder: (context, index) {
           return ShimmerPlaceholder.rectangular(
             width: cardWidth,
-            height: 280,
-            borderRadius: BorderRadius.circular(20),
+            height: 300,
+            borderRadius: BorderRadius.circular(26),
           );
         },
       ),
@@ -476,41 +382,35 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
 
   /// Empty state when no salons available
   Widget _buildEmptySalonsState(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
-      height: 200,
-      margin: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
+      margin: const EdgeInsets.symmetric(horizontal: ClientTheme.gutter),
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
+        color: ClientTheme.inset(context),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: ClientTheme.border(context)),
       ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.store_outlined,
-              size: 48,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 12),
-            // Key: "client.dashboard.no_salons_title"
-            Text(
-              'client.dashboard.no_salons_title'.tr(),
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Key: "client.dashboard.no_salons_msg"
-            Text(
-              'client.dashboard.no_salons_msg'.tr(),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-              ),
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClientIconTile(
+            icon: CupertinoIcons.building_2_fill,
+            color: Theme.of(context).colorScheme.primary,
+            size: 56,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'client.dashboard.no_salons_title'.tr(),
+            textAlign: TextAlign.center,
+            style: ClientTheme.heading(context),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'client.dashboard.no_salons_msg'.tr(),
+            textAlign: TextAlign.center,
+            style: ClientTheme.caption(context),
+          ),
+        ],
       ),
     );
   }

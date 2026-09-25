@@ -1,267 +1,168 @@
-import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:pendeza/app/config/theme/app_colors.dart';
+import 'package:pendeza/app/config/theme/app_text_styles.dart';
 import 'package:pendeza/shared/models/salon_model.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
 
+/// "About" card of the salon overview: description with read-more and the
+/// categories the salon offers.
 class SalonDescriptionSection extends StatefulWidget {
   final SalonModel salon;
 
   const SalonDescriptionSection({super.key, required this.salon});
 
   @override
-  State<SalonDescriptionSection> createState() => _SalonDescriptionSectionState();
+  State<SalonDescriptionSection> createState() =>
+      _SalonDescriptionSectionState();
 }
 
-class _SalonDescriptionSectionState extends State<SalonDescriptionSection>
-    with SingleTickerProviderStateMixin {
+class _SalonDescriptionSectionState extends State<SalonDescriptionSection> {
   bool _isExpanded = false;
-  late AnimationController _expandController;
-  late Animation<double> _iconRotation;
-
-  @override
-  void initState() {
-    super.initState();
-    _expandController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _iconRotation = Tween<double>(begin: 0.0, end: 0.5).animate(
-      CurvedAnimation(parent: _expandController, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _expandController.dispose();
-    super.dispose();
-  }
-
-  void _toggleExpanded() {
-    setState(() {
-      _isExpanded = !_isExpanded;
-      if (_isExpanded) {
-        _expandController.forward();
-      } else {
-        _expandController.reverse();
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final description = widget.salon.description ?? 'No description available.';
-    final hasLongDescription = description.length > 150;
+    final raw = widget.salon.description?.trim();
+    final hasDescription = raw != null && raw.isNotEmpty;
+    final description =
+        hasDescription ? raw : 'client.salon_details.no_description'.tr();
+    final hasLongDescription = hasDescription && raw.length > 150;
+    final accent = ClientTheme.isDark(context)
+        ? Theme.of(context).colorScheme.primary
+        : AppColors.primaryDark;
+    final categories = widget.salon.serviceCategories;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      theme.colorScheme.primary.withValues(alpha: 0.1),
-                      theme.colorScheme.secondary.withValues(alpha: 0.1),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(10),
+      padding: const EdgeInsets.symmetric(horizontal: ClientTheme.gutter),
+      child: ClientCard(
+        padding: const EdgeInsets.all(18),
+        radius: 24,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const ClientIconTile(
+                  icon: CupertinoIcons.info_circle_fill,
+                  color: AppColors.primary,
+                  size: 38,
                 ),
-                child: Icon(
-                  CupertinoIcons.info_circle_fill,
-                  color: theme.colorScheme.primary,
-                  size: 20,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'client.salon_details.about'
+                        .tr(args: [widget.salon.salonName]),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: ClientTheme.heading(context),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              alignment: Alignment.topCenter,
+              child: Text(
+                description,
+                maxLines: _isExpanded ? null : 4,
+                overflow:
+                    _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                style: ClientTheme.body(context).copyWith(
+                  height: 1.6,
+                  color: hasDescription
+                      ? ClientTheme.textSecondary(context)
+                      : ClientTheme.textSecondary(context)
+                          .withValues(alpha: 0.7),
+                  fontStyle: hasDescription ? null : FontStyle.italic,
                 ),
               ),
-              const SizedBox(width: 12),
-              Text(
-                'About ${widget.salon.salonName}',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppConstants.padM),
-
-          // Description with smooth expansion
-          AnimatedSize(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            child: _isExpanded
-                ? _buildExpandedDescription(theme, description)
-                : _buildCollapsedDescription(theme, description),
-          ),
-
-          // See More/Less Button
-          if (hasLongDescription)
-            Padding(
-              padding: const EdgeInsets.only(top: AppConstants.padS),
-              child: GestureDetector(
-                onTap: _toggleExpanded,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.primary.withValues(alpha: 0.1),
-                        theme.colorScheme.secondary.withValues(alpha: 0.1),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+            ),
+            if (hasLongDescription)
+              InkWell(
+                onTap: () => setState(() => _isExpanded = !_isExpanded),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 2),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        _isExpanded ? 'Show Less' : 'Read More',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w600,
+                        _isExpanded
+                            ? 'client.salon_details.show_less'.tr()
+                            : 'client.salon_details.read_more'.tr(),
+                        style: TextStyle(
+                          fontFamily: AppTextStyles.fontFamily,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: accent,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      RotationTransition(
-                        turns: _iconRotation,
+                      AnimatedRotation(
+                        turns: _isExpanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 250),
                         child: Icon(
                           CupertinoIcons.chevron_down,
-                          size: 16,
-                          color: theme.colorScheme.primary,
+                          size: 14,
+                          color: accent,
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-            ),
-
-          const SizedBox(height: AppConstants.padL),
-          _buildServiceCategories(context, widget.salon.serviceCategories),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCollapsedDescription(ThemeData theme, String description) {
-    return Text(
-      description,
-      style: theme.textTheme.bodyLarge?.copyWith(
-        height: 1.6,
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
-      maxLines: 3,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  Widget _buildExpandedDescription(ThemeData theme, String description) {
-    return Text(
-      description,
-      style: theme.textTheme.bodyLarge?.copyWith(
-        height: 1.6,
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
-    );
-  }
-
-  Widget _buildServiceCategories(BuildContext context, List<String> categories) {
-    final theme = Theme.of(context);
-
-    if (categories.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(
-              CupertinoIcons.tag_fill,
-              size: 16,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Services Offered',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
+            if (categories.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Divider(height: 1, color: ClientTheme.border(context)),
+              const SizedBox(height: 14),
+              Text(
+                'client.salon_details.offered'.tr().toUpperCase(),
+                style: ClientTheme.label(context),
               ),
-            ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final category in categories)
+                    _CategoryChip(label: category),
+                ],
+              ),
+            ],
           ],
         ),
-        const SizedBox(height: AppConstants.padS),
-        Wrap(
-          spacing: AppConstants.padS,
-          runSpacing: AppConstants.padS,
-          children: categories.asMap().entries.map((entry) {
-            final index = entry.key;
-            final category = entry.value;
+      ),
+    );
+  }
+}
 
-            return TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: Duration(milliseconds: 300 + (index * 50)),
-              curve: Curves.easeOutBack,
-              builder: (context, value, child) {
-                // BUG FIX: Curves.easeOutBack can overshoot 1.0 or go below 0.0.
-                // We must clamp the value for Opacity to prevent crashes.
-                final safeOpacity = value.clamp(0.0, 1.0);
+class _CategoryChip extends StatelessWidget {
+  final String label;
 
-                return Transform.scale(
-                  scale: value,
-                  child: Opacity(
-                    opacity: safeOpacity,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppConstants.padM,
-                        vertical: AppConstants.padS,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            theme.colorScheme.primary.withValues(alpha: 0.15),
-                            theme.colorScheme.secondary.withValues(alpha: 0.15),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        category.toUpperCase(),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            );
-          }).toList(),
+  const _CategoryChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = ClientPalette.forKey(label);
+    final dark = ClientTheme.isDark(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: dark ? 0.20 : 0.12),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontFamily: AppTextStyles.fontFamily,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: dark ? Color.lerp(color, Colors.white, 0.3) : color,
         ),
-      ],
+      ),
     );
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
 
 /// A wrapper that groups [ProfileMenuTile]s into a visually distinct card.
 class ProfileSectionCard extends StatelessWidget {
@@ -9,40 +9,25 @@ class ProfileSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppConstants.radiusValL),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
+    return ClientCard(
+      padding: EdgeInsets.zero,
+      radius: 24,
       child: Column(
-        children: children.asMap().entries.map((entry) {
-          final idx = entry.key;
-          final widget = entry.value;
-
-          return Column(
-            children: [
-              widget,
-              if (idx < children.length - 1)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppConstants.padL),
-                  child: Divider(
-                    height: 1,
-                    thickness: 0.5,
-                    color: theme.dividerColor.withValues(alpha: 0.1),
-                  ),
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            children[i],
+            if (i < children.length - 1)
+              Padding(
+                // Line up with the text, not the icon.
+                padding: const EdgeInsets.only(left: 72, right: 16),
+                child: Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: ClientTheme.border(context).withValues(alpha: 0.6),
                 ),
-            ],
-          );
-        }).toList(),
+              ),
+          ],
+        ],
       ),
     );
   }

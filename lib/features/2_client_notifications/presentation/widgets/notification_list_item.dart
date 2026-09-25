@@ -1,13 +1,16 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../app/config/theme/app_colors.dart';
-import '../../../../app/config/theme/app_constants.dart';
+import '../../../../app/config/theme/app_text_styles.dart';
 import '../../../../shared/models/notification_model.dart';
+import '../../../../shared/widgets/client_ui.dart';
 
-/// Enhanced notification list item with:
-/// - Image support
+/// Notification card with:
+/// - Type icon (or image thumbnail)
+/// - Unread accent
 /// - Expandable body text (tap to expand/collapse)
 /// - Call-to-Action button
 /// - Swipe to delete
@@ -34,9 +37,10 @@ class _NotificationListItemState extends State<NotificationListItem> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = ClientTheme.isDark(context);
     final notification = widget.notification;
+    final unread = !notification.isRead;
+    final tone = _getColorForType(notification.type, Theme.of(context));
 
     return Dismissible(
       key: Key(notification.id),
@@ -44,14 +48,23 @@ class _NotificationListItemState extends State<NotificationListItem> {
       onDismissed: (_) => widget.onDismiss?.call(),
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        color: AppColors.error,
-        child: const Icon(
-          CupertinoIcons.trash,
-          color: Colors.white,
+        padding: const EdgeInsets.only(right: 24),
+        decoration: BoxDecoration(
+          color: AppColors.error,
+          borderRadius: BorderRadius.circular(22),
         ),
+        child: const Icon(CupertinoIcons.trash, color: Colors.white),
       ),
-      child: InkWell(
+      child: ClientCard(
+        radius: 22,
+        padding: const EdgeInsets.all(14),
+        color: unread
+            ? ClientTheme.tinted(context, AppColors.primary,
+                light: 0.05, dark: 0.14)
+            : null,
+        borderColor: unread
+            ? AppColors.primary.withValues(alpha: isDark ? 0.4 : 0.25)
+            : null,
         onTap: () {
           // Toggle expansion if body is long
           if (_isBodyLong(notification.body)) {
@@ -59,152 +72,126 @@ class _NotificationListItemState extends State<NotificationListItem> {
           }
           widget.onTap?.call();
         },
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppConstants.padL,
-            vertical: AppConstants.padM,
-          ),
-          decoration: BoxDecoration(
-            color: notification.isRead
-                ? Colors.transparent
-                : (isDark
-                ? theme.colorScheme.primary.withValues(alpha: 0.08)
-                : theme.colorScheme.primary.withValues(alpha: 0.05)),
-            border: Border(
-              bottom: BorderSide(
-                color: isDark ? AppColors.darkBorder : AppColors.border,
-                width: 0.5,
-              ),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Icon or Image
-                  _buildLeadingWidget(theme, isDark),
-                  const SizedBox(width: 12),
-
-                  // Content
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Title row with unread indicator
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                notification.title,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: notification.isRead
-                                      ? FontWeight.w500
-                                      : FontWeight.bold,
-                                  color: isDark
-                                      ? AppColors.darkTextPrimary
-                                      : AppColors.textPrimary,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildLeadingWidget(tone),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              notification.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: ClientTheme.body(context).copyWith(
+                                fontWeight:
+                                    unread ? FontWeight.w700 : FontWeight.w600,
+                                color: ClientTheme.textPrimary(context),
                               ),
                             ),
-                            if (!notification.isRead) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary,
+                          ),
+                          if (unread) ...[
+                            const SizedBox(width: 8),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 5),
+                              child: Container(
+                                width: 9,
+                                height: 9,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary,
                                   shape: BoxShape.circle,
                                 ),
                               ),
-                            ],
+                            ),
                           ],
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 200),
+                        alignment: Alignment.topCenter,
+                        curve: Curves.easeInOut,
+                        child: Text(
+                          notification.body,
+                          maxLines: _isExpanded ? null : 2,
+                          overflow: _isExpanded
+                              ? TextOverflow.visible
+                              : TextOverflow.ellipsis,
+                          style: ClientTheme.caption(context).copyWith(
+                            fontSize: 13,
+                            height: 1.45,
+                          ),
                         ),
-                        const SizedBox(height: 4),
-
-                        // Body - Expandable
-                        AnimatedCrossFade(
-                          firstChild: Text(
-                            notification.body,
-                            style: theme.textTheme.bodyMedium?.copyWith(
+                      ),
+                      if (_isBodyLong(notification.body) && !_isExpanded)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'notifications.read_more'.tr(),
+                            style: TextStyle(
+                              fontFamily: AppTextStyles.fontFamily,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                               color: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.textSecondary,
+                                  ? Theme.of(context).colorScheme.primary
+                                  : AppColors.primaryDark,
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          secondChild: Text(
-                            notification.body,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: isDark
-                                  ? AppColors.darkTextSecondary
-                                  : AppColors.textSecondary,
-                            ),
-                          ),
-                          crossFadeState: _isExpanded
-                              ? CrossFadeState.showSecond
-                              : CrossFadeState.showFirst,
-                          duration: const Duration(milliseconds: 200),
-                        ),
-
-                        // "Read more" indicator
-                        if (_isBodyLong(notification.body) && !_isExpanded)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              'Tap to read more...',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-
-                        const SizedBox(height: 6),
-
-                        // Time ago
-                        Text(
-                          notification.timeAgo,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: isDark
-                                ? AppColors.darkTextTertiary
-                                : AppColors.textSecondary.withValues(alpha: 0.7),
                           ),
                         ),
-                      ],
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            CupertinoIcons.clock,
+                            size: 12,
+                            color: ClientTheme.textSecondary(context),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            notification.timeAgo,
+                            style: ClientTheme.caption(context)
+                                .copyWith(fontSize: 11.5),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                // Chevron for actionable notifications (without CTA button)
+                if (notification.actionRoute != null &&
+                    notification.actionLabel == null) ...[
+                  const SizedBox(width: 6),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Icon(
+                      CupertinoIcons.chevron_right,
+                      size: 15,
+                      color: ClientTheme.textSecondary(context),
                     ),
                   ),
-
-                  // Chevron for actionable notifications (without CTA button)
-                  if (notification.actionRoute != null &&
-                      notification.actionLabel == null) ...[
-                    const SizedBox(width: 8),
-                    Icon(
-                      CupertinoIcons.chevron_right,
-                      size: 16,
-                      color: isDark
-                          ? AppColors.darkTextTertiary
-                          : AppColors.textSecondary.withValues(alpha: 0.5),
-                    ),
-                  ],
                 ],
-              ),
+              ],
+            ),
 
-              // Image (if present)
-              if (notification.imageUrl != null &&
-                  notification.imageUrl!.isNotEmpty)
-                _buildNotificationImage(notification.imageUrl!, theme),
+            // Image (if present)
+            if (notification.imageUrl != null &&
+                notification.imageUrl!.isNotEmpty)
+              _buildNotificationImage(notification.imageUrl!),
 
-              // Call-to-Action Button (if present)
-              if (notification.actionRoute != null &&
-                  notification.actionLabel != null)
-                _buildActionButton(theme),
-            ],
-          ),
+            // Call-to-Action Button (if present)
+            if (notification.actionRoute != null &&
+                notification.actionLabel != null)
+              _buildActionButton(),
+          ],
         ),
       ),
     );
@@ -216,63 +203,40 @@ class _NotificationListItemState extends State<NotificationListItem> {
   }
 
   /// Build leading icon or image thumbnail
-  Widget _buildLeadingWidget(ThemeData theme, bool isDark) {
+  Widget _buildLeadingWidget(Color tone) {
     final notification = widget.notification;
+    final icon = ClientIconTile(
+      icon: _getIconForType(notification.type),
+      color: tone,
+      size: 46,
+    );
 
     // If there's an image, show small thumbnail
     if (notification.imageUrl != null && notification.imageUrl!.isNotEmpty) {
-      return Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: theme.dividerColor,
-        ),
+      return SizedBox(
+        width: 46,
+        height: 46,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(15),
           child: CachedNetworkImage(
             imageUrl: notification.imageUrl!,
             fit: BoxFit.cover,
-            placeholder: (context, url) => Icon(
-              _getIconForType(notification.type),
-              size: 22,
-              color: _getColorForType(notification.type, theme),
-            ),
-            errorWidget: (context, url, error) => Icon(
-              _getIconForType(notification.type),
-              size: 22,
-              color: _getColorForType(notification.type, theme),
-            ),
+            placeholder: (context, url) => icon,
+            errorWidget: (context, url, error) => icon,
           ),
         ),
       );
     }
 
-    // Default icon
-    final iconData = _getIconForType(notification.type);
-    final iconColor = _getColorForType(notification.type, theme);
-
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: iconColor.withValues(alpha: isDark ? 0.2 : 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(
-        iconData,
-        size: 22,
-        color: iconColor,
-      ),
-    );
+    return icon;
   }
 
   /// Build notification image (large, below content)
-  Widget _buildNotificationImage(String imageUrl, ThemeData theme) {
+  Widget _buildNotificationImage(String imageUrl) {
     return Padding(
-      padding: const EdgeInsets.only(top: AppConstants.padM),
+      padding: const EdgeInsets.only(top: 12),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: CachedNetworkImage(
           imageUrl: imageUrl,
           width: double.infinity,
@@ -280,16 +244,20 @@ class _NotificationListItemState extends State<NotificationListItem> {
           fit: BoxFit.cover,
           placeholder: (context, url) => Container(
             height: 160,
-            color: theme.dividerColor,
+            color: ClientTheme.inset(context),
             child: const Center(
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
           ),
           errorWidget: (context, url, error) => Container(
             height: 100,
-            color: theme.dividerColor,
-            child: const Center(
-              child: Icon(CupertinoIcons.photo, size: 32),
+            color: ClientTheme.inset(context),
+            child: Center(
+              child: Icon(
+                CupertinoIcons.photo,
+                size: 32,
+                color: ClientTheme.textSecondary(context),
+              ),
             ),
           ),
         ),
@@ -298,38 +266,16 @@ class _NotificationListItemState extends State<NotificationListItem> {
   }
 
   /// Build Call-to-Action button
-  Widget _buildActionButton(ThemeData theme) {
+  Widget _buildActionButton() {
     final notification = widget.notification;
-    final buttonColor = _getColorForType(notification.type, theme);
 
     return Padding(
-      padding: const EdgeInsets.only(top: AppConstants.padM),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: widget.onActionTap ?? widget.onTap,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: buttonColor,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                notification.actionLabel!,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Icon(CupertinoIcons.arrow_right, size: 16),
-            ],
-          ),
-        ),
+      padding: const EdgeInsets.only(top: 12),
+      child: ClientPrimaryButton(
+        text: notification.actionLabel!,
+        icon: CupertinoIcons.arrow_right,
+        height: 48,
+        onPressed: widget.onActionTap ?? widget.onTap,
       ),
     );
   }
@@ -339,15 +285,15 @@ class _NotificationListItemState extends State<NotificationListItem> {
       case NotificationType.appointment:
         return CupertinoIcons.calendar;
       case NotificationType.promotion:
-        return CupertinoIcons.tag;
+        return CupertinoIcons.tag_fill;
       case NotificationType.system:
-        return CupertinoIcons.gear;
+        return CupertinoIcons.gear_solid;
       case NotificationType.payment:
-        return CupertinoIcons.creditcard;
+        return CupertinoIcons.creditcard_fill;
       case NotificationType.review:
-        return CupertinoIcons.star;
+        return CupertinoIcons.star_fill;
       case NotificationType.general:
-        return CupertinoIcons.bell;
+        return CupertinoIcons.bell_fill;
     }
   }
 
@@ -362,7 +308,7 @@ class _NotificationListItemState extends State<NotificationListItem> {
       case NotificationType.payment:
         return AppColors.success;
       case NotificationType.review:
-        return Colors.amber;
+        return const Color(0xFFF5A623);
       case NotificationType.general:
         return theme.colorScheme.secondary;
     }

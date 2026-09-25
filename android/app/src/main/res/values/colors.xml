@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Flat brand colour shown while the app starts. Keep in sync with
+         SplashView.launchColor (lib/screens/splash_view.dart) and the iOS
+         LaunchScreen.storyboard background. -->
+    <color name="launch_background">#6C5CE7</color>
+</resources>

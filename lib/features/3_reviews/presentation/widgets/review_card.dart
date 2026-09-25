@@ -1,10 +1,13 @@
-import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:pendeza/app/config/theme/app_colors.dart';
+import 'package:pendeza/app/config/theme/app_text_styles.dart';
+import 'package:pendeza/shared/widgets/client_ui.dart';
+import 'package:pendeza/shared/widgets/profile_avatar.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:pendeza/app/config/theme/app_constants.dart';
-import '../../data/models/review_model.dart';
 
+import '../../data/models/review_model.dart';
 import '../widgets/rating_stars_widget.dart';
 
 /// A card widget that displays a single review with:
@@ -39,65 +42,73 @@ class ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppConstants.padM),
-      padding: const EdgeInsets.all(AppConstants.padM),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: AppConstants.radiusL,
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return ClientCard(
+      radius: 22,
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // User info row
-          _buildUserInfoRow(context, theme),
-
-          const SizedBox(height: AppConstants.padM),
-
-          // Rating stars
-          RatingStars.display(
-            rating: review.rating,
-            size: 18,
+          _buildUserInfoRow(context),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              RatingStars.display(rating: review.rating, size: 17),
+              const Spacer(),
+              Icon(
+                CupertinoIcons.clock,
+                size: 12,
+                color: ClientTheme.textSecondary(context),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                timeago.format(review.createdAt),
+                style: ClientTheme.caption(context),
+              ),
+              if (review.isEdited) ...[
+                const SizedBox(width: 6),
+                Text(
+                  '(${'client.salon_details.edited'.tr()})',
+                  style: ClientTheme.caption(context).copyWith(
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ],
           ),
-
-          const SizedBox(height: AppConstants.padS),
-
-          // Review comment
           if (review.comment.isNotEmpty) ...[
+            const SizedBox(height: 10),
             Text(
               review.comment,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                height: 1.5,
+              style: ClientTheme.body(context).copyWith(
+                height: 1.55,
+                color: ClientTheme.textPrimary(context),
               ),
             ),
-            const SizedBox(height: AppConstants.padS),
           ],
-
-          // Timestamp and edited indicator
-          _buildTimestampRow(context, theme),
-
-          // Owner reply section
           if (review.hasOwnerReply) ...[
-            const SizedBox(height: AppConstants.padM),
-            _buildOwnerReply(context, theme),
+            const SizedBox(height: 14),
+            _buildOwnerReply(context),
           ],
-
-          // Action buttons (edit/delete or reply)
-          if (isReviewAuthor || isOwner || !review.hasOwnerReply) ...[
-            const SizedBox(height: AppConstants.padS),
-            _buildActionButtons(context, theme),
+          if (isOwner && !review.hasOwnerReply && onReply != null) ...[
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: onReply,
+              icon: const Icon(CupertinoIcons.reply, size: 16),
+              label: Text('client.salon_details.reply'.tr()),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                foregroundColor: ClientTheme.isDark(context)
+                    ? Theme.of(context).colorScheme.primary
+                    : AppColors.primaryDark,
+                textStyle: const TextStyle(
+                  fontFamily: AppTextStyles.fontFamily,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+            ),
           ],
         ],
       ),
@@ -108,91 +119,50 @@ class ReviewCard extends StatelessWidget {
   // USER INFO ROW
   //============================================================================
 
-  Widget _buildUserInfoRow(BuildContext context, ThemeData theme) {
+  Widget _buildUserInfoRow(BuildContext context) {
     return Row(
       children: [
-        // Profile picture
-        CircleAvatar(
+        ProfileAvatar(
+          imageUrl: review.userProfilePicture,
+          fullName: review.userName,
           radius: 20,
-          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-          backgroundImage: review.userProfilePicture != null
-              ? CachedNetworkImageProvider(review.userProfilePicture!)
-              : null,
-          child: review.userProfilePicture == null
-              ? Text(
-            review.userName[0].toUpperCase(),
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
-          )
-              : null,
         ),
-
-        const SizedBox(width: AppConstants.padS),
-
-        // Name and verified badge
+        const SizedBox(width: 12),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      review.userName,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+              Flexible(
+                child: Text(
+                  review.userName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ClientTheme.body(context).copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: ClientTheme.textPrimary(context),
                   ),
-                  if (review.isVerifiedBooking) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: Colors.green.withValues(alpha: 0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.verified_rounded,
-                            size: 12,
-                            color: Colors.green[700],
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
-                            'Verified',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: Colors.green[700],
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
+                ),
               ),
+              if (review.isVerifiedBooking) ...[
+                const SizedBox(width: 8),
+                ClientPill(
+                  label: 'client.salon_details.verified'.tr(),
+                  color: const Color(0xFF22C55E),
+                  icon: CupertinoIcons.checkmark_seal_fill,
+                ),
+              ],
             ],
           ),
         ),
-
-        // More menu
         if (isReviewAuthor)
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert_rounded, size: 20),
+            icon: Icon(
+              CupertinoIcons.ellipsis,
+              size: 20,
+              color: ClientTheme.textSecondary(context),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             onSelected: (value) {
               if (value == 'edit' && onEdit != null) {
                 onEdit!();
@@ -201,23 +171,30 @@ class ReviewCard extends StatelessWidget {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'edit',
                 child: Row(
                   children: [
-                    Icon(Icons.edit_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('Edit Review'),
+                    const Icon(CupertinoIcons.pencil, size: 18),
+                    const SizedBox(width: 10),
+                    Text('client.salon_details.edit_review'.tr()),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'delete',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Delete Review', style: TextStyle(color: Colors.red)),
+                    const Icon(
+                      CupertinoIcons.trash,
+                      size: 18,
+                      color: Color(0xFFEF4444),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'client.salon_details.delete_review'.tr(),
+                      style: const TextStyle(color: Color(0xFFEF4444)),
+                    ),
                   ],
                 ),
               ),
@@ -228,74 +205,43 @@ class ReviewCard extends StatelessWidget {
   }
 
   //============================================================================
-  // TIMESTAMP ROW
-  //============================================================================
-
-  Widget _buildTimestampRow(BuildContext context, ThemeData theme) {
-    return Row(
-      children: [
-        Icon(
-          CupertinoIcons.clock,
-          size: 12,
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          timeago.format(review.createdAt),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        if (review.isEdited) ...[
-          const SizedBox(width: 8),
-          Text(
-            '(edited)',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  //============================================================================
   // OWNER REPLY
   //============================================================================
 
-  Widget _buildOwnerReply(BuildContext context, ThemeData theme) {
+  Widget _buildOwnerReply(BuildContext context) {
+    final dark = ClientTheme.isDark(context);
+    final accent = dark
+        ? Theme.of(context).colorScheme.primary
+        : AppColors.primaryDark;
+
     return Container(
-      padding: const EdgeInsets.all(AppConstants.padM),
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.1),
-        ),
+        color: AppColors.primary.withValues(alpha: dark ? 0.16 : 0.07),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.store_rounded,
-                size: 16,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Response from Owner',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
+              Icon(CupertinoIcons.building_2_fill, size: 15, color: accent),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'client.salon_details.owner_response'.tr(),
+                  style: TextStyle(
+                    fontFamily: AppTextStyles.fontFamily,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: accent,
+                  ),
                 ),
               ),
-              const Spacer(),
               if (isOwner && onDeleteReply != null)
                 IconButton(
-                  icon: const Icon(Icons.close, size: 16),
+                  icon: const Icon(CupertinoIcons.xmark, size: 15),
                   onPressed: onDeleteReply,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -306,42 +252,20 @@ class ReviewCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             review.ownerReply!,
-            style: theme.textTheme.bodyMedium?.copyWith(
+            style: ClientTheme.body(context).copyWith(
               height: 1.5,
+              color: ClientTheme.textPrimary(context),
             ),
           ),
           if (review.ownerRepliedAt != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               timeago.format(review.ownerRepliedAt!),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: ClientTheme.caption(context),
             ),
           ],
         ],
       ),
     );
-  }
-
-  //============================================================================
-  // ACTION BUTTONS
-  //============================================================================
-
-  Widget _buildActionButtons(BuildContext context, ThemeData theme) {
-    // Owner can reply if they haven't yet
-    if (isOwner && !review.hasOwnerReply && onReply != null) {
-      return TextButton.icon(
-        onPressed: onReply,
-        icon: const Icon(Icons.reply_rounded, size: 18),
-        label: const Text('Reply'),
-        style: TextButton.styleFrom(
-          padding: EdgeInsets.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-      );
-    }
-
-    return const SizedBox.shrink();
   }
 }

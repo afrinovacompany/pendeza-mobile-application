@@ -27,9 +27,11 @@ class ClientInviteUtil {
       );
 
       // Trigger Native Share Sheet
-      await Share.share(
-        message,
-        subject: 'Book with ${salon.salonName} on Pendeza',
+      await SharePlus.instance.share(
+        ShareParams(
+          text: message,
+          subject: 'Book with ${salon.salonName} on Pendeza',
+        ),
       );
 
     } catch (e, s) {

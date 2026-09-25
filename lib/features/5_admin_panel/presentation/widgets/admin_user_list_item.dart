@@ -1,6 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pendeza/features/0_auth/data/models/user_model.dart';
+import 'package:pendeza/features/5_admin_panel/presentation/bloc/admin_bloc.dart';
+import 'package:pendeza/features/5_admin_panel/presentation/widgets/admin_ui.dart';
 import 'package:pendeza/shared/widgets/profile_avatar.dart';
 
 import '../dialog/admin_role_dialog.dart';
@@ -11,43 +14,65 @@ class AdminUserListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: ProfileAvatar(
-        imageUrl: user.profilePictureUrl,
-        fullName: user.fullName,
-        radius: 20,
-      ),
-      title: Text(user.fullName),
-      subtitle: Text(user.email.isEmpty ? user.phoneNumber ?? 'No Contact' : user.email),
-      trailing: Chip(
-        label: Text(user.role ?? 'N/A'),
-        backgroundColor: _getRoleColor(user.role).withValues(alpha: 0.1),
-        labelStyle: TextStyle(color: _getRoleColor(user.role)),
-      ),
+    final contact = user.email.isNotEmpty
+        ? user.email
+        : (user.phoneNumber ?? 'No contact details');
+
+    return AdminCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       onTap: () {
-        // Show dialog to change role
         showDialog(
           context: context,
           builder: (dialogContext) => AdminRoleDialog(
             user: user,
             // Pass the AdminBloc from the current context
-            adminBloc: context.read(),
+            adminBloc: context.read<AdminBloc>(),
           ),
         );
       },
+      child: Row(
+        children: [
+          ProfileAvatar(
+            imageUrl: user.profilePictureUrl,
+            fullName: user.fullName,
+            radius: 22,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user.fullName.isEmpty ? 'Unnamed user' : user.fullName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AdminTheme.body(context)
+                      .copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  contact,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AdminTheme.caption(context),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          AdminPill(
+            label: adminRoleLabel(user.role),
+            tone: adminRoleTone(user.role),
+          ),
+          const SizedBox(width: 6),
+          Icon(
+            CupertinoIcons.chevron_forward,
+            size: 14,
+            color: AdminTheme.textSecondary(context),
+          ),
+        ],
+      ),
     );
-  }
-
-  Color _getRoleColor(String? role) {
-    switch (role) {
-      case 'admin':
-        return Colors.red;
-      case 'owner':
-        return Colors.blue;
-      case 'client':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
   }
 }

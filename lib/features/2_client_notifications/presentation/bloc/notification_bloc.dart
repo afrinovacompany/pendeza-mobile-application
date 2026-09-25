@@ -10,9 +10,24 @@ import 'package:pendeza/shared/models/notification_model.dart';
 import 'notification_event.dart';
 import 'notification_state.dart';
 
+/// A swiped-away notification waiting out its undo window.
+class _PendingDelete {
+  final NotificationModel notification;
+  final Timer timer;
+
+  _PendingDelete(this.notification, this.timer);
+}
+
 class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
+  /// How long a deleted notification can still be brought back.
+  static const Duration defaultUndoWindow = Duration(seconds: 4);
+
   final NotificationRepository _repository;
   final AuthBloc _authBloc;
+  final Duration undoWindow;
+
+  /// Deleted from the list but not yet from Firestore, keyed by notification id.
+  final Map<String, _PendingDelete> _pendingDeletes = {};
 
   StreamSubscription<List<NotificationModel>>? _notificationsSubscription;
   StreamSubscription<int>? _unreadCountSubscription;
@@ -21,6 +36,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   NotificationBloc({
     required NotificationRepository repository,
     required AuthBloc authBloc,
+    this.undoWindow = defaultUndoWindow,
   })  : _repository = repository,
         _authBloc = authBloc,
         super(const NotificationInitial()) {
@@ -29,6 +45,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     on<MarkNotificationAsRead>(_onMarkAsRead);
     on<MarkAllNotificationsAsRead>(_onMarkAllAsRead);
     on<DeleteNotification>(_onDeleteNotification);
+    on<UndoDeleteNotification>(_onUndoDeleteNotification);
+    on<CommitNotificationDelete>(_onCommitNotificationDelete);
     on<DeleteAllNotifications>(_onDeleteAllNotifications);
     on<UpdateUnreadCount>(_onUpdateUnreadCount);
 
@@ -38,6 +56,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         add(const LoadNotifications());
       } else {
         _cancelSubscriptions();
+        _dropPendingDeletes();
         // ignore: invalid_use_of_visible_for_testing_member
         emit(const NotificationInitial());
       }
@@ -96,8 +115,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       );
 
       emit(NotificationLoaded(
-        notifications: notifications,
-        unreadCount: unreadCount,
+        notifications: _withoutPending(notifications),
+        unreadCount: _minusPendingUnread(unreadCount),
       ));
 
       // Setup streams for real-time personal notification updates
@@ -127,8 +146,8 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       );
 
       emit(NotificationLoaded(
-        notifications: notifications,
-        unreadCount: unreadCount,
+        notifications: _withoutPending(notifications),
+        unreadCount: _minusPendingUnread(unreadCount),
       ));
     } catch (e, stackTrace) {
       log.e('Error refreshing notifications', error: e, stackTrace: stackTrace);
@@ -208,39 +227,120 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     }
   }
 
-  Future<void> _onDeleteNotification(
-      DeleteNotification event,
-      Emitter<NotificationState> emit,
-      ) async {
+  /// Removes the notification from the list right away and starts the undo
+  /// window; the real delete happens in [_onCommitNotificationDelete].
+  void _onDeleteNotification(
+    DeleteNotification event,
+    Emitter<NotificationState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is! NotificationLoaded) return;
+    if (_pendingDeletes.containsKey(event.notificationId)) return;
+
+    final matches =
+        currentState.notifications.where((n) => n.id == event.notificationId);
+    if (matches.isEmpty) return;
+    final notification = matches.first;
+
+    _pendingDeletes[event.notificationId] = _PendingDelete(
+      notification,
+      Timer(undoWindow, () {
+        if (!isClosed) add(CommitNotificationDelete(event.notificationId));
+      }),
+    );
+
+    emit(currentState.copyWith(
+      notifications: currentState.notifications
+          .where((n) => n.id != event.notificationId)
+          .toList(),
+      unreadCount: notification.isRead
+          ? currentState.unreadCount
+          : (currentState.unreadCount - 1).clamp(0, double.maxFinite.toInt()),
+    ));
+  }
+
+  void _onUndoDeleteNotification(
+    UndoDeleteNotification event,
+    Emitter<NotificationState> emit,
+  ) {
+    final pending = _pendingDeletes.remove(event.notificationId);
+    if (pending == null) return; // window already closed
+    pending.timer.cancel();
+
     final currentState = state;
     if (currentState is! NotificationLoaded) return;
 
-    try {
-      final notification = currentState.notifications.firstWhere(
-            (n) => n.id == event.notificationId,
-        orElse: () => throw Exception('Notification not found'),
-      );
+    emit(currentState.copyWith(
+      notifications: _insertSorted(
+        currentState.notifications,
+        pending.notification,
+      ),
+      unreadCount:
+          currentState.unreadCount + (pending.notification.isRead ? 0 : 1),
+    ));
+  }
 
-      // Broadcasts can't be deleted — just remove from local list
-      if (!notification.isBroadcast) {
+  Future<void> _onCommitNotificationDelete(
+    CommitNotificationDelete event,
+    Emitter<NotificationState> emit,
+  ) async {
+    final pending = _pendingDeletes[event.notificationId];
+    if (pending == null) return;
+
+    try {
+      // Broadcasts can't be deleted - they were only hidden from the list.
+      if (!pending.notification.isBroadcast) {
         await _repository.deleteNotification(event.notificationId);
       }
-
-      // Remove from local state
-      final updatedNotifications = currentState.notifications
-          .where((n) => n.id != event.notificationId)
-          .toList();
-
-      emit(currentState.copyWith(
-        notifications: updatedNotifications,
-        unreadCount: notification.isRead
-            ? currentState.unreadCount
-            : (currentState.unreadCount - 1)
-            .clamp(0, double.maxFinite.toInt()),
-      ));
+      _pendingDeletes.remove(event.notificationId);
     } catch (e, stackTrace) {
       log.e('Error deleting notification', error: e, stackTrace: stackTrace);
+      // The delete failed, so the notification still exists: show it again.
+      _pendingDeletes.remove(event.notificationId);
+      final currentState = state;
+      if (currentState is NotificationLoaded) {
+        emit(currentState.copyWith(
+          notifications: _insertSorted(
+            currentState.notifications,
+            pending.notification,
+          ),
+          unreadCount:
+              currentState.unreadCount + (pending.notification.isRead ? 0 : 1),
+        ));
+      }
     }
+  }
+
+  /// [notifications] minus the ones waiting out their undo window (a refresh
+  /// or stream update would otherwise bring them straight back).
+  List<NotificationModel> _withoutPending(
+      List<NotificationModel> notifications) {
+    if (_pendingDeletes.isEmpty) return notifications;
+    return notifications
+        .where((n) => !_pendingDeletes.containsKey(n.id))
+        .toList();
+  }
+
+  int _minusPendingUnread(int count) {
+    final pendingUnread = _pendingDeletes.values
+        .where((p) => !p.notification.isRead && !p.notification.isBroadcast)
+        .length;
+    return (count - pendingUnread).clamp(0, double.maxFinite.toInt());
+  }
+
+  List<NotificationModel> _insertSorted(
+    List<NotificationModel> notifications,
+    NotificationModel notification,
+  ) {
+    return [...notifications, notification]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  void _dropPendingDeletes() {
+    for (final pending in _pendingDeletes.values) {
+      pending.timer.cancel();
+    }
+    _pendingDeletes.clear();
   }
 
   Future<void> _onDeleteAllNotifications(
@@ -253,6 +353,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     try {
       // Only delete personal notifications
       await _repository.deleteAllNotifications(userId);
+      _dropPendingDeletes();
 
       // Keep broadcasts in the list but mark as read
       final currentState = state;
@@ -284,7 +385,9 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       ) {
     final currentState = state;
     if (currentState is NotificationLoaded) {
-      emit(currentState.copyWith(unreadCount: event.count));
+      emit(currentState.copyWith(
+        unreadCount: _minusPendingUnread(event.count),
+      ));
     }
   }
 
@@ -302,7 +405,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         currentState.notifications.where((n) => n.isBroadcast).toList();
 
         final allNotifications = [
-          ...personalNotifications,
+          ..._withoutPending(personalNotifications),
           ...broadcasts,
         ];
         allNotifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -328,6 +431,16 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
 
   @override
   Future<void> close() async {
+    // Finish the deletes the user already confirmed by not undoing them.
+    for (final pending in _pendingDeletes.values) {
+      pending.timer.cancel();
+      if (!pending.notification.isBroadcast) {
+        unawaited(_repository
+            .deleteNotification(pending.notification.id)
+            .catchError((Object e) => log.e('Error deleting notification: $e')));
+      }
+    }
+    _pendingDeletes.clear();
     await _cancelSubscriptions();
     await _authSubscription?.cancel();
     return super.close();
