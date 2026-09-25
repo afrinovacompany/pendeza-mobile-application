@@ -17,11 +17,11 @@ android {
         minSdk = 24
         targetSdk = 36
 
-        // Hardcoded for the first Google Play Store release
-        // versionCode must start at 1 and increase with every update
-        // versionName is the visible version string (can be any format you prefer)
-        versionCode = 8
-        versionName = "1.7"
+        // Single source of truth is `version:` in pubspec.yaml (name+build),
+        // shared with iOS. Bump it there; versionCode must go up on every
+        // Play upload.
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
 
         multiDexEnabled = true
     }

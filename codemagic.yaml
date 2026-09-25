@@ -26,11 +26,13 @@ workflows:
       - name: Set up code signing
         script: xcode-project use-profiles
       - name: Build IPA for App Store
+        # Version and build number come from `version:` in pubspec.yaml, the
+        # same values the Android build uses, so both stores always match.
+        # Bump pubspec.yaml before every upload (App Store Connect rejects a
+        # build number it has already seen for the same version).
         script: |
           flutter build ipa --release \
-            --export-options-plist=/Users/builder/export_options.plist \
-            --build-name=1.0 \
-            --build-number=$BUILD_NUMBER
+            --export-options-plist=/Users/builder/export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
